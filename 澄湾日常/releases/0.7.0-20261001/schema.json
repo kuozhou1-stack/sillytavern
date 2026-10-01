@@ -1,0 +1,5479 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "世界": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "基础信息": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "国家": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "城市id": {
+              "default": "valoran",
+              "type": "string"
+            },
+            "城市名称": {
+              "default": "瓦罗兰市",
+              "type": "string"
+            },
+            "时区": {
+              "default": "Asia/Shanghai",
+              "type": "string",
+              "const": "Asia/Shanghai"
+            }
+          }
+        },
+        "异常入侵度": {
+          "default": null,
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "当前时间": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/$defs/故事时间"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "开局时间": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/$defs/故事时间"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "片区": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "片区id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "功能": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "方位": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "地图中心": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "y": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "天气": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "天气状况": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "气温": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "风况": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "适用区域": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "生效时间": {
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/故事时间"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "_上次检查时间": {
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/故事时间"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "当前场景": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "场景id": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "在场人物": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "正在进行的事": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "环境状态": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "未完事项": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "事项id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "内容": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "关联约定id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "_上次更新场景时间": {
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/故事时间"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "城市日程": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "日程id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "类型": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "起始时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "结束时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "地点id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "适用范围": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "公开信息": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "天气预报": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "预报id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "预测内容": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "起始时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "结束时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "发布时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "适用范围": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "玩家": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "姓名": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "种族": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "称呼": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "性别": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "年龄": {
+          "default": null,
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "背景": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "成长背景",
+              "家庭背景",
+              "教育经历",
+              "重要过往",
+              "当前生活背景"
+            ]
+          },
+          "additionalProperties": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "身份": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "身份": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "社会身份": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "工作或就读单位": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "组织id": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "外貌": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "身高": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "体重": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "体型": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "面容": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "发型": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "显著特征": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "整体外貌描述": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "当前状态": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "当前地点id": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "正在进行的行动": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "今日穿搭": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "身体状态": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "饱食度": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "水分值": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "体力值": {
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "生活": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "住处id": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "工作地点id": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "常去地点id": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "日常活动": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "联系方式": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "目标": {
+              "$ref": "#/$defs/目标",
+              "default": {}
+            },
+            "约定": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "技能栏": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "技能id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "品质": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "描述": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "已知信息": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "已认识人物": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "人物id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "称呼": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "已知资料": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "上次已知地点id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "位置获知时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "已明确不在场": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "来源": {
+                    "$ref": "#/$defs/信息来源",
+                    "default": {}
+                  }
+                }
+              }
+            },
+            "已知地点": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "地点id"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/信息来源",
+                "default": {}
+              }
+            },
+            "已知账号": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "账号id"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/信息来源",
+                "default": {}
+              }
+            },
+            "获知事项": {
+              "$ref": "#/$defs/获知事项",
+              "default": {}
+            }
+          }
+        },
+        "个人记录": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "个人备忘": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "备忘id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "内容": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "关联事项id": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "重要经历": {
+              "$ref": "#/$defs/重要经历",
+              "default": {}
+            }
+          }
+        },
+        "物品栏": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "物品id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "类别": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "单位": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "描述": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "状态": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "数量": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "所有者id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "持有人id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "存放地点id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "获得时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "关联事项id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": {}
+          }
+        },
+        "资金": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "余额分": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "交易": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "交易id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "事件id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "类型": {
+                    "default": "支出",
+                    "type": "string",
+                    "enum": [
+                      "收入",
+                      "支出",
+                      "内部转账",
+                      "退款"
+                    ]
+                  },
+                  "金额分": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "对方id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "用途": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "状态": {
+                    "default": "待结",
+                    "type": "string",
+                    "enum": [
+                      "待结",
+                      "已完成",
+                      "取消"
+                    ]
+                  },
+                  "_提交id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "未结事项": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "事项id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "类型": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "金额分": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "对方id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "条件": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "状态": {
+                    "default": "未结",
+                    "type": "string",
+                    "enum": [
+                      "未结",
+                      "已结",
+                      "取消"
+                    ]
+                  },
+                  "关联交易id": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": {}
+        }
+      }
+    },
+    "角色": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "人物id"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "姓名": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "性别": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "种族": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "当前形态": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "年龄": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "身份": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "组织id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "简介": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "关系网": {
+                "$ref": "#/$defs/关系网",
+                "default": {}
+              },
+              "认知": {
+                "$ref": "#/$defs/获知事项",
+                "default": {}
+              },
+              "当前状态": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "当前地点id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "生活": {
+                "$ref": "#/$defs/生活",
+                "default": {}
+              },
+              "重要记录": {
+                "$ref": "#/$defs/重要记录",
+                "default": {}
+              },
+              "_管理": {
+                "$ref": "#/$defs/_管理",
+                "default": {}
+              },
+              "层级": {
+                "type": "string",
+                "const": "主要"
+              },
+              "外貌": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "身高": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "体重": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "整体体型": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "三围信息": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "胸围": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "腰围": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "臀围": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "罩杯": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "详细外表": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "今日穿搭": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "性格": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "里性格",
+                    "表性格",
+                    "爱好",
+                    "厌恶",
+                    "小习惯",
+                    "语言习惯"
+                  ]
+                },
+                "additionalProperties": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "即时状态": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "心境基调": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "生理状态": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "注意力重心": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "专属标识": {
+                "$ref": "#/$defs/专属标识",
+                "default": {}
+              },
+              "网络倾向": {
+                "default": {
+                  "通用": {}
+                },
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "平台或账号id，通用用通用"
+                },
+                "additionalProperties": {
+                  "default": {},
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "enum": [
+                      "网络身份",
+                      "常用平台",
+                      "发布偏好",
+                      "活跃习惯",
+                      "互动风格",
+                      "公开边界"
+                    ]
+                  },
+                  "additionalProperties": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "性特征适用": {
+                "default": null,
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "性特征": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "奶子信息": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "蜜穴信息": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "其他": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "特殊性癖、身体异常敏感带、特殊生理体质（如溢乳、极敏、潮吹）、玩法偏好或私密扩充说明"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "性经验": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "性次数": {
+                        "default": {},
+                        "type": "object",
+                        "properties": {
+                          "确数": {
+                            "default": null,
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "概数说明": {
+                            "default": null,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "已知新增说明": {
+                            "default": null,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      },
+                      "性人群": {
+                        "default": null,
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "依据事件id": {
+                        "default": [],
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "经历": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "人生经历": {
+                    "$ref": "#/$defs/重要经历",
+                    "default": {}
+                  },
+                  "最近经历": {
+                    "$ref": "#/$defs/重要经历",
+                    "default": {}
+                  },
+                  "生活摘要": {
+                    "$ref": "#/$defs/生活摘要",
+                    "default": {}
+                  },
+                  "阶段概述": {
+                    "$ref": "#/$defs/生活摘要",
+                    "default": {}
+                  },
+                  "_待归档经历": {
+                    "$ref": "#/$defs/重要经历",
+                    "default": {}
+                  }
+                }
+              },
+              "_更新循环": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "当前计数": {
+                    "default": 0,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "更新阈值": {
+                    "default": 5,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "使用统一阈值": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "上次更新变量时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "待处理任务id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "层级"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "姓名": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "性别": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "种族": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "当前形态": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "年龄": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "身份": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "组织id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "简介": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "关系网": {
+                "$ref": "#/$defs/关系网",
+                "default": {}
+              },
+              "认知": {
+                "$ref": "#/$defs/获知事项",
+                "default": {}
+              },
+              "当前状态": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "当前地点id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "生活": {
+                "$ref": "#/$defs/生活",
+                "default": {}
+              },
+              "重要记录": {
+                "$ref": "#/$defs/重要记录",
+                "default": {}
+              },
+              "_管理": {
+                "$ref": "#/$defs/_管理",
+                "default": {}
+              },
+              "层级": {
+                "type": "string",
+                "const": "次要"
+              },
+              "外貌": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "身高": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "体重": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "整体体型": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "详细外表": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "今日穿搭": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "性格": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "专属标识": {
+                "$ref": "#/$defs/专属标识",
+                "default": {}
+              }
+            },
+            "required": [
+              "层级"
+            ]
+          }
+        ]
+      }
+    },
+    "地点": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "地点id"
+      },
+      "additionalProperties": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "名称": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "片区id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "上级地点id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "类型": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "简介": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "室内外": {
+            "default": "未知",
+            "type": "string",
+            "enum": [
+              "室内",
+              "室外",
+              "混合",
+              "未知"
+            ]
+          },
+          "地图位置": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "x": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "y": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "精度": {
+                "default": "未知",
+                "type": "string",
+                "enum": [
+                  "地点",
+                  "片区",
+                  "未知"
+                ]
+              }
+            }
+          },
+          "常规开放时间": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "进入条件": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "动态状态": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "description": "状态id"
+            },
+            "additionalProperties": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "说明": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "生效时间": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/故事时间"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "结束时间": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/故事时间"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "关联人物": {
+            "$ref": "#/$defs/关联人物",
+            "default": {}
+          }
+        }
+      }
+    },
+    "约定": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "约定id"
+      },
+      "additionalProperties": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "参与者": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "description": "人物id"
+            },
+            "additionalProperties": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "称呼": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "响应": {
+                  "default": "待确认",
+                  "type": "string",
+                  "enum": [
+                    "拟议",
+                    "待确认",
+                    "接受",
+                    "拒绝",
+                    "取消"
+                  ]
+                },
+                "响应时间": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/故事时间"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "内容": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "时间": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/$defs/故事时间"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "时间说明": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "地点id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "状态": {
+            "default": "拟议",
+            "type": "string",
+            "enum": [
+              "拟议",
+              "待确认",
+              "已确认",
+              "完成",
+              "取消",
+              "未履行"
+            ]
+          },
+          "履行依据事件id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "事件": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "事件id"
+      },
+      "additionalProperties": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "起始时间": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/$defs/故事时间"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "结束时间": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/$defs/故事时间"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "日期说明": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "参与者": {
+            "$ref": "#/$defs/关联人物",
+            "default": {}
+          },
+          "事实": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "各人可知来源": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "description": "人物id"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/信息来源",
+              "default": {}
+            }
+          },
+          "关联记录id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "更正自事件id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "_提交id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "组织": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "组织id"
+      },
+      "additionalProperties": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "名称": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "类型": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "简介": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "场所id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "已知成员": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "description": "人物id"
+            },
+            "additionalProperties": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "职务": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "活动日程id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "规则": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "手机": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "账号": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "账号id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "人物id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "平台": {
+                "default": "邻信",
+                "type": "string",
+                "enum": [
+                  "邻信",
+                  "微澜"
+                ]
+              },
+              "账号名": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "昵称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "头像资源": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "简介": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "公开资料": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "公开字段名"
+                },
+                "additionalProperties": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "联系人": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "联系记录id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "本人账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "对方账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "备注": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "免打扰": {
+                "default": false,
+                "type": "boolean"
+              },
+              "状态": {
+                "default": "正常",
+                "type": "string",
+                "enum": [
+                  "正常",
+                  "移除",
+                  "拉黑"
+                ]
+              },
+              "建立时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "申请": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "申请id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "发起账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "目标账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "说明": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "状态": {
+                "default": "待处理",
+                "type": "string",
+                "enum": [
+                  "待处理",
+                  "接受",
+                  "拒绝",
+                  "撤销"
+                ]
+              }
+            },
+            "additionalProperties": {}
+          }
+        },
+        "关注": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "关注记录id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "关注者账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "被关注账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "建立时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "群": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "群id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "头像资源": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "创建者账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "管理员账号id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "公告": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "成员": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "账号id"
+                },
+                "additionalProperties": {
+                  "default": {},
+                  "type": "object",
+                  "properties": {
+                    "群昵称": {
+                      "default": null,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "成员区间": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "description": "区间id"
+                      },
+                      "additionalProperties": {
+                        "default": {},
+                        "type": "object",
+                        "properties": {
+                          "加入时间": {
+                            "default": null,
+                            "anyOf": [
+                              {
+                                "$ref": "#/$defs/故事时间"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "离开时间": {
+                            "default": null,
+                            "anyOf": [
+                              {
+                                "$ref": "#/$defs/故事时间"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "会话": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "会话id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "类型": {
+                "default": "私聊",
+                "type": "string",
+                "enum": [
+                  "私聊",
+                  "群聊"
+                ]
+              },
+              "参与账号id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "群id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "_窗口": {
+                "$ref": "#/$defs/_窗口",
+                "default": {}
+              },
+              "重要事项id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "原文": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "消息": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "消息id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "会话id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "发送账号id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "发送者称呼": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "故事时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "_顺序": {
+                    "default": 0,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "内容块": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/$defs/文字内容"
+                        },
+                        {
+                          "$ref": "#/$defs/图片内容"
+                        },
+                        {
+                          "$ref": "#/$defs/语音内容"
+                        },
+                        {
+                          "$ref": "#/$defs/表情内容"
+                        },
+                        {
+                          "$ref": "#/$defs/视频内容"
+                        },
+                        {
+                          "$ref": "#/$defs/位置内容"
+                        },
+                        {
+                          "$ref": "#/$defs/名片内容"
+                        },
+                        {
+                          "$ref": "#/$defs/分享内容"
+                        }
+                      ]
+                    }
+                  },
+                  "回复目标消息id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "撤回时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "_已投递账号id": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "_发送状态": {
+                    "default": "待投递",
+                    "type": "string",
+                    "enum": [
+                      "待投递",
+                      "已投递",
+                      "失败"
+                    ]
+                  }
+                }
+              }
+            },
+            "帖子": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "帖子id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "平台": {
+                    "default": "朋友圈",
+                    "type": "string",
+                    "enum": [
+                      "朋友圈",
+                      "微澜"
+                    ]
+                  },
+                  "发布账号id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "发布者称呼": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "故事时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "_顺序": {
+                    "default": 0,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "内容块": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/$defs/文字内容"
+                        },
+                        {
+                          "$ref": "#/$defs/图片内容"
+                        },
+                        {
+                          "$ref": "#/$defs/语音内容"
+                        },
+                        {
+                          "$ref": "#/$defs/表情内容"
+                        },
+                        {
+                          "$ref": "#/$defs/视频内容"
+                        },
+                        {
+                          "$ref": "#/$defs/位置内容"
+                        },
+                        {
+                          "$ref": "#/$defs/名片内容"
+                        },
+                        {
+                          "$ref": "#/$defs/分享内容"
+                        }
+                      ]
+                    }
+                  },
+                  "可见范围": {
+                    "default": "联系人可见",
+                    "type": "string",
+                    "enum": [
+                      "联系人可见",
+                      "指定联系人",
+                      "除指定联系人外",
+                      "仅自己",
+                      "公开"
+                    ]
+                  },
+                  "受众账号id": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "可见范围变更": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "description": "变更id"
+                    },
+                    "additionalProperties": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {
+                        "时间": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "$ref": "#/$defs/故事时间"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "可见范围": {
+                          "default": null,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "受众账号id": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "地点id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "话题": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "编辑版本": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "description": "版本id"
+                    },
+                    "additionalProperties": {
+                      "default": {},
+                      "type": "object",
+                      "properties": {
+                        "时间": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "$ref": "#/$defs/故事时间"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "内容块": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "$ref": "#/$defs/文字内容"
+                              },
+                              {
+                                "$ref": "#/$defs/图片内容"
+                              },
+                              {
+                                "$ref": "#/$defs/语音内容"
+                              },
+                              {
+                                "$ref": "#/$defs/表情内容"
+                              },
+                              {
+                                "$ref": "#/$defs/视频内容"
+                              },
+                              {
+                                "$ref": "#/$defs/位置内容"
+                              },
+                              {
+                                "$ref": "#/$defs/名片内容"
+                              },
+                              {
+                                "$ref": "#/$defs/分享内容"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "编辑时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "删除时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "评论": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "评论id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "帖子id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "评论账号id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "评论者称呼": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "故事时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "_顺序": {
+                    "default": 0,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "内容块": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/$defs/文字内容"
+                        },
+                        {
+                          "$ref": "#/$defs/表情内容"
+                        }
+                      ]
+                    }
+                  },
+                  "回复目标评论id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "可见依据": {
+                    "$ref": "#/$defs/信息来源",
+                    "default": {}
+                  }
+                }
+              }
+            },
+            "点赞": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "点赞id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "账号id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "内容id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "转发": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "description": "转发id"
+              },
+              "additionalProperties": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                  "账号id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "原帖id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "新帖id": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "时间": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/故事时间"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "附言": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "_动态流": {
+          "default": {
+            "朋友圈": {},
+            "微澜": {}
+          },
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "朋友圈",
+              "微澜"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/_窗口",
+            "default": {}
+          }
+        },
+        "_归档批次": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "归档批次id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "来源类型": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "覆盖消息id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "覆盖帖子id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "覆盖互动id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "摘要id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "起始时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "结束时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "提交id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "摘要": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "摘要id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "来源类型": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "层级": {
+                "default": "细摘要",
+                "type": "string",
+                "enum": [
+                  "细摘要",
+                  "阶段概述"
+                ]
+              },
+              "起始时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "结束时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "内容": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "覆盖记录id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "重要事项id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "_通知": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "通知id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "类型": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "内容id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "已读": {
+                "default": false,
+                "type": "boolean"
+              },
+              "免打扰": {
+                "default": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "_阅读进度": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "阅读者账号id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "description": "会话或内容流id"
+            },
+            "additionalProperties": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "已读内容id": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "最后阅读消息id": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "最后阅读顺序": {
+                  "default": 0,
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "_待回应": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "待回应id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "会话id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "预期回应账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "涉及消息id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "开始等待时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "问题摘要": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "状态": {
+                "default": "等待",
+                "type": "string",
+                "enum": [
+                  "等待",
+                  "部分回应",
+                  "已回应",
+                  "取消"
+                ]
+              },
+              "已覆盖消息id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "_后台检查位置": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "会话或内容流id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "最后检查事件id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "故事时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "_接收侧记录": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "投递记录id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "接收账号id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "原内容id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源类型": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "投递时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "已交付内容": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/文字内容"
+                    },
+                    {
+                      "$ref": "#/$defs/图片内容"
+                    },
+                    {
+                      "$ref": "#/$defs/语音内容"
+                    },
+                    {
+                      "$ref": "#/$defs/表情内容"
+                    },
+                    {
+                      "$ref": "#/$defs/视频内容"
+                    },
+                    {
+                      "$ref": "#/$defs/位置内容"
+                    },
+                    {
+                      "$ref": "#/$defs/名片内容"
+                    },
+                    {
+                      "$ref": "#/$defs/分享内容"
+                    }
+                  ]
+                }
+              },
+              "当时发送者称呼": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "_地图收藏": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "奇遇系统": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "_启用": {
+          "default": false,
+          "type": "boolean"
+        },
+        "_系统币": {
+          "default": 0,
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "_刷新日期": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "_任务记录": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "状态": {
+                "default": "进行中",
+                "type": "string",
+                "enum": [
+                  "进行中",
+                  "已领取",
+                  "已放弃"
+                ]
+              },
+              "定义快照": {
+                "default": "",
+                "type": "string"
+              },
+              "接取时事件摘要": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "事件id"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "接取地点id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "_商店已购": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "商品id"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "minLength": 1
+              }
+            ]
+          }
+        },
+        "_商店商品": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "商品id"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "名称": {
+                "type": "string",
+                "minLength": 1
+              },
+              "价格": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "类别": {
+                "type": "string",
+                "minLength": 1
+              },
+              "描述": {
+                "type": "string",
+                "minLength": 1
+              },
+              "稀有": {
+                "default": false,
+                "type": "boolean"
+              },
+              "限购": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "名称",
+              "价格",
+              "类别",
+              "描述"
+            ]
+          }
+        },
+        "_流水": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "结算id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "类型": {
+                "default": "任务奖励",
+                "type": "string",
+                "enum": [
+                  "启用赠礼",
+                  "任务奖励",
+                  "商店购买"
+                ]
+              },
+              "数额": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "说明": {
+                "default": "",
+                "type": "string"
+              },
+              "关联id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "任务": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": "",
+                "type": "string"
+              },
+              "类型": {
+                "default": "探索",
+                "type": "string",
+                "enum": [
+                  "日常",
+                  "探索",
+                  "社交",
+                  "成长",
+                  "奇遇"
+                ]
+              },
+              "难度": {
+                "default": "基础",
+                "type": "string",
+                "enum": [
+                  "基础",
+                  "进阶",
+                  "稀有"
+                ]
+              },
+              "目标": {
+                "default": "",
+                "type": "string"
+              },
+              "有效日": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "进度": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "进展说明": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "完成依据事件id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": {}
+          }
+        }
+      }
+    },
+    "_系统": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "格式版本": {
+          "default": "1.0.0",
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "建档完成": {
+          "default": false,
+          "type": "boolean"
+        },
+        "存档id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "分支id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "楼层id": {
+          "default": null,
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "候选回复id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "数据版本": {
+          "default": 0,
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "稳定序号": {
+          "default": 0,
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "活动写入者id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "默认更新阈值": {
+          "default": 5,
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "生成密度": {
+          "default": "标准",
+          "type": "string",
+          "enum": [
+            "少量",
+            "标准",
+            "丰富"
+          ]
+        },
+        "任务": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "类别": {
+                "default": "正文",
+                "type": "string",
+                "enum": [
+                  "正文",
+                  "私聊",
+                  "群聊",
+                  "刷新",
+                  "生活更新",
+                  "升格",
+                  "自然融入",
+                  "摘要",
+                  "导入",
+                  "删除",
+                  "建档"
+                ]
+              },
+              "触发来源": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "目标id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "目标版本": {
+                "$ref": "#/$defs/目标版本",
+                "default": {}
+              },
+              "存档id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "分支id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "楼层id": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "候选回复id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "输入数据版本": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "计数截止点": {
+                "$ref": "#/$defs/目标版本",
+                "default": {}
+              },
+              "起始时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "截止时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "覆盖记录id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "状态": {
+                "default": "排队",
+                "type": "string",
+                "enum": [
+                  "排队",
+                  "生成中",
+                  "待校验",
+                  "待提交",
+                  "已提交",
+                  "失败",
+                  "取消",
+                  "失效"
+                ]
+              },
+              "候选结果JSON": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "错误": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "重试次数": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "提交id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "持久保存已确认": {
+                "default": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "提交记录": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "提交id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "任务id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "事件id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "数据版本": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "状态": {
+                "default": "待确认",
+                "type": "string",
+                "enum": [
+                  "待确认",
+                  "已写入",
+                  "已持久保存"
+                ]
+              },
+              "恢复候选JSON": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "角色库版本": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "角色停用标识": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "人物id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "姓名": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "版本": {
+                "default": 0,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "来源档案": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "来源档案id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "人物id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "格式版本": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源存档id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "导出故事时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "原时间锚点": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "原始快照JSON": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "当前融入状态": {
+                "default": "待融入",
+                "type": "string",
+                "enum": [
+                  "待融入",
+                  "已融入",
+                  "失败"
+                ]
+              },
+              "资源清单": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "资源id"
+                },
+                "additionalProperties": {
+                  "default": {},
+                  "type": "object",
+                  "properties": {
+                    "位置": {
+                      "default": null,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "已内嵌": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "缺失": {
+                      "default": false,
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "已计轮事件": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "事件id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "提交id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "角色id": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "管理更正记录": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "更正id"
+          },
+          "additionalProperties": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "对象id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "时间": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/故事时间"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "内容": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "来源事件id": {
+                "default": null,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "故事时间": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "年",
+          "月",
+          "日",
+          "时",
+          "分"
+        ]
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      },
+      "required": [
+        "年",
+        "月",
+        "日",
+        "时",
+        "分"
+      ]
+    },
+    "目标": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "目标id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "内容": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "进展": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "default": {}
+      }
+    },
+    "信息来源": {
+      "type": "object",
+      "properties": {
+        "方式": {
+          "default": "未设定",
+          "type": "string",
+          "enum": [
+            "观察",
+            "听说",
+            "阅读",
+            "被告知",
+            "玩家填写",
+            "授权生成",
+            "导入",
+            "事件",
+            "未设定"
+          ]
+        },
+        "说明": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "人物id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "记录id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "获得时间": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/$defs/故事时间"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "获知事项": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "认知id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "内容": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "性质": {
+            "default": "未确认",
+            "type": "string",
+            "enum": [
+              "事实",
+              "推测",
+              "误解",
+              "未确认"
+            ]
+          },
+          "来源": {
+            "$ref": "#/$defs/信息来源",
+            "default": {}
+          },
+          "对象id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "分享范围": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "default": {}
+      }
+    },
+    "重要经历": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "经历id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "日期说明": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "日期精度": {
+            "default": "未知",
+            "type": "string",
+            "enum": [
+              "日",
+              "月",
+              "年",
+              "未知"
+            ]
+          },
+          "经历": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "来源事件id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "来源存档id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "default": {}
+      }
+    },
+    "关系网": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "对象人物id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "姓名": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "好感度": {
+            "default": null,
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "信任度": {
+            "default": null,
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "关系": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "关系备注": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "来源事件id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "当前定位": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "防御姿态": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "破壁阶段": {
+            "default": null,
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "已知私密": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "default": {}
+      }
+    },
+    "生活": {
+      "type": "object",
+      "properties": {
+        "住处id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "工作地点id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "常去地点id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "日常活动": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "联系方式": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "目标": {
+          "$ref": "#/$defs/目标",
+          "default": {}
+        },
+        "约定": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": {}
+    },
+    "重要记录": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "记录id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "内容": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "事件id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "约定id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "default": {}
+      }
+    },
+    "_管理": {
+      "type": "object",
+      "properties": {
+        "升格": {
+          "default": false,
+          "type": "boolean"
+        },
+        "版本": {
+          "default": 0,
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "来源档案id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "恢复说明": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "专属标识": {
+      "type": "object",
+      "properties": {
+        "身体印记": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "随身信物": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "感官特征": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "破防弱点": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "生活摘要": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "摘要id"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "起始日期说明": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "结束日期说明": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "经历": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "覆盖记录id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "重要事项id": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "来源存档id": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "default": {}
+      }
+    },
+    "关联人物": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "人物id"
+      },
+      "additionalProperties": {
+        "default": null,
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "_窗口": {
+      "type": "object",
+      "properties": {
+        "_近期id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "_细摘要id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "_阶段概述id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "_已归档覆盖id": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "文字内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "文字"
+        },
+        "id": {
+          "type": "string"
+        },
+        "正文": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "正文"
+      ]
+    },
+    "图片内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "图片"
+        },
+        "id": {
+          "type": "string"
+        },
+        "图片描述": {
+          "type": "string"
+        },
+        "拍摄时间": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/$defs/故事时间"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "图片描述"
+      ]
+    },
+    "语音内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "语音"
+        },
+        "id": {
+          "type": "string"
+        },
+        "转写文字": {
+          "type": "string"
+        },
+        "语气描述": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "模拟时长秒": {
+          "default": null,
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "转写文字"
+      ]
+    },
+    "表情内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "表情"
+        },
+        "id": {
+          "type": "string"
+        },
+        "表情内容": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "表情内容"
+      ]
+    },
+    "视频内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "视频"
+        },
+        "id": {
+          "type": "string"
+        },
+        "画面过程描述": {
+          "type": "string"
+        },
+        "字幕或声音描述": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "模拟时长秒": {
+          "default": null,
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "画面过程描述"
+      ]
+    },
+    "位置内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "位置"
+        },
+        "id": {
+          "type": "string"
+        },
+        "地点id": {
+          "type": "string"
+        },
+        "显示名称": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "附言": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "地点id"
+      ]
+    },
+    "名片内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "名片"
+        },
+        "id": {
+          "type": "string"
+        },
+        "账号id": {
+          "type": "string"
+        },
+        "附言": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "账号id"
+      ]
+    },
+    "分享内容": {
+      "type": "object",
+      "properties": {
+        "类型": {
+          "type": "string",
+          "const": "分享"
+        },
+        "id": {
+          "type": "string"
+        },
+        "目标类型": {
+          "default": "帖子",
+          "type": "string",
+          "enum": [
+            "帖子",
+            "消息",
+            "地点"
+          ]
+        },
+        "目标id": {
+          "type": "string"
+        },
+        "附言": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "类型",
+        "id",
+        "目标id"
+      ]
+    },
+    "目标版本": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "人物id"
+      },
+      "additionalProperties": {
+        "default": 0,
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      }
+    }
+  }
+}

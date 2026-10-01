@@ -1,0 +1,110 @@
+{
+  "title": "符文都市：谐振",
+  "version": "0.7.0",
+  "revision": "0.7.0-ui-20261002",
+  "generatedAt": "2026-10-01T19:42:36.232Z",
+  "repository": "kuozhou1-stack/sillytavern",
+  "branch": "master",
+  "assetCommit": "e56c3a87cad64649c1ac09a3309c97e49f15fb61",
+  "runtimeCommit": "e7cd07c47c580b696b711df8b98497a6cd6d1815",
+  "card": {
+    "file": "符文都市谐振-正式版-手机与档案更新20261002.png",
+    "path": "澄湾日常/releases/0.7.0-ui-20261002/符文都市谐振-正式版-手机与档案更新20261002.png",
+    "bytes": 4613857,
+    "sha256": "57e847b6d224a0a0f0958812fe18c7ab683ab2481522084b36adfc8321839bb0"
+  },
+  "worldbookEntries": 35,
+  "scripts": 4,
+  "characters": 171,
+  "catalogUrl": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json",
+  "resources": [
+    {
+      "path": "澄湾日常/releases/0.7.0-20261001/角色资源/index.json",
+      "sha256": "1c53389fb76f4f8d04c64b8a37e482587fc4db89a71382979d7face3b2e7fd48",
+      "bytes": 21297,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json"
+    },
+    {
+      "path": "澄湾日常/releases/0.7.0-20261001/角色资源/characters-0a8e2154451ee783.json",
+      "sha256": "0a8e2154451ee783fb5eb8115ede2c8e72c5624cc4fa564c447baceaf620c687",
+      "bytes": 1523046,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/characters-0a8e2154451ee783.json",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/characters-0a8e2154451ee783.json"
+    },
+    {
+      "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/界面/桌面端/index.html",
+      "sha256": "1ae44885648ad562be1be4ec3d6e31a662bff1ba164eb5d05ae7c05d60071312",
+      "bytes": 1154605,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html"
+    },
+    {
+      "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/变量结构/index.js",
+      "sha256": "ca315f165ca945e88d4ea8c76e63a82e427f76e414013e28a68bc47374d9a412",
+      "bytes": 73139,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js"
+    },
+    {
+      "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/辅助API/index.js",
+      "sha256": "fa364a3302ef3a8b69df1f26020a8b731f267234f596ded8ccb06c5af07fd1b1",
+      "bytes": 209985,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js"
+    },
+    {
+      "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/流式同层/index.js",
+      "sha256": "a4a5a34c43e27291c93169f5fe993414b3aa6b9601c9e5d44a8dc1dbd515df2c",
+      "bytes": 1195637,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js"
+    }
+  ],
+  "maps": [
+    {
+      "file": "world-overview.webp",
+      "sha256": "4b895165acdf967356f6d577ab4927fb7461c6a6e58e6b78ecf8833fba8df4eb",
+      "bytes": 630112,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/world-overview.webp",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/world-overview.webp"
+    },
+    {
+      "file": "districts-a.webp",
+      "sha256": "2640293d4724549d6ede9d6171d70fff3bae02047046df549347ddb6d3cc6be8",
+      "bytes": 707714,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-a.webp",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-a.webp"
+    },
+    {
+      "file": "districts-b.webp",
+      "sha256": "b2e08d5a96c15f09ea6e31ba5eab51baa14a3f49302fa009b019248972d4d592",
+      "bytes": 709644,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-b.webp",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-b.webp"
+    },
+    {
+      "file": "districts-c.webp",
+      "sha256": "e63dbd8fec171d0c29f4da79ba9c339b2d3e9787484580e767fd7c2bbbc3cc0f",
+      "bytes": 710138,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-c.webp",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-c.webp"
+    },
+    {
+      "file": "districts-d.webp",
+      "sha256": "e228c9dbf0ffc0c60981b34b5cc7cb35b88e9117d8a943e689abd4a0f3ea6982",
+      "bytes": 583290,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-d.webp",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/491d104fda2da67c9e8e1261124ec9c0013dee02/assets/runeterra/maps/20261001/districts-d.webp"
+    }
+  ],
+  "portrait": {
+    "source": "头像.jpg",
+    "sourceSha256": "36f7104420555060097bd6430def939ab3f8eca87bd4fef35dc10e2b9c47a902",
+    "pngSha256": "f57f0981628b75d5cefb37daecb288b58e2dce1e26559ba46b3fec9b82bb2f17",
+    "width": 1920,
+    "height": 1116
+  },
+  "containsInlineProjectCode": false,
+  "updateEntry": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/master/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/frontend-current.json"
+}

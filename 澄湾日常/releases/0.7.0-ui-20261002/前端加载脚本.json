@@ -1,0 +1,53 @@
+[
+  {
+    "name": "澄湾日常·变量结构",
+    "id": "d772e754-a926-49cb-95ef-44e1034b2325",
+    "enabled": true,
+    "type": "script",
+    "content": "const response = await fetch(\"https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/master/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/frontend-current.json\" + '?t=' + Date.now(), { cache: 'no-store' });\nif (!response.ok) throw Error('正式前端入口读取失败：HTTP ' + response.status);\nconst manifest = await response.json();\nconst script = manifest.scripts?.find(item => item.id === \"d772e754-a926-49cb-95ef-44e1034b2325\");\nif (typeof script?.url !== 'string' || !script.url.startsWith('https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@') ||\n    !/^[0-9a-f]{40}$/.test(script.url.split('@')[1]?.split('/')[0] ?? ''))\n  throw Error('正式前端入口缺少有效的项目脚本');\nawait import(script.url);",
+    "info": "",
+    "button": {
+      "enabled": true,
+      "buttons": []
+    },
+    "data": {},
+    "export_with": {
+      "data": true,
+      "button": true
+    }
+  },
+  {
+    "name": "澄湾日常·辅助API",
+    "id": "a62df6e7-9f9c-49ea-a760-d85b95a1104e",
+    "enabled": true,
+    "type": "script",
+    "content": "const response = await fetch(\"https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/master/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/frontend-current.json\" + '?t=' + Date.now(), { cache: 'no-store' });\nif (!response.ok) throw Error('正式前端入口读取失败：HTTP ' + response.status);\nconst manifest = await response.json();\nconst script = manifest.scripts?.find(item => item.id === \"a62df6e7-9f9c-49ea-a760-d85b95a1104e\");\nif (typeof script?.url !== 'string' || !script.url.startsWith('https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@') ||\n    !/^[0-9a-f]{40}$/.test(script.url.split('@')[1]?.split('/')[0] ?? ''))\n  throw Error('正式前端入口缺少有效的项目脚本');\nawait import(script.url);",
+    "info": "",
+    "button": {
+      "enabled": true,
+      "buttons": []
+    },
+    "data": {},
+    "export_with": {
+      "data": true,
+      "button": true
+    }
+  },
+  {
+    "name": "澄湾日常·流式同层",
+    "id": "30b74d98-2ca6-477c-85af-7feb6ad21a36",
+    "enabled": true,
+    "type": "script",
+    "content": "const response = await fetch(\"https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/master/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/frontend-current.json\" + '?t=' + Date.now(), { cache: 'no-store' });\nif (!response.ok) throw Error('正式前端入口读取失败：HTTP ' + response.status);\nconst manifest = await response.json();\nconst script = manifest.scripts?.find(item => item.id === \"30b74d98-2ca6-477c-85af-7feb6ad21a36\");\nif (typeof script?.url !== 'string' || !script.url.startsWith('https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@') ||\n    !/^[0-9a-f]{40}$/.test(script.url.split('@')[1]?.split('/')[0] ?? ''))\n  throw Error('正式前端入口缺少有效的项目脚本');\nawait import(script.url);",
+    "info": "",
+    "button": {
+      "enabled": true,
+      "buttons": []
+    },
+    "data": {},
+    "export_with": {
+      "data": true,
+      "button": true
+    }
+  }
+]

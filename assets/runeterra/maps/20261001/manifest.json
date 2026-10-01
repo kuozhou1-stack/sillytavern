@@ -1,0 +1,26 @@
+{
+  "title": "符文都市：谐振地图背景",
+  "tool": "image_gen.imagegen (built-in)",
+  "files": {
+    "world-overview.webp": {
+      "sha256": "4b895165acdf967356f6d577ab4927fb7461c6a6e58e6b78ecf8833fba8df4eb",
+      "bytes": 630112
+    },
+    "districts-a.webp": {
+      "sha256": "2640293d4724549d6ede9d6171d70fff3bae02047046df549347ddb6d3cc6be8",
+      "bytes": 707714
+    },
+    "districts-b.webp": {
+      "sha256": "b2e08d5a96c15f09ea6e31ba5eab51baa14a3f49302fa009b019248972d4d592",
+      "bytes": 709644
+    },
+    "districts-c.webp": {
+      "sha256": "e63dbd8fec171d0c29f4da79ba9c339b2d3e9787484580e767fd7c2bbbc3cc0f",
+      "bytes": 710138
+    },
+    "districts-d.webp": {
+      "sha256": "e228c9dbf0ffc0c60981b34b5cc7cb35b88e9117d8a943e689abd4a0f3ea6982",
+      "bytes": 583290
+    }
+  }
+}

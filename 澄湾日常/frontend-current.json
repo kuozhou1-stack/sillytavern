@@ -1,43 +1,43 @@
 {
-  "title": "符文都市：谐振",
+  "title": "瓦洛兰",
   "version": "0.7.0",
-  "revision": "0.7.0-ui-20261002",
-  "updatedAt": "2026-10-01T19:42:36.232Z",
-  "runtimeCommit": "e7cd07c47c580b696b711df8b98497a6cd6d1815",
+  "revision": "0.7.0-worldbook-20261002",
+  "updatedAt": "2026-10-02T10:47:45.473Z",
+  "runtimeCommit": "b2bca230401e3c5fd5045eb75948a9e67392b1ed",
   "scripts": [
     {
       "id": "d772e754-a926-49cb-95ef-44e1034b2325",
-      "name": "澄湾日常·变量结构",
+      "name": "瓦洛兰·变量结构",
       "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/变量结构/index.js",
-      "sha256": "ca315f165ca945e88d4ea8c76e63a82e427f76e414013e28a68bc47374d9a412",
-      "bytes": 73139,
-      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js",
-      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js"
+      "sha256": "b29e6a52e3d754a64f90a47ce9a9f441098e3b927ee268bd7f5ccb1717d28c55",
+      "bytes": 73536,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js"
     },
     {
       "id": "a62df6e7-9f9c-49ea-a760-d85b95a1104e",
-      "name": "澄湾日常·辅助API",
+      "name": "瓦洛兰·辅助API",
       "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/辅助API/index.js",
-      "sha256": "fa364a3302ef3a8b69df1f26020a8b731f267234f596ded8ccb06c5af07fd1b1",
-      "bytes": 209985,
-      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js",
-      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js"
+      "sha256": "16168918255a1849783befa93749928412a97bba6a07aab6db00498f6555d163",
+      "bytes": 323612,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js"
     },
     {
       "id": "30b74d98-2ca6-477c-85af-7feb6ad21a36",
-      "name": "澄湾日常·流式同层",
+      "name": "瓦洛兰·流式同层",
       "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/脚本/流式同层/index.js",
-      "sha256": "a4a5a34c43e27291c93169f5fe993414b3aa6b9601c9e5d44a8dc1dbd515df2c",
-      "bytes": 1195637,
-      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js",
-      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js"
+      "sha256": "639cede8081a6db16ca759579b61c38da7b08f8a7a32005c27b8c8f584d39a5e",
+      "bytes": 1216345,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js"
     }
   ],
   "frontend": {
     "path": "澄湾日常/releases/0.7.0-ui-20261002/runtime/界面/桌面端/index.html",
-    "sha256": "1ae44885648ad562be1be4ec3d6e31a662bff1ba164eb5d05ae7c05d60071312",
-    "bytes": 1154605,
-    "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html",
-    "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/e7cd07c47c580b696b711df8b98497a6cd6d1815/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html"
+    "sha256": "b8a6c7cfad372d3667646938607fadabda2d87597ac7a07a8bf39d0dc52549b0",
+    "bytes": 1175027,
+    "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html",
+    "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/b2bca230401e3c5fd5045eb75948a9e67392b1ed/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-ui-20261002/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html"
   }
 }

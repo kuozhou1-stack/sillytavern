@@ -1,0 +1,482 @@
+{
+  "format": "澄湾地图原图/1",
+  "count": 68,
+  "files": [
+    {
+      "path": "城市/shanghai.png",
+      "sha256": "0c7f67e28d66d1dceb2c90d2c4af384d175c1fb6f25d03bc895ec7b2b3499f3b",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3911119
+    },
+    {
+      "path": "片区/coast.png",
+      "sha256": "68b588b661736a641a0a794943b2ee3682b8ed7a9edef86d011d4b949a4499ae",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3691724
+    },
+    {
+      "path": "片区/market.png",
+      "sha256": "8c6be6405f044aeb002546c34428f76ce1ddd95828df5e80572e591e80589146",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3937007
+    },
+    {
+      "path": "片区/outerring.png",
+      "sha256": "498134e1904de0740cd805527184057cea038b7eaab9d7364f14870c99e4bdb4",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4183633
+    },
+    {
+      "path": "片区/university.png",
+      "sha256": "f30815993d87ad6d3ec6ed940510921cf610637ddc0e9aec4b69e1c59467f775",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4295428
+    },
+    {
+      "path": "片区/sea.png",
+      "sha256": "ab600027b56715605a93ad32564d9db1227aa04388ebd4871d18e90d64fa6724",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3212737
+    },
+    {
+      "path": "片区/riverside.png",
+      "sha256": "87ca32084d2f6afd11df4637025f721748affe1e900f1bf8ebaaa7cbab0bad9b",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3920025
+    },
+    {
+      "path": "片区/residential.png",
+      "sha256": "f204783e2c28d0be3d7d83c9796b9ff8b3bb59fd0a5987d1af1b92b8b6637736",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4294640
+    },
+    {
+      "path": "片区/oldtown.png",
+      "sha256": "7cf9d3e26c5310518f3716e2c7f444b3a676b8f2f1e40ef24e867b9374fbc258",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4276007
+    },
+    {
+      "path": "地点/market/gubei_arabian_nights_shisha.png",
+      "sha256": "43490943cdf7121def330e58291a6cf5fdde522ab6093835a2b608b4b5040e00",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3188464
+    },
+    {
+      "path": "地点/oldtown/oldtown_chenghuang_temple.png",
+      "sha256": "d05315522857ffae1b2c843a5025da1f2cd304cf6ddca3fbfe23d84505b4f5d4",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4075840
+    },
+    {
+      "path": "地点/oldtown/oldtown_shanghai_grand_theatre.png",
+      "sha256": "58b1f8538889debc9d223ea7fcf4fe696bd571ecac6747b6b3092db6ddf8b3ef",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3346891
+    },
+    {
+      "path": "地点/university/yangpu_exp_high_school.png",
+      "sha256": "75ed6a29d54517fcd27b6951f9ea56148eefde2e466dcee349d9120c5e86e20b",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3634612
+    },
+    {
+      "path": "地点/riverside/riverside_first_hospital.png",
+      "sha256": "5616e1f571f481d7684b4938de2c6153adc2ee8bea9e9bb02927425c1274f00a",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3351490
+    },
+    {
+      "path": "地点/coast/coast_donghai_seaside_villas.png",
+      "sha256": "3bb71e6448eb5bf461f39665e47c3c225c120bfd57e9821fa92db704886003c8",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3925222
+    },
+    {
+      "path": "地点/sea/sea_blue_ocean_pasture.png",
+      "sha256": "acb01cdf7bc9bcc1097c017907de1517e68ffff557022bc4705c618ec8589de3",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3915234
+    },
+    {
+      "path": "地点/coast/coast_lingang_golden_beach.png",
+      "sha256": "529606ae79901539396c0ca10fd040505ac2685015871a901d0684c42662f67f",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3571111
+    },
+    {
+      "path": "地点/oldtown/oldtown_raffles_city.png",
+      "sha256": "11f0d327838bc799cd3d2cb75827d1a9676eb55f5c91c123c9de2e695053763e",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3711684
+    },
+    {
+      "path": "地点/market/gubei_familymart_24h.png",
+      "sha256": "ca921609df0bb199ba173ef8abfa559b36fd9414214c3372d17d011c1c7f7685",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2939612
+    },
+    {
+      "path": "地点/residential/residential_breastmilk_dessert_shop.png",
+      "sha256": "f377d77c66f198390f43acef885f34135b05403eee1a90814b9ad9c032fb72fa",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3422881
+    },
+    {
+      "path": "地点/residential/residential_spencer_mansion.png",
+      "sha256": "db0f8930c36c491c6ccaeddbe6462933015cb90e8f49d7f05e467c8bc3495770",
+      "width": 1595,
+      "height": 986,
+      "bytes": 3917562
+    },
+    {
+      "path": "地点/residential/residential_huashan_villas.png",
+      "sha256": "3677957189a10cb0657ceb3b8253cc19a764c6320e916d8a45818b7952d1a61d",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4087797
+    },
+    {
+      "path": "地点/riverside/the_bund_ifc_mall.png",
+      "sha256": "2c2ae5e884de1a4e94f02b58b612355f392a8ce89df6585ba231c178fd8209de",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 3403542
+    },
+    {
+      "path": "地点/university/yangpu_fudan_tongji.png",
+      "sha256": "1c303feca9eae797a339d70158d1612bbe16016c68a3933710b17b35ad3c7306",
+      "width": 1672,
+      "height": 940,
+      "bytes": 3894653
+    },
+    {
+      "path": "地点/riverside/the_bund_peninsula_hotel.png",
+      "sha256": "d4af8a6450b030d161e78811470de3113203d81402f600fd2003c8b83a60455d",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3235015
+    },
+    {
+      "path": "地点/riverside/the_bund_afternoon_tea.png",
+      "sha256": "831111073c52b3ec446cf3de5923b4c94236be4001b701991daf58d6ce7a48b6",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3585802
+    },
+    {
+      "path": "地点/riverside/the_bund_private_club.png",
+      "sha256": "2a6238024023741279066a2f86e37ea0cd58802543951b9bfeac0e4927a2c693",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3166009
+    },
+    {
+      "path": "地点/oldtown/oldtown_yexun_tattoo.png",
+      "sha256": "67ab0ae4018b1269d16b41e25ce37df141cd1e687ba3549158ce5484205401f6",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3386896
+    },
+    {
+      "path": "地点/university/yangpu_billiards_club.png",
+      "sha256": "2c4e895ef34e9e0bba31438cc32a135e0614e1caac2c77eb8c9008e2d177999c",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3139283
+    },
+    {
+      "path": "地点/university/yangpu_pizza_gelato.png",
+      "sha256": "3b05e4dd36edeb48f1e118345ffc9f08fc0d05e4342c5e043d149b1b54664985",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3642708
+    },
+    {
+      "path": "地点/university/yangpu_heijin_cybercafe.png",
+      "sha256": "3d4bc099e06953933b772c26f28324ab19778e9eadd2ce8bcd55a878673c16c4",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2743599
+    },
+    {
+      "path": "地点/sea/sea_skystar_yacht.png",
+      "sha256": "33a3d50e042f178b58e044d71aa2bd18ecd4df2e4142160a75a23ea0f35f774e",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 3252331
+    },
+    {
+      "path": "地点/oldtown/oldtown_badgirls_flat.png",
+      "sha256": "0bdaedcdcd2605da4a97f19bb32c87a9afc8dd26bf331cb130b95cb605c8aed2",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3252704
+    },
+    {
+      "path": "地点/residential/residential_fumin_village.png",
+      "sha256": "37deb6696b694759e175323104312297a1ce0e45ba43a1738a9862d2e47b3b29",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4089996
+    },
+    {
+      "path": "地点/residential/residential_julu_space_club.png",
+      "sha256": "d1472b052185665f9bb527ddf0f1e71b04a6b51cec494058fd28fc57eba016ac",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2974897
+    },
+    {
+      "path": "地点/residential/residential_julu_bistrot.png",
+      "sha256": "627d72622aef264ba86846db2163aa94269e332a32119438b60866e045d8c6cd",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3677745
+    },
+    {
+      "path": "地点/residential/residential_changshu_villa.png",
+      "sha256": "394abf9ccd9f0483e9f014cfb041fed5d303007ad2cab177094566ffcdf6fec7",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3609650
+    },
+    {
+      "path": "地点/residential/residential_xujiahui_cathedral.png",
+      "sha256": "f1d4387af431892eb56ef8bdf2ca4f9d2941522131664b74540c2eda54eaba02",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3747316
+    },
+    {
+      "path": "地点/sea/sea_xingyu_resort_island.png",
+      "sha256": "66cf81b257d4fb24a972e8da44f13f0b756558b96f62681170ef36b4b454abec",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3822726
+    },
+    {
+      "path": "地点/university/yangpu_xingyue_maid_cafe.png",
+      "sha256": "c6daa76e3021be58b6f2d479a63efb0338eda92fd11ca93c4852dd8ee4e7f45f",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2956100
+    },
+    {
+      "path": "地点/university/yangpu_library.png",
+      "sha256": "05bf345f1c96a64a97dfbf1ebffe94c245becec1464f6f940c9da0f0f28e4276",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3311216
+    },
+    {
+      "path": "地点/market/hongqiao_aurora_onsen.png",
+      "sha256": "7ca919e2f76f20055c413fb91cd65f5f323ea3bc2a7dbd24c3d7fae39ae212a5",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3816092
+    },
+    {
+      "path": "地点/market/gubei_jijing_fitness_club.png",
+      "sha256": "35e40defd0b1f0ffc952c93a2ad88cac9a363c960b53fece538347e6e568fecd",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3206058
+    },
+    {
+      "path": "地点/riverside/bund_tomson_riviera_a.png",
+      "sha256": "554f6cab7d40e4dfcf0ba7e0d4186034b487963e5f26e5a867d8498a5626f067",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3080183
+    },
+    {
+      "path": "地点/coast/lingang_royal_equestrian_club.png",
+      "sha256": "834546838f7381769b636e91b937c40e07ecaa21b07747b8a943049da592625a",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4077799
+    },
+    {
+      "path": "地点/coast/coast_lingang_resort_hotel.png",
+      "sha256": "f39a8e5e084cc4c17a02982ab0bd37adc03aa07038f1dae353fab26ad666c125",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3614741
+    },
+    {
+      "path": "地点/coast/coast_dishui_water_sports.png",
+      "sha256": "68b54415d07720820f193c00256c3afd3b6e58f81c83b48afc3f2b64e3277a0d",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3300321
+    },
+    {
+      "path": "地点/coast/coast_dishui_camping_base.png",
+      "sha256": "3fcd11bb5e5ceaac9c825bc04997d960cce082b3adb4252a0ba521f90229f748",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3840538
+    },
+    {
+      "path": "地点/market/gubei_yuji_body_dessert.png",
+      "sha256": "34e8862b72fe1f3fdeea6524209ee898a046123e187b2cdd1f4ded6f72ba6388",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3003516
+    },
+    {
+      "path": "地点/residential/residential_breastmilk_cafe.png",
+      "sha256": "1cee9c9a13064d8b180f3baa633d6fc9b35d04c270ef5e0745606216f17d3282",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3406584
+    },
+    {
+      "path": "地点/outerring/outerring_red_brick_skate_park.png",
+      "sha256": "89a7770ac2e2ab1c292c67e1d5b175099d04925f448a1c11afe65de24d3bbdb4",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3754290
+    },
+    {
+      "path": "地点/residential/residential_zhiying_hosiery_heels.png",
+      "sha256": "0ea01370ab7adb05d0be6e9ea4cce68c98eb2d95c4bbba7266a5bf8bb756e0bf",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3198037
+    },
+    {
+      "path": "地点/oldtown/oldtown_laoximen_market.png",
+      "sha256": "03270cf65f9d4fe6ecaf5bde5634642d7493db0c2183dfba8173807da9dedeee",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3657931
+    },
+    {
+      "path": "地点/oldtown/oldtown_police_station.png",
+      "sha256": "04249ca633273f0cc330a15ab81b22b519413f0cd35abdc9650c5f0a5b27afff",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3698763
+    },
+    {
+      "path": "地点/market/hongqiao_hanami_izakaya.png",
+      "sha256": "193641351f9e61b7ab408e244ba48b180dc7887281d965b61472ffad6ff780aa",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3143932
+    },
+    {
+      "path": "地点/outerring/outerring_suhe_community.png",
+      "sha256": "35481948a76011b815d248505b1a1585dc6e7844b6729c766f19f60811138d41",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3681976
+    },
+    {
+      "path": "地点/outerring/outerring_suhe_wetland_park.png",
+      "sha256": "44045bd525e7606c05ec2251ecfafd8a1d185cdc23604133c547ca3bd338a321",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4063174
+    },
+    {
+      "path": "地点/outerring/outerring_suhe_sports_center.png",
+      "sha256": "17ed2df90dd08b110c7198d619789b294e915004fc4920befa3693e9725b5871",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3834143
+    },
+    {
+      "path": "地点/oldtown/oldtown_laoximen_bath.png",
+      "sha256": "2860d9f7a393bbdd620ddb4fae50bf327fd6c272aea3b93ba226ffd0e333d175",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3151794
+    },
+    {
+      "path": "地点/residential/residential_hengshan_cinema.png",
+      "sha256": "7a99bb1266d39722154ce1dfc74a480a0cfdfdded688dd79d69008e8734a87f3",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3448850
+    },
+    {
+      "path": "地点/outerring/outerring_xijiao_beer_garden.png",
+      "sha256": "bafd3d4122c34be4c8223e7e2dfc7b76c974a299c7548f7900e6870f5fa62acd",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3871096
+    },
+    {
+      "path": "地点/outerring/outerring_xijiao_wildlife_park.png",
+      "sha256": "690e19c49e4951a856acb95a674bcbdd7ac6de18e746b95e9c146c4fd1b4133d",
+      "width": 1672,
+      "height": 941,
+      "bytes": 4045111
+    },
+    {
+      "path": "地点/university/yangpu_softpaw_cat_cafe.png",
+      "sha256": "66b786f62b426b448c5fff6d2a7df0ad765e112792f7b57d424b882dcc044391",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3141032
+    },
+    {
+      "path": "地点/riverside/bund_amina_penthouse.png",
+      "sha256": "61fc48fb6f24c5cde8b76d06e5cc448eda429b62b9e3c913618ed7ad2491194a",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3342641
+    },
+    {
+      "path": "地点/market/gubei_korean_night_market.png",
+      "sha256": "75aa8a5a32ef0aa05c1e12ef9aedad24c0abe91a149730a0e647777ca4b922f8",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3716047
+    },
+    {
+      "path": "地点/oldtown/oldtown_mcdonalds.png",
+      "sha256": "ca7239460709ee0eb24ece1bc234f30b4efdde9361513596ebcd687e6db633bb",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3332341
+    },
+    {
+      "path": "地点/oldtown/oldtown_heiba_billiards.png",
+      "sha256": "c984bd05afa6cb5bfcbbfdae7a06abdc89c4a58177ee95e78fcb965e86d59163",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2777580
+    },
+    {
+      "path": "地点/riverside/bund_dingtian_hq.png",
+      "sha256": "212f9121f4c765d0703f3d9ea84770ea67684746271474e7b54dcf3b1f636f58",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3688734
+    }
+  ]
+}

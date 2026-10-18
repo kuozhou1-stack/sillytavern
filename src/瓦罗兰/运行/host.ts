@@ -640,11 +640,6 @@ export function createRuntime() {
     });
     config = { ...config, user_input: `${config.user_input ?? ''}\n${marker}` };
     const startedEpoch = epoch;
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      if (generationId) stopGenerationById(generationId);
-    }, 90000);
     try {
       const workerPrompts: RolePrompt[] = extra
         ? (config.injects ?? []).map(({ role, content }) => ({ role, content }))
@@ -680,11 +675,9 @@ export function createRuntime() {
       if (typeof result !== 'string' || !result.trim()) throw Error('生成未返回有效正文');
       if (!extra && !stripProtocol(result)) throw Error('主模型没有返回剧情正文；请重试正文生成');
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
-      if (timedOut) throw Error('生成已超过 90 秒，请重试');
       return result;
     } finally {
       taskGuard?.stop();
-      clearTimeout(timer);
       generationId = null;
     }
   }

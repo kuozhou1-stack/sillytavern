@@ -308,6 +308,74 @@ const novelGoodReply = (name = '城市便携杯') => JSON.stringify({ 商品: [{
   名称: name, 价格: 12, 类别: '工具与设备', 描述: '普通便携水杯，无超常效果。', 稀有: false, 限购: 1,
 }] });
 
+for (const phase of ['story', 'update']) test(`20261019慢请求：${phase}超过90秒仍接收结果并只结算一次`, async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  await withEnv(async e => {
+    const gate = deferred(), entered = deferred(), stops = [];
+    const result = phase === 'story' ? '超过旧截止时间后完成的正文' : block([patch('/世界/当前时间', time(1))]);
+    e[phase] = async () => { entered.resolve(); return gate.promise; };
+    global.stopGenerationById = id => { stops.push(id); gate.resolve(result); return true; };
+    const sending = e.runtime.send('等待慢请求').then(() => null, error => error);
+    try {
+      await entered.promise;
+      t.mock.timers.tick(120000);
+      assert.deepEqual(stops, [], '等待时间本身不应停止有效请求');
+      gate.resolve(result);
+      assert.equal(await sending, null);
+      assert.equal(e.calls.filter(x => x.kind === 'story').length, 1);
+      assert.equal(e.calls.filter(x => x.kind === 'update').length, 1);
+      assert.equal(e.parses, 1);
+      assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
+      assert.equal(e.vars.澄湾待更新正文, null);
+      assert.equal(e.messages.length, 3);
+    } finally {
+      gate.resolve(result);
+      await sending;
+    }
+  });
+});
+
+test('20261019慢请求：手动停止变量后重载沿用原提交身份，只重试已保存正文的变量', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  await withEnv(async e => {
+    const gate = deferred(), entered = deferred(), stops = [];
+    e.update = async () => { entered.resolve(); return gate.promise; };
+    global.stopGenerationById = id => { stops.push(id); gate.resolve(block([])); return true; };
+    const sending = e.runtime.send('手动停止慢结算').then(() => null, error => error);
+    let pendingId, body;
+    try {
+      await entered.promise;
+      t.mock.timers.tick(120000);
+      assert.deepEqual(stops, []);
+      pendingId = e.vars.澄湾待更新正文.id;
+      body = e.messages[2].message;
+      e.runtime.stop();
+      const error = await sending;
+      assert(error && /取消|停止/.test(String(error)));
+      assert.equal(stops.length, 1);
+      assert.equal(e.vars.澄湾待更新正文.id, pendingId);
+      assert.equal(e.parses, 0);
+    } finally {
+      gate.resolve(block([]));
+      await sending;
+    }
+    await e.runtime.dispose();
+    e.runtime = createRuntime();
+    await e.runtime.start();
+    assert.equal(e.vars.澄湾待更新正文.id, pendingId);
+    e.update = async () => block([patch('/世界/当前时间', time(1))]);
+    await e.runtime.retry();
+    assert.equal(e.calls.filter(x => x.kind === 'story').length, 1);
+    assert.equal(e.calls.filter(x => x.kind === 'update').length, 2);
+    assert.equal(e.messages.length, 3);
+    assert.equal(e.messages[2].message, body);
+    assert.equal(e.parses, 1);
+    assert(e.state()._系统.提交记录[pendingId]);
+    assert.equal(e.vars.澄湾待更新正文, null);
+    assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
+  });
+});
+
 test('技能栏可经建档保存，主次角色种族形态经导入导出与关闭恢复保留', () => {
   const skills = { cooking: { 名称: '烹饪', 品质: '生活精通', 描述: '擅长家常菜' } };
   const created = createProfile(Schema.parse({}), { player: { 姓名: '测试玩家', 技能栏: skills }, characters: [] });

@@ -7415,6 +7415,25 @@ index 0000000000000000000000000000000000000000..7281cf06355ff2587e04f4e64501de4a
 +本机统一审查报告及原始证据保存在 `审查输出/瓦罗兰统一审查-20261018/统一审查报告.html` 的 P1 节。原始浏览器采样、聊天恢复样本、临时构建包和本机路径基线保留本地；此文档可独立阅读，不依赖这些文件随 Git 推送。
 +
 +初始审查仍为 92 个独立条目：A7 / B28 / C22 / D31 / E4。初始确认问题 6 项中 F01—F04 已修复；F05、F06 属于澄湾测试及审阅资产问题，保留原状。前端设计为用户后续明确授权，不将每条样式调整重复计为业务 bug。
+diff --git "a/src/\347\223\246\347\275\227\345\205\260/\346\226\207\346\241\243/\347\224\237\346\210\22090\347\247\222\350\257\257\345\201\234\346\255\242\344\277\256\345\244\215-20261019.md" "b/src/\347\223\246\347\275\227\345\205\260/\346\226\207\346\241\243/\347\224\237\346\210\22090\347\247\222\350\257\257\345\201\234\346\255\242\344\277\256\345\244\215-20261019.md"
+new file mode 100644
+index 0000000000000000000000000000000000000000..a9ff9350de527e30a78d77b4f828ca7b0bf18a70
+--- /dev/null
++++ "b/src/\347\223\246\347\275\227\345\205\260/\346\226\207\346\241\243/\347\224\237\346\210\22090\347\247\222\350\257\257\345\201\234\346\255\242\344\277\256\345\244\215-20261019.md"
+@@ -0,0 +1,13 @@
++# 生成90秒误停止修复
++
++2026-10-19，现场生成`generation_e94022fb-c4a5-4a59-aa16-5ec04bf754ea`在独立正文变量结算阶段停止。正文已保存在楼层2，原待结算记录和提交身份仍在。
++
++浏览器`generation_stopped`调用栈为`stopGenerationById → 辅助API index.js:1:207888`。已发布文件该列准确对应`requestOnce`的`setTimeout(..., 90000)`，不是源消息检查或供应商拒绝的证据。酒馆服务端`chat-completions.js:2534`在客户端socket close后调用`controller.abort()`，因此出现所报node-fetch AbortError。
++
++只删除`运行/host.ts`中固定90秒定时取消及不可达的超时结果提示，不另设更长默认截止。仍沿用酒馆/供应商错误、用户手动停止、聊天/候选/消息变化、写入者失效和脚本卸载取消。源检查、正文归属、原提交ID、pending/prepared/journal及保存确认机制未改。
++
++新增3个独立回归场景：正文慢响应、变量慢响应均模拟等待120秒后完成；慢变量请求手动停止后重载，保持同提交ID，只重试变量且正文不重复。旧代码3项均能复现误取消，修复后3项通过。完整17文件执行结果341/341，0跳过；新增测试放在资料夹具的提取边界后，避免重复注册。现有tsconfig检查0诊断。
++
++当前真实游玩聊天不自动重发或结算；发布并重载后，用户可通过现有“立即重试”只完成原正文的变量结算。真实模型为何未在90秒内完成尚无证据，不据此断言上游故障或模型拒绝。
++
++正式交付修订计划为`0.7.0-hotfix-20261019-r2`，先回验4份运行文件的raw/CDN，再切换既有固定入口。运行路径和存档兼容键保持；不改澄湾，不引入其他优化。详细发布提交与实际浏览器重载结果见统一审查报告的“生成终止修复”节及发布/当前的JSON证据。
 diff --git "a/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/API\350\256\276\347\275\256\347\225\214\351\235\242.spec.cjs" "b/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/API\350\256\276\347\275\256\347\225\214\351\235\242.spec.cjs"
 new file mode 100644
 index 0000000000000000000000000000000000000000..2023ba20b26be5d989ff91bed470b40728421db2
@@ -7513,7 +7532,7 @@ index 0000000000000000000000000000000000000000..2023ba20b26be5d989ff91bed470b407
 +  await fixture.view.changeMode('home',{target:{value:'仅名称'}});assert.deepEqual(operations[1],['地点','home','仅名称']);
 +});
 diff --git "a/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/\345\217\214API\346\265\201\347\250\213.spec.cjs" "b/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/\345\217\214API\346\265\201\347\250\213.spec.cjs"
-index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8efc33880e3 100644
+index ad07939b25a6a1acbc4552c6e74aa371051c1b91..5130888261bb4be17553f29e3b3118a477a82810 100644
 --- "a/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/\345\217\214API\346\265\201\347\250\213.spec.cjs"
 +++ "b/src/\347\223\246\347\275\227\345\205\260/\346\265\213\350\257\225/\345\217\214API\346\265\201\347\250\213.spec.cjs"
 @@ -21,7 +21,7 @@ require.extensions['.ts'] = (module, file) =>
@@ -7557,7 +7576,82 @@ index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8ef
      location: { reload() {} },
    };
    Object.defineProperty(global, 'navigator', {
-@@ -343,6 +357,144 @@ test('新技能品质和角色形态可经MVU正文结算落到消息快照，
+@@ -294,6 +308,74 @@ const novelGoodReply = (name = '城市便携杯') => JSON.stringify({ 商品: [{
+   名称: name, 价格: 12, 类别: '工具与设备', 描述: '普通便携水杯，无超常效果。', 稀有: false, 限购: 1,
+ }] });
+ 
++for (const phase of ['story', 'update']) test(`20261019慢请求：${phase}超过90秒仍接收结果并只结算一次`, async t => {
++  t.mock.timers.enable({ apis: ['setTimeout'] });
++  await withEnv(async e => {
++    const gate = deferred(), entered = deferred(), stops = [];
++    const result = phase === 'story' ? '超过旧截止时间后完成的正文' : block([patch('/世界/当前时间', time(1))]);
++    e[phase] = async () => { entered.resolve(); return gate.promise; };
++    global.stopGenerationById = id => { stops.push(id); gate.resolve(result); return true; };
++    const sending = e.runtime.send('等待慢请求').then(() => null, error => error);
++    try {
++      await entered.promise;
++      t.mock.timers.tick(120000);
++      assert.deepEqual(stops, [], '等待时间本身不应停止有效请求');
++      gate.resolve(result);
++      assert.equal(await sending, null);
++      assert.equal(e.calls.filter(x => x.kind === 'story').length, 1);
++      assert.equal(e.calls.filter(x => x.kind === 'update').length, 1);
++      assert.equal(e.parses, 1);
++      assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
++      assert.equal(e.vars.澄湾待更新正文, null);
++      assert.equal(e.messages.length, 3);
++    } finally {
++      gate.resolve(result);
++      await sending;
++    }
++  });
++});
++
++test('20261019慢请求：手动停止变量后重载沿用原提交身份，只重试已保存正文的变量', async t => {
++  t.mock.timers.enable({ apis: ['setTimeout'] });
++  await withEnv(async e => {
++    const gate = deferred(), entered = deferred(), stops = [];
++    e.update = async () => { entered.resolve(); return gate.promise; };
++    global.stopGenerationById = id => { stops.push(id); gate.resolve(block([])); return true; };
++    const sending = e.runtime.send('手动停止慢结算').then(() => null, error => error);
++    let pendingId, body;
++    try {
++      await entered.promise;
++      t.mock.timers.tick(120000);
++      assert.deepEqual(stops, []);
++      pendingId = e.vars.澄湾待更新正文.id;
++      body = e.messages[2].message;
++      e.runtime.stop();
++      const error = await sending;
++      assert(error && /取消|停止/.test(String(error)));
++      assert.equal(stops.length, 1);
++      assert.equal(e.vars.澄湾待更新正文.id, pendingId);
++      assert.equal(e.parses, 0);
++    } finally {
++      gate.resolve(block([]));
++      await sending;
++    }
++    await e.runtime.dispose();
++    e.runtime = createRuntime();
++    await e.runtime.start();
++    assert.equal(e.vars.澄湾待更新正文.id, pendingId);
++    e.update = async () => block([patch('/世界/当前时间', time(1))]);
++    await e.runtime.retry();
++    assert.equal(e.calls.filter(x => x.kind === 'story').length, 1);
++    assert.equal(e.calls.filter(x => x.kind === 'update').length, 2);
++    assert.equal(e.messages.length, 3);
++    assert.equal(e.messages[2].message, body);
++    assert.equal(e.parses, 1);
++    assert(e.state()._系统.提交记录[pendingId]);
++    assert.equal(e.vars.澄湾待更新正文, null);
++    assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
++  });
++});
++
+ test('技能栏可经建档保存，主次角色种族形态经导入导出与关闭恢复保留', () => {
+   const skills = { cooking: { 名称: '烹饪', 品质: '生活精通', 描述: '擅长家常菜' } };
+   const created = createProfile(Schema.parse({}), { player: { 姓名: '测试玩家', 技能栏: skills }, characters: [] });
+@@ -343,6 +425,144 @@ test('新技能品质和角色形态可经MVU正文结算落到消息快照，
    });
  });
  
@@ -7702,7 +7796,7 @@ index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8ef
  const initialNovelReply = () => JSON.stringify({
    商品: JSON.parse(novelGoodReply()).商品,
    任务: [{ 名称: '记录一种街景色彩', 类型: '探索', 难度: '基础', 目标: '自选一处公共街景，实际观察并记录色彩细节。' }],
-@@ -1022,26 +1174,25 @@ test('MVU 把旧变量复制到待结算楼层且嵌套 extra 时，仍只以已
+@@ -1022,26 +1242,25 @@ test('MVU 把旧变量复制到待结算楼层且嵌套 extra 时，仍只以已
    }
  });
  
@@ -7739,7 +7833,7 @@ index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8ef
      assert.equal(e.state().玩家.年龄, 25);
      assert.equal(e.vars.澄湾待更新正文, null);
      assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
-@@ -1069,7 +1220,7 @@ test('取消已保存正文仍保留恢复记录并阻止跨过未结算楼层',
+@@ -1069,7 +1288,7 @@ test('取消已保存正文仍保留恢复记录并阻止跨过未结算楼层',
    });
  });
  
@@ -7748,7 +7842,7 @@ index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8ef
    const e = environment();
    for (let i = 1; i <= 3; i++) {
      e.messages.push({ role: 'user', message: `输入${i}`, data: copy(e.messages[0].data), extra: {} });
-@@ -1089,17 +1240,16 @@ test('旧聊天多段未结算正文逐楼恢复，使用各自输入和上一
+@@ -1089,17 +1308,16 @@ test('旧聊天多段未结算正文逐楼恢复，使用各自输入和上一
    e.runtime = createRuntime();
    await e.runtime.start();
    try {
@@ -7773,7 +7867,7 @@ index ad07939b25a6a1acbc4552c6e74aa371051c1b91..9ea546f789cf0492101594e9a059d8ef
    } finally { await e.runtime.dispose(); }
  });
  
-@@ -1161,22 +1311,192 @@ test('预设前置思考提及协议标签不冒充第二个更新块，补丁
+@@ -1161,22 +1379,192 @@ test('预设前置思考提及协议标签不冒充第二个更新块，补丁
    assert.throws(() => updateBlock('<thinking>未闭合 <UpdateVariable>\n' + block([])), /只能包含一个/);
  });
  
@@ -12010,7 +12104,7 @@ index 8e6104bd82533406c80f38a6e1d000eeadedf98a..44a7cec694b65861f37e55a9a2772756
  .cw-desktop-shell input,
  .cw-desktop-shell textarea,
 diff --git "a/src/\347\223\246\347\275\227\345\205\260/\350\277\220\350\241\214/host.ts" "b/src/\347\223\246\347\275\227\345\205\260/\350\277\220\350\241\214/host.ts"
-index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b55212348b 100644
+index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..1f157ddfa8dfcb9af4b5e510bbc73701392631ff 100644
 --- "a/src/\347\223\246\347\275\227\345\205\260/\350\277\220\350\241\214/host.ts"
 +++ "b/src/\347\223\246\347\275\227\345\205\260/\350\277\220\350\241\214/host.ts"
 @@ -4,6 +4,7 @@ import { normalizePhoneRecordPatches } from './model-phone-patch';
@@ -12134,7 +12228,31 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
      assertContext(expected, activeContext());
      assertMessageSource(source);
      return ensureInformationContext(applyInformationSelection(before, reply, key, retain), input);
-@@ -859,6 +898,7 @@ export function createRuntime() {
+@@ -601,11 +640,6 @@ export function createRuntime() {
+     });
+     config = { ...config, user_input: `${config.user_input ?? ''}\n${marker}` };
+     const startedEpoch = epoch;
+-    let timedOut = false;
+-    const timer = setTimeout(() => {
+-      timedOut = true;
+-      if (generationId) stopGenerationById(generationId);
+-    }, 90000);
+     try {
+       const workerPrompts: RolePrompt[] = extra
+         ? (config.injects ?? []).map(({ role, content }) => ({ role, content }))
+@@ -641,11 +675,9 @@ export function createRuntime() {
+       if (typeof result !== 'string' || !result.trim()) throw Error('生成未返回有效正文');
+       if (!extra && !stripProtocol(result)) throw Error('主模型没有返回剧情正文；请重试正文生成');
+       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
+-      if (timedOut) throw Error('生成已超过 90 秒，请重试');
+       return result;
+     } finally {
+       taskGuard?.stop();
+-      clearTimeout(timer);
+       generationId = null;
+     }
+   }
+@@ -859,6 +891,7 @@ export function createRuntime() {
      } else {
        const extra = messageExtra(getChatMessages(floor)[0]);
        delete extra.cw_update_pending;
@@ -12142,7 +12260,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
        delete extra.cw_incomplete;
        extra.cw_story_settlements = {
          ...(extra.cw_story_settlements && typeof extra.cw_story_settlements === 'object' ? extra.cw_story_settlements : {}),
-@@ -899,6 +939,7 @@ export function createRuntime() {
+@@ -899,6 +932,7 @@ export function createRuntime() {
    ) {
      requireWriter();
      if (!view.busy && !view.updating) await restoreOrphanedNarrative();
@@ -12150,7 +12268,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
      if (!text.trim() || view.busy || view.updating || pending || pendingPhone || view.managementPending) throw Error('输入为空或仍有待处理更新');
      if (!opening) validateApi(settings.variable, '正文变量');
      view.busy = true;
-@@ -941,10 +982,15 @@ export function createRuntime() {
+@@ -941,10 +975,15 @@ export function createRuntime() {
          }
        }
        assertContext(context, activeContext());
@@ -12166,7 +12284,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
          inputSaved = true;
          // Publish the saved floor before acknowledging input; disk/model work may take longer.
          refreshMessages();
-@@ -962,12 +1008,12 @@ export function createRuntime() {
+@@ -962,12 +1001,12 @@ export function createRuntime() {
          context = activeContext();
          envelope = copy(service.host.read(context.floor));
        }
@@ -12181,7 +12299,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
        refresh();
        const storyState = Schema.parse(envelope.stat_data);
        const storyConfig = await livePromptConfig(
-@@ -995,17 +1041,19 @@ export function createRuntime() {
+@@ -995,17 +1034,19 @@ export function createRuntime() {
        await savePending();
        failedSend = null;
        await saveFailed();
@@ -12202,7 +12320,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
        await savePending();
        await saveChat();
        view.streaming = '';
-@@ -1051,12 +1099,16 @@ export function createRuntime() {
+@@ -1051,12 +1092,16 @@ export function createRuntime() {
        }
        if (pending && pending.replyFloor === undefined && SillyTavern.getCurrentChatId() === context.chat) {
          const floor = getLastMessageId() + 1;
@@ -12220,7 +12338,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
          await savePending();
          await saveChat();
        }
-@@ -1096,6 +1148,7 @@ export function createRuntime() {
+@@ -1096,6 +1141,7 @@ export function createRuntime() {
        }
        if (pending?.replyFloor !== undefined) await discardStaleRecovery();
        await restoreOrphanedNarrative();
@@ -12228,7 +12346,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
        if (pending) {
          // Old chats may contain several saved replies with no settlement. Each
          // reply receives its own previous-floor baseline and one atomic commit.
-@@ -1711,6 +1764,7 @@ export function createRuntime() {
+@@ -1711,6 +1757,7 @@ export function createRuntime() {
      const replySwipe = getChatMessages(last.message_id, { include_swipes: true })[0]?.swipe_id ?? 0;
      if (isCommittedCandidate(last.data?.stat_data, last.message_id, replySwipe)) {
        delete extra.cw_update_pending;
@@ -12236,7 +12354,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
        await setMessages([{ message_id: last.message_id, extra }], { refresh: 'affected' });
        await saveChat();
        return;
-@@ -1721,31 +1775,32 @@ export function createRuntime() {
+@@ -1721,31 +1768,32 @@ export function createRuntime() {
        setError('待更新楼层没有正文，请删除该楼层后重新发送');
        return;
      }
@@ -12286,7 +12404,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
      };
      await savePending();
      setError('已找回待结算正文，请点击重试完成变量更新');
-@@ -1794,6 +1849,11 @@ export function createRuntime() {
+@@ -1794,6 +1842,11 @@ export function createRuntime() {
          })
          .catch(reject);
      });
@@ -12298,7 +12416,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
      refresh();
      if (view.managementPending) setError('角色管理保存尚未确认，请点击重试；恢复快照已独立保留');
      if (!view.readOnly) await settingsController.recoverLegacyRules();
-@@ -1869,6 +1929,8 @@ export function createRuntime() {
+@@ -1869,6 +1922,8 @@ export function createRuntime() {
              replySwipe: getChatMessages(id, { include_swipes: true })[0]?.swipe_id ?? 0,
              mode: 'extra',
            };
@@ -12307,7 +12425,7 @@ index 94d570bdf632d012aaa5abaa0fd6d2791fd755c0..d5500323426414584533017c37ebb9b5
            await savePending();
            setError('正文已编辑，点击澄湾输入区“立即重试”重新结算变量');
            refresh();
-@@ -1963,6 +2025,7 @@ export function createRuntime() {
+@@ -1963,6 +2018,7 @@ export function createRuntime() {
      messageAction: (action: string, id: number, text?: string) =>
        foreground('local', () => messageAction(action, id, text), `message:${action}:${id}`),
      saveSettings,

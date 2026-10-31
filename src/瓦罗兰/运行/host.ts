@@ -38,7 +38,8 @@ import {
   type State,
 } from './core';
 
-import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type ApiChannel, type SettingsScope } from './settings';
+import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type SettingsChannel, type SettingsScope } from './settings';
+import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
 import { workerTask, storyTask, appendSystemPrompts, restorePromptSlot } from './worker-task';
 import { withPromptInstructions, promptContextPrompts } from './model-history';
@@ -450,24 +451,25 @@ export function createRuntime() {
   }
   async function saveSettings(input: unknown = copy(settings), channel?: SettingsScope) {
     requireWriter();
-    if (view.busy || view.updating) throw Error('请等待当前请求完成或停止后保存设置');
+    if ((view.busy || view.updating) && channel !== 'atmosphere') throw Error('请等待当前请求完成或停止后保存设置');
     const { value, warning } = await settingsController.save(input, channel);
     requireWriter();
     // Independent forms may finish in either order; only adopt the saved channel.
     Object.assign(settings, value);
-    if (channel && channel !== 'general') await settingsController.syncRules(settings);
+    if (channel && channel !== 'general' && channel !== 'atmosphere') await settingsController.syncRules(settings);
     view.settingsWarning = warning;
     return warning;
   }
-  async function reloadSettings(channel?: ApiChannel) {
+  async function reloadSettings(channel?: SettingsChannel) {
     requireWriter();
-    if (view.busy || view.updating) throw Error('请等待当前请求完成或停止后同步设置');
+    if ((view.busy || view.updating) && channel !== 'atmosphere') throw Error('请等待当前请求完成或停止后同步设置');
     const { value, warning } = await settingsController.load(channel, copy(settings));
     requireWriter();
-    if (channel === 'information') settings.information = value.information;
+    if (channel === 'atmosphere') settings.atmosphere = value.atmosphere;
+    else if (channel === 'information') settings.information = value.information;
     else if (channel) settings[channel] = value[channel];
     else Object.assign(settings, value);
-    await settingsController.syncRules(settings);
+    if (channel !== 'atmosphere') await settingsController.syncRules(settings);
     view.settingsWarning = warning;
     return warning;
   }
@@ -631,13 +633,16 @@ export function createRuntime() {
   async function requestOnce(config: GenerateConfig, state: State, extra = false, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
     generationId = uid('generation');
     const marker = `[chengwan-${purpose === 'knowledge' ? 'knowledge' : extra ? purpose === 'novel' ? 'novel' : 'worker' : 'story'}:${generationId}]`;
-    const requestConfig = config;
+    // Capture this saved preference once per API call, including a manual retry.
+    // Keep native preset/worldbook/history positions; finalizers place this extra system before the channel task.
+    const atmosphere = atmospherePrompt(settings.atmosphere);
+    const requestConfig = atmosphere ? { ...config, injects: [atmosphere, ...(config.injects ?? [])] } : config;
     const presetSelection = purpose === 'knowledge' && sendPreset;
     const taskSlot = `[valoran-information-task:${generationId}]`;
     const contextSlot = `[valoran-context:${generationId}]`;
     const contextPrompts = promptContextPrompts.get(config) ?? [];
     const contextSet = new Set(contextPrompts);
-    const extraPrompts = (config.injects ?? []).filter(prompt => !contextSet.has(prompt));
+    const extraPrompts = (requestConfig.injects ?? []).filter(prompt => !contextSet.has(prompt));
     // Use the state that produced this request, including an unpublished phone draft.
     const requestState = Schema.parse(state);
     const taskGuard = eventOn(tavern_events.CHAT_COMPLETION_SETTINGS_READY, data => {

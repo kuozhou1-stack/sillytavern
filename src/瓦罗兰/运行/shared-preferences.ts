@@ -1,6 +1,6 @@
 import { klona } from 'klona';
 
-export type SharedPreference = 'api-variable' | 'api-phone' | 'api-information';
+export type SharedPreference = 'api-variable' | 'api-phone' | 'api-information' | 'atmosphere';
 const filename = (key: SharedPreference) => `valoran-v1-${key}.json`;
 const serverUrl = (path: string) => new URL(path, window.parent.location.href).href;
 

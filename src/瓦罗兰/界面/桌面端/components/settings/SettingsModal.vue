@@ -12,7 +12,7 @@
         </button>
       </div>
 
-      <!-- 设置 Tab 导航 (四项四字文案、等宽等高栅格布局) -->
+      <!-- 设置 Tab 导航：等宽等高，窄屏分行 -->
       <div class="cw-modal-tabs" role="tablist" aria-label="系统与外观设置导航">
         <button
           v-for="t in tabs"
@@ -51,6 +51,7 @@
           @change-letter-spacing="v => emit('changeLetterSpacing', v)"
           @change-paragraph-spacing="v => emit('changeParagraphSpacing', v)"
         />
+        <TabAtmosphere v-show="currentTab === 'atmosphere'" @feedback="msg => emit('feedback', msg)" />
         <TabApiSettings
           v-show="currentTab === 'api'"
           :initial-section="initialSection"
@@ -74,6 +75,7 @@ import type { ApiChannel } from '../../../../运行/settings';
 import SvgIcon from '../icons/SvgIcon.vue';
 import TabTheme from './TabTheme.vue';
 import TabFont from './TabFont.vue';
+import TabAtmosphere from './TabAtmosphere.vue';
 import TabApiSettings from './TabApiSettings.vue';
 import TabRosterAndKnowledge, { type SubTabKey } from './TabRosterAndKnowledge.vue';
 
@@ -104,10 +106,11 @@ const emit = defineEmits<{
   (e: 'feedback', msg: string): void;
 }>();
 
-// 统一四项四字文案
+// 统一四字文案
 const tabs = [
   { key: 'theme', label: '色彩主题', icon: 'smile' },
   { key: 'font', label: '字体排版', icon: 'edit' },
+  { key: 'atmosphere', label: '氛围设计', icon: 'sparkles' },
   { key: 'api', label: '接口配置', icon: 'settings' },
   { key: 'roster_knowledge', label: '资料调度', icon: 'users' },
 ];
@@ -142,6 +145,7 @@ const rosterKnowledgeRef = ref<InstanceType<typeof TabRosterAndKnowledge> | null
 const tabScrollPositions: Record<string, number> = {
   theme: 0,
   font: 0,
+  atmosphere: 0,
   api: 0,
   roster_knowledge: 0,
 };
@@ -217,7 +221,7 @@ onBeforeUnmount(() => {
 /* 等宽、等高、固定栅格的顶层 Tab 导航条 */
 .cw-modal-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   padding: 8px 16px;
   border-bottom: 1px solid var(--cw-border);
@@ -287,6 +291,7 @@ onBeforeUnmount(() => {
   }
 
   .cw-modal-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 6px 8px;
     gap: 4px;
 

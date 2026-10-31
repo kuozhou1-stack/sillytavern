@@ -13,11 +13,18 @@ export const ApiSettingsSchema = z.object({
 export type ApiSettings = z.infer<typeof ApiSettingsSchema>;
 export const InformationApiSettingsSchema = ApiSettingsSchema.extend({ reuseVariable: z.boolean().prefault(true) });
 export type ApiChannel = 'variable' | 'phone' | 'information';
-export type SettingsScope = ApiChannel | 'general';
+export type SettingsChannel = ApiChannel | 'atmosphere';
+export type SettingsScope = SettingsChannel | 'general';
 const apiChannels = ['variable', 'phone', 'information'] as const;
 const apiLabels = { variable: '正文变量 API', phone: '手机与奇遇 API', information: '资料选择 API' };
+const preferenceLabels = { ...apiLabels, atmosphere: '氛围设计' };
+export const AtmosphereSchema = z.string().prefault('');
 export const apiBrowserKey = (channel: ApiChannel, account: string) =>
   `valoran-v1:${encodeURIComponent(account)}:api:${channel}:v1`;
+export const atmosphereBrowserKey = (account: string) => `valoran-v1:${encodeURIComponent(account)}:atmosphere:v1`;
+const preferenceBrowserKey = (channel: SettingsChannel, account: string) =>
+  channel === 'atmosphere' ? atmosphereBrowserKey(account) : apiBrowserKey(channel, account);
+const sharedPreferenceKey = (channel: SettingsChannel) => channel === 'atmosphere' ? channel : `api-${channel}` as const;
 export const apiConnection = (api: ApiSettings): CustomApiConfig | undefined => api.mode === 'main' ? undefined : ({
   apiurl: api.apiurl,
   key: api.key,
@@ -62,6 +69,7 @@ export const SettingsSchema = z
     letterSpacing: z.number().min(-0.05).max(0.2).prefault(0.02),
     paragraphSpacing: z.number().min(0).max(2).prefault(0.8),
     scale: z.number().prefault(100),
+    atmosphere: AtmosphereSchema,
     informationAuto: z.boolean().prefault(true),
     characterAuto: z.boolean().prefault(true),
     characterRoster: CharacterRosterSettingsSchema.prefault({}),
@@ -71,7 +79,7 @@ export const SettingsSchema = z
   })
   .prefault({});
 
-const GeneralSettingsSchema = SettingsSchema.unwrap().omit({ variable: true, phone: true, information: true }).partial();
+const GeneralSettingsSchema = SettingsSchema.unwrap().omit({ variable: true, phone: true, information: true, atmosphere: true }).partial();
 
 export const variableRuleNames = ['[mvu_update]变量更新规则', '[mvu_update]变量输出格式'];
 export const normalizeRuleName = (name: string) => name.replace(/\s+/g, '');
@@ -158,31 +166,33 @@ export function informationApi(value: Settings): ApiSettings {
 }
 
 export function createSettingsController(assertActive: () => void = () => {}) {
-  const warnings = new Map<ApiChannel, string>();
+  const warnings = new Map<SettingsChannel, string>();
   return {
-    async load(channel?: ApiChannel, base?: Settings) {
+    async load(channel?: SettingsChannel, base?: Settings) {
       const value = SettingsSchema.parse(base ?? getVariables({ type: 'character' }).澄湾设置);
       let account: string | undefined, scopeWarning = '';
       try { account = await browserPreferenceScope(); }
       catch (error) { scopeWarning = '浏览器账号隔离信息读取失败，保留酒馆或旧角色卡配置：' + String(error); }
-      await Promise.all((channel ? [channel] : apiChannels).map(async current => {
-        const label = apiLabels[current], messages: string[] = [];
-        const schema = current === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
+      await Promise.all((channel ? [channel] : [...apiChannels, 'atmosphere'] as const).map(async current => {
+        const label = preferenceLabels[current], messages: string[] = [];
+        const schema = current === 'atmosphere' ? AtmosphereSchema
+          : current === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
         const assign = (input: unknown) => {
-          if (current === 'information') value.information = InformationApiSettingsSchema.parse(input);
+          if (current === 'atmosphere') value.atmosphere = AtmosphereSchema.parse(input);
+          else if (current === 'information') value.information = InformationApiSettingsSchema.parse(input);
           else value[current] = ApiSettingsSchema.parse(input);
         };
         let browser: unknown = null;
         if (account) try {
-          const raw = window.parent.localStorage.getItem(apiBrowserKey(current, account));
+          const raw = window.parent.localStorage.getItem(preferenceBrowserKey(current, account));
           if (raw) { browser = schema.parse(JSON.parse(raw)); assign(browser); }
         } catch (error) { messages.push(`${label}浏览器副本读取失败：${String(error)}`); }
         try {
-          const shared = await readSharedPreference(`api-${current}`);
+          const shared = await readSharedPreference(sharedPreferenceKey(current));
           if (shared !== null) {
             assign(shared);
             if (account) try {
-              window.parent.localStorage.setItem(apiBrowserKey(current, account), JSON.stringify(value[current]));
+              window.parent.localStorage.setItem(preferenceBrowserKey(current, account), JSON.stringify(value[current]));
             } catch (error) { messages.push(`${label}已从酒馆读取，浏览器副本保存失败：${String(error)}`); }
           }
         } catch (error) {
@@ -245,6 +255,7 @@ export function createSettingsController(assertActive: () => void = () => {}) {
         // Zod's partial still materializes inner prefaults. Only save submitted keys.
         value = Object.fromEntries(Object.entries(parsed).filter(([key]) => Object.hasOwn(input as object, key)));
       }
+      else if (channel === 'atmosphere') value = { atmosphere: AtmosphereSchema.parse((input as Record<string, unknown>)?.atmosphere) };
       else if (channel) {
         const schema = channel === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
         const api = schema.parse((input as Record<string, unknown>)?.[channel]);
@@ -267,12 +278,12 @@ export function createSettingsController(assertActive: () => void = () => {}) {
           const account = await browserPreferenceScope();
           lock!.assertHeld();
           check();
-          await saveSharedPreference(`api-${channel}`, value[channel]);
+          await saveSharedPreference(sharedPreferenceKey(channel), value[channel]);
           lock!.assertHeld();
           check();
           let warning = '';
           try {
-            const key = apiBrowserKey(channel, account);
+            const key = preferenceBrowserKey(channel, account);
             window.parent.localStorage.setItem(key, JSON.stringify(value[channel]));
             if (!_.isEqual(JSON.parse(window.parent.localStorage.getItem(key) ?? 'null'), value[channel]))
               throw Error('浏览器副本读回不一致');

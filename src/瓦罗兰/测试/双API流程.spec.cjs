@@ -642,7 +642,7 @@ test('初始请求失败重载后保留恢复入口，只恢复内容请求，�
   });
 });
 
-test('奇遇刷新与手机共用独立端点，最终请求不携带存档或变量规则', async () => {
+test('奇遇刷新仅携地区与局势参考，保留手机端点且不带完整存档或变量规则', async () => {
   await withEnv(async e => {
     await e.runtime.novelAction({ kind: 'enable', operationId: 'enable' });
     e.update = async config => {
@@ -651,6 +651,8 @@ test('奇遇刷新与手机共用独立端点，最终请求不携带存档或�
       const messages = [{ role: 'system', content: JSON.stringify(e.state()) },
         { role: 'system', content: '外部预设的私有插入标记' }, { role: 'user', content: config.user_input }];
       e.listeners.get('completion_settings')({ messages });
+      const input = JSON.parse(messages.find(message => message.role === 'user').content);
+      assert.deepEqual(Object.keys(input.创作参考).sort(), ['当前地区id', '异常入侵度', '地区目录'].sort());
       const payload = JSON.stringify(messages);
       for (const text of ['完整资料标记', '不在场人物', '外部预设的私有插入标记', '_系统币', '[chengwan-', '<UpdateVariable>'])
         assert(!payload.includes(text));

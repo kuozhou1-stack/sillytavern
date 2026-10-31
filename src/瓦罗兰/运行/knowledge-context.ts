@@ -59,6 +59,12 @@ export function effectiveInformationIds(state: State, kind: InformationKind): Se
   return selected;
 }
 
+/** Manual expand/name-only choices already decide every record; a model cannot change them. */
+export function hasAutomaticInformation(state: State): boolean {
+  return kinds.some(kind => Object.keys(state[kind])
+    .some(id => !Object.hasOwn(state._系统.资料加载[overridesKey(kind)], id)));
+}
+
 /** Only the request projection is reduced. Never persist it as a complete MVU state. */
 export function projectWorldInformation(state: State, result: Record<string, any> = publicModelData(state)) {
   const projected = { ...result };

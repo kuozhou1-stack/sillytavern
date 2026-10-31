@@ -159,7 +159,9 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
       swipe_id: m.swipe_id ?? 0,
       swipes: copy(m.swipes ?? [m.message]),
       swipes_data: copy(m.swipes_data ?? [m.data ?? {}]),
-      extra: copy(m.swipe_info?.[0] ?? m.extra ?? {}),
+      swipes_info: Array.from({ length: m.swipes?.length ?? 1 }, (_, index) => copy(
+        m.swipe_info?.[index] ?? (index === 0 ? m.extra ?? {} : {}))),
+      extra: copy(m.swipe_info?.[m.swipe_id ?? 0] ?? m.extra ?? {}),
     }));
     if (typeof range === 'number') {
       const id = range < 0 ? e.messages.length + range : range;
@@ -244,7 +246,10 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
         e.messages[message_id].swipes_data[selected] = copy(fields.data);
       if (selected !== undefined && e.messages[message_id].swipes && fields.message !== undefined)
         e.messages[message_id].swipes[selected] = fields.message;
-      if (fields.extra && e.messages[message_id].swipe_info) e.messages[message_id].swipe_info[0] = copy(fields.extra);
+      if (fields.extra) {
+        e.messages[message_id].swipe_info ??= [];
+        e.messages[message_id].swipe_info[selected ?? 0] = copy(fields.extra);
+      }
       e.writes++;
     }
   };
@@ -1743,6 +1748,26 @@ test('编辑既有候选分支只重结算选中候选，保留候选编号', as
     e.runtime.refreshMessages();
     assert.equal(e.runtime.view.messages.at(-1).variableUpdate.state, 'saved');
     assert.equal(e.runtime.view.messages.at(-1).variableUpdate.changes.some(row => row.after === '31'), false);
+  });
+});
+
+test('刷新显示保存原文并读取所选候选元数据，不复用其他候选的待结算标记', async () => {
+  await withEnv(async e => {
+    await e.runtime.send('第一轮');
+    const assistant = e.messages[2];
+    const next = copy(assistant.data);
+    next.stat_data._系统.候选回复id = '1';
+    next.stat_data._系统.分支id = `${e.chat}:2:1`;
+    assistant.swipes = [assistant.message, '尚未同步的候选文本'];
+    assistant.swipes_data = [copy(assistant.data), next];
+    assistant.swipe_info = [{ cw_update_pending: true }, { cw_update_pending: false }];
+    assistant.swipe_id = 1;
+    assistant.message = '插件或玩家刚保存的原文';
+    e.runtime.refreshMessages();
+    assert.equal(e.runtime.view.messages.at(-1).content, '插件或玩家刚保存的原文');
+    assert.equal(e.runtime.view.messages.at(-1).isUpdatePending, false);
+    assert.equal(activeContext().swipe, 1);
+    assert.equal(assistant.swipes[1], '尚未同步的候选文本');
   });
 });
 

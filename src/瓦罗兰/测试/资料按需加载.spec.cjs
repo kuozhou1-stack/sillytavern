@@ -198,17 +198,65 @@ test('选择失败保留玩家输入并阻止正文，重试成功后正文失�
   });
 });
 
-test('正文新增涉及未展开场所，结算前补选并保留此前选择', async () => {
+test('正文明确提及新场所，结算前本地展开并保留此前选择，不重复调用选择API', async () => {
   await withEnv(async e => {
     e.select = async () => e.selected.length === 1 ? selectorReply() : selectorReply(['library']);
     e.story = async () => '随后到达测试图书馆，管理员确认今天延长开放。';
     e.update = async () => block([{ op: 'replace', path: '/地点/library/常规开放时间', value: '今日延长开放' }]);
     await e.runtime.send('先在测试咖啡馆休息');
-    assert.equal(e.selected.length, 2);
+    assert.equal(e.selected.length, 1);
     assert.deepEqual(e.state()._系统.资料加载.地点, ['cafe', 'library']);
     assert.equal(e.state().地点.library.常规开放时间, '今日延长开放');
     assert.equal(e.state().地点.home.简介, 'HOME_DETAIL');
   });
+});
+
+test('资料全部手动展开或仅名称时不调用选择API，自动项仍保留模型选择', async () => {
+  await withEnv(async e => {
+    for (const kind of ['地点', '组织'])
+      for (const id of Object.keys(e.messages[0].data.stat_data[kind]))
+        e.messages[0].data.stat_data._系统.资料加载[kind + '覆盖'][id] = id === 'home' ? '仅名称' : '展开';
+    e.select = async () => { throw Error('手动覆盖不应请求模型'); };
+    e.story = async () => '你在测试咖啡馆休息，随后提起测试居所。';
+    await e.runtime.send('喝茶');
+    await e.runtime.send('继续喝茶');
+    assert.equal(e.selected.length, 0);
+    assert(!effectiveInformationIds(e.state(), '地点').has('home'));
+    assert.equal(e.state().地点.home.简介, 'HOME_DETAIL');
+    delete e.messages.at(-1).data.stat_data._系统.资料加载.地点覆盖.library;
+    e.select = async () => selectorReply(['library']);
+    await e.runtime.send('接下来去哪里？');
+    assert.equal(e.selected.length, 1);
+  });
+});
+
+test('本地展开明确引用同时保留组织、手动仅名称和变量失败重试的原提交身份', async () => {
+  const initial = prepareInformationCommand(seed(), '地点', 'home', '仅名称');
+  await withEnv(async e => {
+    e.story = async () => '随后前往测试图书馆，联系测试协会，并谈起测试居所。';
+    const calls = [];
+    e.update = async config => {
+      calls.push(config);
+      const sent = JSON.stringify(e.payloads.at(-1).messages);
+      assert(sent.includes('LIBRARY_DETAIL'));
+      assert(sent.includes('GUILD_DETAIL'));
+      assert(!sent.includes('HOME_DETAIL'));
+      if (calls.length === 1) throw Error('合成变量失败');
+      return block([{ op: 'replace', path: '/地点/library/常规开放时间', value: '延长开放' }]);
+    };
+    await assert.rejects(e.runtime.send('先喝茶'), /合成变量失败/);
+    const originalId = e.vars.澄湾待更新正文.id;
+    assert.equal(e.messages[2].extra.cw_story_request.id, originalId);
+    await e.runtime.retry();
+    assert.equal(e.selected.length, 1);
+    assert.equal(e.calls.filter(call => call.kind === 'story').length, 1);
+    assert.equal(e.messages.length, 3);
+    assert(e.state()._系统.提交记录[originalId]);
+    assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 1);
+    assert.equal(e.vars.澄湾待更新正文, null);
+    assert.equal(e.state().地点.home.简介, 'HOME_DETAIL');
+    assert(!effectiveInformationIds(e.state(), '地点').has('home'));
+  }, initial);
 });
 
 test('手机与正文共用资料选择，手动模式没有选择API且保留资料覆盖', async () => {

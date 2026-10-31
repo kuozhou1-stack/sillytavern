@@ -12,7 +12,7 @@ import { normalizeWorldInformation } from './世界资料';
 import { normalizeMapLandmarks } from './地图地标';
 import {
   prepareInformationCommand, informationSelectionPrompt, finalizeInformationPrompt, applyInformationSelection,
-  needsInformationSelection, assertInformationPatch, type InformationKind, type InformationMode,
+  hasAutomaticInformation, assertInformationPatch, type InformationKind, type InformationMode,
   ensureInformationContext, expandInformationForRetry, InformationNotLoadedError,
   informationPromptRule,
 } from './knowledge-context';
@@ -91,7 +91,7 @@ export function activeContext(): Context {
       const floors = getChatMessages(`${Math.max(0, end - 9)}-${end}`, { role: 'assistant', include_swipes: true });
       for (const f of floors.reverse()) {
         const data = f.swipes_data[f.swipe_id]?.stat_data;
-        const extra = messageExtra(getChatMessages(f.message_id)[0]);
+        const extra = messageExtra({ extra: f.swipes_info[f.swipe_id] });
         if (extra.cw_incomplete || extra.cw_update_pending) continue;
         // MVU can copy the previous floor's data into an unfinished reply. Its floor id
         // still points at the previous committed floor, so it must not become the base.
@@ -366,15 +366,17 @@ export function createRuntime() {
     }
     const firstVisible = Math.max(1, last - 9);
     const selected = getChatMessages(`${firstVisible}-${last}`, { include_swipes: true });
-    const plain = getChatMessages(`${firstVisible}-${last}`);
-    const byId = new Map(selected.map(m => [m.message_id, m]));
+    // The helper's plain read clones the same variables again. Reuse selected
+    // candidate data/metadata, but display the saved message, which may differ
+    // from a stale swipe string after a preset or direct native edit.
+    const archived = SillyTavern.chat;
     let previous: { floor: number; swipe: number; data: Record<string, unknown> } | undefined;
     for (let end = firstVisible - 1; end > 0 && !previous; end -= 10) {
       const prior = getChatMessages(`${Math.max(1, end - 9)}-${end}`, { role: 'assistant', include_swipes: true });
       for (const message of prior.reverse()) {
         const data = message.swipes_data[message.swipe_id]?.stat_data;
         if (!isCommittedCandidate(data, message.message_id, message.swipe_id)) continue;
-        const extra = messageExtra(getChatMessages(message.message_id)[0]);
+        const extra = messageExtra({ extra: message.swipes_info[message.swipe_id] });
         const pendingSelected = pending?.replyFloor === message.message_id && pending?.replySwipe === message.swipe_id;
         if (extra.cw_incomplete || (extra.cw_update_pending && pendingSelected)) continue;
         previous = { floor: message.message_id, swipe: message.swipe_id, data };
@@ -386,12 +388,12 @@ export function createRuntime() {
       const firstData = first?.swipes_data[first.swipe_id]?.stat_data;
       if (firstData) previous = { floor: 0, swipe: first.swipe_id, data: firstData };
     }
-    const messages = plain
+    const messages = selected
       .filter(m => m.message_id > 0 && m.role !== 'system')
       .map(m => {
-        const extra = messageExtra(m);
-        const swipe = byId.get(m.message_id)?.swipe_id ?? 0;
-        const data = byId.get(m.message_id)?.swipes_data[swipe]?.stat_data;
+        const swipe = m.swipe_id;
+        const extra = messageExtra({ extra: m.swipes_info[swipe] });
+        const data = m.swipes_data[swipe]?.stat_data;
         const history = extra.cw_story_settlements;
         const settlement = history && typeof history === 'object' ? history[String(swipe)] as StorySettlement : undefined;
         const committedSelected = isCommittedCandidate(data, m.message_id, swipe);
@@ -412,7 +414,7 @@ export function createRuntime() {
         return {
           id: m.message_id,
           role: m.role,
-          content: m.message,
+          content: archived[m.message_id]?.mes ?? '',
           isIncomplete: !!extra.cw_incomplete,
           isUpdatePending,
           variableUpdate,
@@ -609,8 +611,8 @@ export function createRuntime() {
   }
   async function selectInformation(before: State, input: string, key: string, retain = false) {
     if (!settings.informationAuto) return before;
-    if (before._系统.资料加载.选择依据 === key ||
-        (!Object.keys(before.地点).length && !Object.keys(before.组织).length)) return ensureInformationContext(before, input);
+    if (before._系统.资料加载.选择依据 === key || !hasAutomaticInformation(before))
+      return ensureInformationContext(before, input);
     const api = informationApi(settings);
     validateApi(api, '资料选择');
     const expected = activeContext(), source = messageSource();
@@ -819,12 +821,10 @@ export function createRuntime() {
     if (!narrative) throw Error('主模型回复没有可交接的正文；已保留原始回复，变量 API 未调用');
     const instruction = `正文已经完整输出。结算已完成正文及本次授权的后台生活、维护任务；未实现的玩家意图不算已发生，不续写面向玩家的正文。\n玩家本轮输入：\n${userText}\n已完成正文：\n${narrative}`;
     const retryHint = informationRetryHint(p.id);
-    if (needsInformationSelection(before, instruction + retryHint)) {
-      before = await selectInformation(before, instruction + retryHint, 'settlement:' + p.id + retryHint, true);
-      p.envelope = { ...p.envelope, stat_data: before };
-      await savePending();
-    }
     if (settings.informationAuto) {
+      // Completed narrative supplies explicit IDs/names. Expand those existing
+      // records locally, retaining the first selection and manual overrides;
+      // no second model is needed to identify references already in the text.
       const expanded = ensureInformationContext(before, instruction + retryHint);
       if (expanded !== before) {
         before = expanded;

@@ -348,8 +348,7 @@ async function save() {
   notice.value = '';
   try {
     const api = (props.channel === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema).parse(klona(draft));
-    if (props.channel !== 'information' || !draft.reuseVariable) validateApi(api, channelLabel.value, false);
-    const warning = await runtime.saveSettings({ ...klona(runtime.settings), [props.channel]: api }, props.channel);
+    const warning = await runtime.saveSettings({ [props.channel]: api }, props.channel);
     delete globalDraftCache[props.channel];
     notice.value = warning ? `${channelLabel.value} API 已保存到酒馆，请查看配置提示。`
       : `${channelLabel.value} API 已保存到酒馆和当前浏览器。`;

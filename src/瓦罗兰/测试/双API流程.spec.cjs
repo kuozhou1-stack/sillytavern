@@ -173,7 +173,16 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
   }
   e.sharedFiles = new Map();
   e.localFiles = new Map();
-  global.SillyTavern = { getCurrentChatId: () => e.chat, saveChat: async () => {}, getRequestHeaders: () => ({}) };
+  global.SillyTavern = {
+    getCurrentChatId: () => e.chat, saveChat: async () => {}, getRequestHeaders: () => ({}),
+    // Native read-only text view used by source checks; variables stay in the
+    // helper/MVU fixture and are deliberately absent from this observation.
+    get chat() { return e.messages.map(m => ({
+      mes: m.message, is_user: m.role === 'user', is_system: !!m.is_hidden,
+      extra: m.role === 'system' ? { ...m.extra, type: 'narrator' } : m.extra,
+      swipe_id: m.swipe_id, swipes: m.swipes, swipe_info: m.swipe_info,
+    })); },
+  };
   global.fetch = async (url, options) => {
     const pathname = new URL(url).pathname;
     if (pathname === '/api/users/me') return Response.json({ handle: 'test-account' });

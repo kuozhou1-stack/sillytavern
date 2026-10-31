@@ -331,7 +331,6 @@ const paragraphSpacing = ref(runtime?.settings.paragraphSpacing ?? 0.8);
 watch([currentTheme, currentFont, fontSize, uiScale, lineHeight, letterSpacing, paragraphSpacing], async () => {
   if (!runtime) return;
   const candidate = {
-    ...runtime.settings,
     theme: currentTheme.value,
     font: currentFont.value,
     fontSize: fontSize.value,
@@ -341,7 +340,7 @@ watch([currentTheme, currentFont, fontSize, uiScale, lineHeight, letterSpacing, 
     paragraphSpacing: paragraphSpacing.value,
   };
   try {
-    await runtime.saveSettings(candidate);
+    await runtime.saveSettings(candidate, 'general');
   } catch (e) {
     showToast(String(e));
   }

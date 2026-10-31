@@ -189,7 +189,6 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
-import { klona } from 'klona';
 import { RuntimeKey, type Runtime } from '../../../../运行/host';
 import { effectiveInformationIds } from '../../../../运行/knowledge-context';
 import { resolveCharacterName } from '../../utils/entity';
@@ -266,7 +265,7 @@ async function toggleAuto(event: Event) {
   const enabled = input.checked;
   saving.value = true; error.value = ''; notice.value = '';
   try {
-    await runtime.saveSettings({ ...klona(runtime.settings), informationAuto: enabled });
+    await runtime.saveSettings({ informationAuto: enabled }, 'general');
     notice.value = enabled ? '自动资料选择已开启，下一次互动前按情节调整。' : '自动资料选择已关闭，当前名单保持不变。';
     emit('feedback', notice.value);
   } catch (cause) {

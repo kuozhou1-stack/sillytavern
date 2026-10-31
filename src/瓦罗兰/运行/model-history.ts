@@ -1,4 +1,5 @@
 import type { State } from './core';
+import { isPrivateModelPath, publicModelFields } from './model-fields';
 
 export type HistoryScope = { session?: string; post?: string; platform?: string };
 
@@ -45,17 +46,17 @@ export function modelPhoneHistory(state: State, scope?: HistoryScope) {
     if (task.类别 === '摘要' && !['已提交', '取消', '失效'].includes(task.状态))
       task.覆盖记录id.forEach(id => selected.add(id));
   const references = new Set(['记录id', '关联记录id', '关联事项id', '完成依据事件id']);
-  const scan = (value: any) => {
+  const scan = (value: any, path: string[]) => {
     if (!value || typeof value !== 'object') return;
     for (const [key, child] of Object.entries(value)) {
-      if (key.startsWith('_')) continue;
+      if (isPrivateModelPath([...path, key])) continue;
       if (references.has(key)) {
         for (const id of Array.isArray(child) ? child : [child]) if (typeof id === 'string') selected.add(id);
-      } else scan(child);
+      } else scan(child, [...path, key]);
     }
   };
   // Phone records are expanded below; summary coverage must not pull all archived originals back in.
-  for (const [key, value] of Object.entries(state)) if (key !== '手机' && !key.startsWith('_')) scan(value);
+  for (const [key, value] of Object.entries(state)) if (key !== '手机' && !key.startsWith('_')) scan(value, [key]);
   for (const session of Object.values(phone.会话)) session.重要事项id.forEach(id => selected.add(id));
   for (const summary of Object.values(phone.摘要)) summary.重要事项id.forEach(id => selected.add(id));
   for (const waiting of Object.values(phone._待回应))
@@ -104,11 +105,7 @@ export function modelPhoneHistory(state: State, scope?: HistoryScope) {
 }
 
 /** Readonly delivery facts affect knowledge; technical caches and management records do not. */
-export function publicModelData(value: any): any {
+export function publicModelData(value: any, path: readonly string[] = []): any {
   const keep = new Set(['_顺序', '_发送状态', '_已投递账号id', '_接收侧记录', '_待回应']);
-  const visit = (node: any): any => Array.isArray(node) ? node.map(visit) : node && typeof node === 'object'
-    ? Object.fromEntries(Object.entries(node).filter(([key]) => !key.startsWith('_') || keep.has(key))
-        .map(([key, child]) => [key, visit(child)]))
-    : node;
-  return visit(value);
+  return publicModelFields(value, path, keep);
 }

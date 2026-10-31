@@ -25,7 +25,7 @@ export function promptConfig(
   _scope?: { session?: string; post?: string; platform?: string },
 ): GenerateConfig {
   return {
-    overrides: { persona_description: '玩家以本次建档为准：' + JSON.stringify(publicModelData(state.玩家)) },
+    overrides: { persona_description: '玩家以本次建档为准：' + JSON.stringify(publicModelData(state.玩家, ['玩家'])) },
     injects: [],
     user_input: text,
   };

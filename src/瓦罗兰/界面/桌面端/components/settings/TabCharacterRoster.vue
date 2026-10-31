@@ -265,7 +265,7 @@ async function save() {
   error.value = '';
   notice.value = '';
   try {
-    await runtime.saveSettings({ ...klona(runtime.settings), characterRoster: parsed.data });
+    await runtime.saveSettings({ characterRoster: parsed.data }, 'general');
     draft.value = klona(saved.value);
     notice.value = '角色调度配置已保存，将在下一次正文或手机互动前生效。';
     emit('feedback', notice.value);

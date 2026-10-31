@@ -13,6 +13,7 @@ export const ApiSettingsSchema = z.object({
 export type ApiSettings = z.infer<typeof ApiSettingsSchema>;
 export const InformationApiSettingsSchema = ApiSettingsSchema.extend({ reuseVariable: z.boolean().prefault(true) });
 export type ApiChannel = 'variable' | 'phone' | 'information';
+export type SettingsScope = ApiChannel | 'general';
 const apiChannels = ['variable', 'phone', 'information'] as const;
 const apiLabels = { variable: '正文变量 API', phone: '手机与奇遇 API', information: '资料选择 API' };
 export const apiBrowserKey = (channel: ApiChannel, account: string) =>
@@ -69,6 +70,8 @@ export const SettingsSchema = z
     information: InformationApiSettingsSchema.prefault({}),
   })
   .prefault({});
+
+const GeneralSettingsSchema = SettingsSchema.unwrap().omit({ variable: true, phone: true, information: true }).partial();
 
 export const variableRuleNames = ['[mvu_update]变量更新规则', '[mvu_update]变量输出格式'];
 export const normalizeRuleName = (name: string) => name.replace(/\s+/g, '');
@@ -235,8 +238,20 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       check();
       });
     },
-    async save(input: unknown, channel?: ApiChannel) {
-      const value = validateSettings(input);
+    async save(input: unknown, channel?: SettingsScope) {
+      let value: Partial<Settings>;
+      if (channel === 'general') {
+        const parsed = GeneralSettingsSchema.parse(input);
+        // Zod's partial still materializes inner prefaults. Only save submitted keys.
+        value = Object.fromEntries(Object.entries(parsed).filter(([key]) => Object.hasOwn(input as object, key)));
+      }
+      else if (channel) {
+        const schema = channel === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
+        const api = schema.parse((input as Record<string, unknown>)?.[channel]);
+        if (channel !== 'information' || !(api as Settings['information']).reuseVariable)
+          validateApi(api, apiLabels[channel], false);
+        value = { [channel]: api };
+      } else value = validateSettings(input); // Existing full-settings callers retain their contract.
       const chat = SillyTavern.getCurrentChatId();
       const book = getCharWorldbookNames('current').primary;
       const check = () => {
@@ -247,7 +262,7 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       return requestBrowserLock('澄湾设置:' + chat, {}, async lock => {
         lock!.assertHeld();
         check();
-        if (channel) {
+        if (channel && channel !== 'general') {
           // Confirm the authoritative write before replacing its browser copy.
           const account = await browserPreferenceScope();
           lock!.assertHeld();
@@ -265,16 +280,18 @@ export function createSettingsController(assertActive: () => void = () => {}) {
           warnings.set(channel, warning);
           return { value, warning };
         }
-        await syncExtraApiRules(value, lock!, assertActive);
+        if (!channel) await syncExtraApiRules(value as Settings, lock!, assertActive);
         lock!.assertHeld();
         check();
+        const variables = getVariables({ type: 'character' });
+        const stored = channel === 'general' ? { ...variables.澄湾设置, ...value } : value;
         await replaceVariables(
-          { ...getVariables({ type: 'character' }), 澄湾设置: value },
+          { ...variables, 澄湾设置: stored },
           { type: 'character' },
         );
         lock!.assertHeld();
         check();
-        if (!_.isEqual(getVariables({ type: 'character' }).澄湾设置, value))
+        if (!_.isEqual(getVariables({ type: 'character' }).澄湾设置, stored))
           throw Error('角色设置读回不一致');
         return { value, warning: '' };
       });

@@ -65,7 +65,7 @@ export function projectWorldInformation(state: State, result: Record<string, any
   for (const kind of kinds) {
     const selected = effectiveInformationIds(state, kind);
     projected[kind] = Object.fromEntries(Object.entries(state[kind]).map(([id, record]) => [
-      id, selected.has(id) ? publicModelData(record) : { 名称: record.名称 },
+      id, selected.has(id) ? publicModelData(record, [kind, id]) : { 名称: record.名称 },
     ]));
   }
   return projected;

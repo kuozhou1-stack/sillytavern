@@ -38,7 +38,7 @@ import {
   type State,
 } from './core';
 
-import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type ApiChannel } from './settings';
+import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type ApiChannel, type SettingsScope } from './settings';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
 import { workerTask, storyTask, appendSystemPrompts, restorePromptSlot } from './worker-task';
 import { withPromptInstructions, promptContextPrompts } from './model-history';
@@ -448,16 +448,14 @@ export function createRuntime() {
       setError(e);
     }
   }
-  async function saveSettings(input: unknown = copy(settings), channel?: ApiChannel) {
+  async function saveSettings(input: unknown = copy(settings), channel?: SettingsScope) {
     requireWriter();
     if (view.busy || view.updating) throw Error('请等待当前请求完成或停止后保存设置');
     const { value, warning } = await settingsController.save(input, channel);
     requireWriter();
     // Independent forms may finish in either order; only adopt the saved channel.
-    if (channel === 'information') settings.information = value.information;
-    else if (channel) settings[channel] = value[channel];
-    else Object.assign(settings, value);
-    if (channel) await settingsController.syncRules(settings);
+    Object.assign(settings, value);
+    if (channel && channel !== 'general') await settingsController.syncRules(settings);
     view.settingsWarning = warning;
     return warning;
   }

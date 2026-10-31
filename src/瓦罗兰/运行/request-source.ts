@@ -11,17 +11,24 @@ export const MessageSourceSchema = z.array(z.object({
 export type MessageSource = z.infer<typeof MessageSourceSchema>;
 
 export function messageSource(): MessageSource {
-  const range = `0-${getLastMessageId()}`;
-  // No await between the reads: include_swipes omits message in the actual helper API.
-  const messages = getChatMessages(range);
-  const candidates = getChatMessages(range, { include_swipes: true });
-  const sources: MessageSource = messages.map((m, index) => ({
-    id: m.message_id, role: m.role, swipe: candidates[index].swipe_id,
-    text: m.message, archive: m.message, candidate: candidates[index].swipes[candidates[index].swipe_id],
-  }));
-  for (let index = 0; index < messages.length; index++) {
-    const message = messages[index], source = sources[index];
-    const receipt = message.extra?.izumi_advice ?? message.extra?.extra?.izumi_advice;
+  // The helper clones variables/data with every full-message read. Observe only
+  // native identity/text here, synchronously, preserving mes/swipe ownership.
+  const receipts: any[] = [];
+  const sources: MessageSource = SillyTavern.chat.map((message, id) => {
+    const swipe = message.swipe_id ?? 0;
+    const swipes = message.swipes ?? [message.mes];
+    const extra = message.swipe_info ? message.swipe_info[swipe] : message.extra;
+    receipts.push(extra?.izumi_advice ?? extra?.extra?.izumi_advice);
+    return {
+      // Match the helper's native role mapping, including its legacy narrator cast.
+      id, role: (message.extra?.type === 'narrator' ? message.is_user ? 'unknown' : 'system'
+        : message.is_user ? 'user' : 'assistant') as MessageSource[number]['role'],
+      swipe, text: message.mes ?? '', archive: message.mes ?? '',
+      candidate: swipe >= 0 && swipe < swipes.length ? swipes[swipe] ?? '' : undefined,
+    };
+  });
+  for (let index = 0; index < sources.length; index++) {
+    const source = sources[index], receipt = receipts[index];
     const assistant = sources[index - 1];
     // A verified transfer receipt, its replacement and its adjacent assistant block
     // must agree. A preset name or the placeholder sentence alone proves nothing.

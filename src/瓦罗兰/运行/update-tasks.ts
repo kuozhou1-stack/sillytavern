@@ -35,9 +35,9 @@ export function withUpdateTasks(config: GenerateConfig, state: State, ids: strin
     if (rosterCheck) needsRosterCheck = true;
     if (task.类别 === '摘要') {
       for (const { path, value } of archiveSourceRecords(state, id)) {
-        if (value === undefined || _.isEqual(_.get(archiveContext, path), publicModelData(value))) continue;
+        if (value === undefined || _.isEqual(_.get(archiveContext, path), publicModelData(value, path))) continue;
         const pointer = '/' + path.map(part => part.replaceAll('~', '~0').replaceAll('/', '~1')).join('/');
-        missingArchiveRecords.set(pointer, publicModelData(value));
+        missingArchiveRecords.set(pointer, publicModelData(value, path));
       }
     }
     const text =

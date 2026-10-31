@@ -39,7 +39,7 @@ import {
 } from './core';
 
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type ApiChannel } from './settings';
-import { stripProtocol, storedNarrative, updateBlock } from './message-protocol';
+import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
 import { workerTask, storyTask, appendSystemPrompts, restorePromptSlot } from './worker-task';
 import { withPromptInstructions, promptContextPrompts } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
@@ -57,7 +57,7 @@ export { stripProtocol } from './message-protocol';
 export { SettingsSchema } from './settings';
 export type { PhoneRequestIdentity, PhoneRequestState, PhoneRequestStatus, PhoneActionResult } from './phone-request';
 async function parseCandidate(text: string, envelope: Mvu.MvuData) {
-  const { block, commands } = updateBlock(text);
+  const { commands } = updateBlock(text);
   const base = copy(envelope);
   // 旧存档只在候选快照内补新分组，不改活动楼层，也不放宽只读字段校验。
   if (!Object.hasOwn(base.stat_data, '奇遇系统')) base.stat_data.奇遇系统 = Schema.parse({}).奇遇系统;
@@ -67,8 +67,9 @@ async function parseCandidate(text: string, envelope: Mvu.MvuData) {
   const normalized = normalizePhoneRecordPatches(before, normalizeWorldAnchorPatches(before, commands));
   assertInformationPatch(before, normalized);
   assertModelPrivatePatches(before, normalized);
-  const safeBlock = block.replace(/<JSONPatch>[\s\S]*?<\/JSONPatch>/i,
-    () => `<JSONPatch>${JSON.stringify(normalized)}</JSONPatch>`);
+  // MVU applies commands only. Analysis/receipts are read from the original response
+  // by this card; their example tags must not become MVU's first JSONPatch section.
+  const safeBlock = `<UpdateVariable><JSONPatch>${protocolJson(normalized)}</JSONPatch></UpdateVariable>`;
   const parsed = await Mvu.parseMessage(safeBlock, base);
   if (!parsed && normalized.length) throw Error('MVU 未返回更新候选');
   const result = parsed ?? base;

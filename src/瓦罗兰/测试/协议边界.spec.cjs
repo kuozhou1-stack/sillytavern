@@ -20,6 +20,7 @@ for (const [name, thought] of [
   ['嵌套同名', '<thinking>外层<thinking>示例 <UpdateVariable></thinking>外层说明</thinking>'],
   ['嵌套异名', '<thinking>外层<reasoning>示例 <UpdateVariable><think>内部 <JSONPatch></think></reasoning></thinking>'],
   ['非前置', '预设说明\n<reasoning>示例 <UpdateVariable>。</reasoning>'],
+  ['嵌套后仍有示例', '<thinking>外层<thinking>内部</thinking>尾部示例 <UpdateVariable></thinking>'],
 ]) test('NX07：' + name + '完整思考不计入协议', () => {
   const commands = command('原值');
   assert.deepEqual(updateBlock(thought + block(commands) + '</Interleaving>').commands, commands);
@@ -59,9 +60,18 @@ for (const raw of [
   '<UpdateVariable><JSONPatch>[]</JSONPatch>',
   '<UpdateVariable><JSONPatch>[]</UpdateVariable>',
   '<thinking>未闭合 <UpdateVariable>' + block([]),
-  '<thinking><think>未闭合</thinking>' + block([]),
   block([]) + '<UpdateVariable>',
   block([]).replace('</UpdateVariable>', '"</UpdateVariable><UpdateVariable>"</UpdateVariable>'),
   '<UpdateVariable><JSONPatch>[]</JSONPatch><JSONPatch>[]</JSONPatch></UpdateVariable>',
   '[{"op":"replace","path":"/玩家/称呼","value":"裸JSON不接受"}]',
 ]) test('坏协议继续拒绝 ' + raw.slice(0, 55), () => assert.throws(() => updateBlock(raw)));
+
+test('保持旧准入边界：外围未闭合思考及多余结束标签不额外拒绝完整变量块', () => {
+  for (const text of [
+    '<thinking>普通思考未闭合\n' + block([]),
+    block([]) + '\n<thinking>附加内容未闭合',
+    '<thinking><think>原有不规范辅助标记</thinking>' + block([]),
+    '</UpdateVariable>' + block([]),
+    '<thinking 未完成的附加标记\n' + block([]),
+  ]) assert.deepEqual(updateBlock(text).commands, []);
+});

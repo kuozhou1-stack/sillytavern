@@ -36,20 +36,44 @@ export function storedNarrative(text: string) {
 /** Preserve JSON values while keeping literal tags out of MVU's tagged transport. */
 export const protocolJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 
+/** Locate complete thought spans; incomplete auxiliary markup is not an extra rejection rule. */
+function completeThoughtEnds(text: string) {
+  const tags = [...text.matchAll(/<(\/?)(thinking|think|reasoning)\b[^<>]*>/gi)];
+  const ends = new Map<number, number>(), nextClose = new Map<string, number>();
+  // Preserve the old same-name closing interpretation, including literal nested examples.
+  for (let i = tags.length - 1; i >= 0; i--) {
+    const tag = tags[i], name = tag[2].toLowerCase();
+    if (tag[1]) nextClose.set(name, tag.index + tag[0].length);
+    else if (nextClose.has(name)) ends.set(tag.index, nextClose.get(name)!);
+  }
+  // Prefer the full balanced span when the producer emits actual nested thought blocks.
+  const stack: { name: string; start: number }[] = [];
+  for (const tag of tags) {
+    const name = tag[2].toLowerCase();
+    if (!tag[1]) stack.push({ name, start: tag.index });
+    else {
+      const opening = stack.pop();
+      if (opening?.name === name) ends.set(opening.start, tag.index + tag[0].length);
+      else stack.length = 0;
+    }
+  }
+  return ends;
+}
+
 export function updateBlock(text: string) {
   type Patch = { start: number; contentStart: number; end: number; content: string };
   type Block = {
     start: number; end: number; patches: Patch[]; lifeChecks: Patch[];
     patch?: Omit<Patch, 'end' | 'content'>; lifeCheck?: Omit<Patch, 'end' | 'content'>;
   };
-  const blocks: Block[] = [], thoughts: string[] = [];
-  const tagPattern = /<(\/?)(UpdateVariable|JSONPatch|Analysis|LifeCheck|thinking|think|reasoning)\b[^>]*>/iy;
+  const blocks: Block[] = [], thoughtEnds = completeThoughtEnds(text);
+  const tagPattern = /<(\/?)(UpdateVariable|JSONPatch|Analysis|LifeCheck|thinking|think|reasoning)\b[^<>]*>/iy;
   const quoted = /"(?:\\[\s\S]|[^"\\])*"/y;
   const uniqueError = () => Error('需要且只能包含一个完整 MVU 更新块，保留结果供重试');
   let current: Block | undefined;
   for (let i = 0; i < text.length;) {
     // JSON string tokens are opaque: escaped quotes/backslashes and XML-looking values stay data.
-    if (current && (current.patch || current.lifeCheck) && !thoughts.length && text[i] === '"') {
+    if (current && (current.patch || current.lifeCheck) && text[i] === '"') {
       quoted.lastIndex = i;
       if (quoted.exec(text)) { i = quoted.lastIndex; continue; }
     }
@@ -58,16 +82,8 @@ export function updateBlock(text: string) {
     if (!tag) { i++; continue; }
     const end = tagPattern.lastIndex, name = tag[2].toLowerCase(), closing = !!tag[1];
     const thought = ['thinking', 'think', 'reasoning'].includes(name);
-    if (thoughts.length) {
-      if (thought) {
-        if (!closing) thoughts.push(name);
-        else if (thoughts.pop() !== name) throw uniqueError();
-      }
-      i = end;
-      continue;
-    }
     // Complete nested thought sections may sit inside a preset wrapper or after its prose.
-    if (!current && thought && !closing) { thoughts.push(name); i = end; continue; }
+    if (!current && thought && !closing && thoughtEnds.has(i)) { i = thoughtEnds.get(i)!; continue; }
     if (current && name === 'analysis' && !closing) {
       const close = /<\/Analysis\s*>/i.exec(text.slice(end));
       if (close) { i = end + close.index + close[0].length; continue; }
@@ -77,7 +93,7 @@ export function updateBlock(text: string) {
         if (current) throw uniqueError();
         current = { start: i, end: 0, patches: [], lifeChecks: [] };
       } else {
-        if (!current) throw uniqueError();
+        if (!current) { i = end; continue; }
         if (current.patch) throw Error('MVU 更新块必须包含一个完整 JSONPatch');
         current.end = end;
         blocks.push(current);
@@ -105,8 +121,8 @@ export function updateBlock(text: string) {
     }
     i = end;
   }
-  // Incomplete reasoning is never stripped to recover a seemingly valid block behind it.
-  if (thoughts.length || current || blocks.length !== 1) throw uniqueError();
+  // Unclosed/duplicate real update blocks still fail; peripheral markup adds no new gate.
+  if (current || blocks.length !== 1) throw uniqueError();
   const block = blocks[0];
   if (block.patches.length !== 1) throw Error('MVU 更新块必须包含一个 JSONPatch');
   const patch = block.patches[0], commands: unknown = JSON.parse(patch.content);

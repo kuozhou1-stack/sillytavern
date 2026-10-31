@@ -1,0 +1,234 @@
+const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),file=path.join(__dirname,'双API流程.spec.cjs');
+const harness=new Module(file,module);harness.filename=file;harness.paths=Module._nodeModulePaths(__dirname);
+const nativeRequire=harness.require.bind(harness);
+harness.require=name=>name==='node:test'?{test(){}}:nativeRequire(name);
+harness._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={environment,block,endpoint,Schema,copy};',file);
+const {environment,block,endpoint,Schema,copy}=harness.exports;
+const {ApiSettingsSchema,SettingsSchema,apiConnection,validateApi,isApiConfigured,informationApi}=require('../运行/settings.ts');
+const {informationSelectionPrompt,finalizeInformationPrompt}=require('../运行/knowledge-context.ts');
+const worldVersion=require('../运行/world-information.json').版本;
+function seed(){return Schema.parse({_系统:{建档完成:true,存档id:'api-contract',资料加载:{资料版本:worldVersion}},玩家:{id:'player',姓名:'合成玩家'},
+  地点:{cafe:{名称:'合成咖啡馆',简介:'完整地点仍保存在存档'}},手机:{账号:{self:{人物id:'player',平台:'邻信',昵称:'合成玩家'}}}});}
+const configured=(mode,sendPreset)=>({mode,sendPreset,...(mode==='extra'?endpoint('isolated-'+mode):{})});
+async function withRuntime(config,fn,initial=seed()){
+  const e=environment(initial,{characterAuto:false,informationAuto:false,variable:endpoint('variable'),phone:endpoint('phone'),...config});
+  e.requests=[];
+  const invoke=async(method,config)=>{
+    const stage=config.user_input?.match(/\[chengwan-(knowledge|worker|novel|story):/)?.[1];
+    assert(stage,'应有当前请求的归属标记');
+    const messages=[...(method==='generate'?[{role:'system',content:'PRESET_GUIDANCE'},{role:'assistant',content:'PRESET_EXAMPLE'}]:[]),
+      ...[...(config.ordered_prompts??[]),...(config.overrides?.chat_history?.prompts??[])]
+        .filter(x=>x&&typeof x==='object').map(({role,content})=>({role,content})),
+      {role:'user',content:config.user_input??''},
+      ...(config.injects??[]).map(({role,content})=>({role,content})),
+      ...(method==='generate'?[{role:'system',content:'PRESET_TAIL'}]:[])];
+    const payload={messages,custom_prompt_post_processing:'strict'};
+    e.listeners.get('completion_settings')?.(payload);
+    const request={method,stage,config:copy(config),messages:copy(messages),postProcessing:payload.custom_prompt_post_processing,phase:e.runtime.view.phase};e.requests.push(request);
+    if(stage==='knowledge')return JSON.stringify({地点:[],组织:[]});
+    if(stage==='story')return '合成正文：玩家停下脚步。';
+    if(stage==='novel')return JSON.stringify({任务:[{名称:'合成可选任务',类型:'探索',难度:'基础',目标:'观察一处公开标记'}],
+      商品:[{名称:'合成便签纸',价格:2,类别:'消耗品',描述:'用于记录公开事项的普通便签纸',稀有:false}]});
+    if(e.failVariable){e.failVariable=false;throw Error('合成变量失败');}
+    return block([]);
+  };
+  global.generate=config=>invoke('generate',config);global.generateRaw=config=>invoke('generateRaw',config);
+  await e.runtime.start();try{await fn(e);}finally{await e.runtime.dispose();}
+}
+
+test('连接模式：默认extra，main不要求独立连接且不会发送旧独立密钥',()=>{
+  assert.equal(ApiSettingsSchema.parse({}).mode,'extra');
+  const api=ApiSettingsSchema.parse({mode:'main',...endpoint('legacy-extra')});
+  assert.equal(api.mode,'main');assert.equal(api.model,'legacy-extra');assert.equal(api.key,'test-legacy-extra');
+  assert.equal(apiConnection(api),undefined);assert.doesNotThrow(()=>validateApi(ApiSettingsSchema.parse({mode:'main'}),'通道'));
+  assert(isApiConfigured(ApiSettingsSchema.parse({mode:'main'})));
+  assert.throws(()=>validateApi(ApiSettingsSchema.parse({}),'通道'),/端点与模型/);
+  assert.deepEqual(apiConnection(ApiSettingsSchema.parse({...endpoint('google'),source:'google'})),
+    {apiurl:'https://google.invalid/v1',key:'test-google',model:'google',source:'makersuite'});
+});
+
+for(const mode of ['main','extra'])for(const sendPreset of [false,true]){
+  test(`正文变量：${mode}连接、预设${sendPreset}仍独立结算一次`,async()=>{
+    await withRuntime({variable:configured(mode,sendPreset)},async e=>{
+      await e.runtime.send('合成输入');const calls=e.requests.filter(r=>r.stage==='worker');
+      assert.equal(calls.length,1);assert.equal(calls[0].method,sendPreset?'generate':'generateRaw');
+      assert.equal(calls[0].config.custom_api?.model,mode==='main'?undefined:'isolated-extra');
+      assert.equal(JSON.stringify(calls[0].config).includes('test-legacy'),false);
+      assert.equal(e.requests.filter(r=>r.stage==='story').length,1);
+      assert.equal(Object.keys(e.state()._系统.已计轮事件).length,1);
+      assert(calls[0].messages.some(m=>String(m.content).includes('变量更新')));
+      assert.equal(e.rules.every(r=>!r.enabled),true,'main也使用原后台变量规则联动');
+    });
+  });
+  test(`手机变量：${mode}连接、预设${sendPreset}保留原请求通道`,async()=>{
+    await withRuntime({phone:configured(mode,sendPreset)},async e=>{
+      const result=await e.runtime.phoneAction({kind:'refresh',platform:'邻信'});
+      assert.equal(result.status,'confirmed');const calls=e.requests.filter(r=>r.stage==='worker');
+      assert.equal(calls.length,1);assert.equal(calls[0].method,sendPreset?'generate':'generateRaw');
+      assert.equal(calls[0].config.custom_api?.model,mode==='main'?undefined:'isolated-extra');
+      assert.equal(e.requests.filter(r=>r.stage==='story').length,0);
+    });
+  });
+  test(`资料选择：${mode}连接、独立预设${sendPreset}保留任务和最终输入`,async()=>{
+    await withRuntime({informationAuto:true,information:{...configured(mode,sendPreset),reuseVariable:false},
+      variable:{...endpoint('variable'),sendPreset:!sendPreset}},async e=>{
+      await e.runtime.send('合成输入');const call=e.requests.find(r=>r.stage==='knowledge');assert(call);
+      assert.equal(e.requests.filter(r=>r.stage==='knowledge').length,1);
+      assert.equal(call.method,sendPreset?'generate':'generateRaw');
+      assert.equal(call.config.custom_api?.model,mode==='main'?undefined:'isolated-extra');
+      assert.equal(call.messages.some(m=>m.content==='PRESET_GUIDANCE'),sendPreset);
+      assert.equal(JSON.parse(call.messages.find(m=>m.role==='user'&&m.content.startsWith('{"目录":')).content).本轮输入,'合成输入');
+      assert.equal(call.messages.at(-1).role,'system');
+      assert.equal(call.messages.filter(m=>String(m.content).includes('你只负责决定')).length,1);
+      assert(!JSON.stringify(call.messages).includes('[chengwan-'));
+      assert(!JSON.stringify(call.messages).includes('[valoran-information-task:'));
+      if(sendPreset)assert(!call.config.user_input.includes('合成输入'),'预设包装之前只交接归属标记');
+      assert.equal(e.state().地点.cafe.简介,'完整地点仍保存在存档');
+    });
+  });
+}
+
+for(const mode of ['main','extra'])for(const preset of [false,true])test(`资料复用变量${mode}连接，但预设${preset}独立`,async()=>{
+  await withRuntime({informationAuto:true,variable:configured(mode,!preset),information:{reuseVariable:true,sendPreset:preset}},async e=>{
+    await e.runtime.send('合成输入');const select=e.requests.find(r=>r.stage==='knowledge'),worker=e.requests.find(r=>r.stage==='worker');
+    assert.equal(select.method,preset?'generate':'generateRaw');assert.equal(worker.method,!preset?'generate':'generateRaw');
+    assert.deepEqual(select.config.custom_api,worker.config.custom_api);
+    assert.equal(informationApi(e.runtime.settings).sendPreset,preset);
+  });
+});
+
+for(const mode of ['main','extra'])test(`奇遇${mode}连接仍使用独立内容任务，不随手机预设开关`,async()=>{
+  await withRuntime({phone:configured(mode,true)},async e=>{
+    await e.runtime.novelAction({kind:'enable',operationId:'audit-enable'});
+    await e.runtime.novelRefresh('initial');const call=e.requests.find(r=>r.stage==='novel');
+    assert.equal(call.method,'generateRaw');assert.equal(call.config.custom_api?.model,mode==='main'?undefined:'isolated-extra');
+    assert(!JSON.stringify(call.messages).includes('PRESET_GUIDANCE'));
+    assert.equal(e.state().奇遇系统._系统币,30);
+  });
+});
+
+test('资料预设最终hook保留顺序、精确去状态块，原始JSON标签不被清洗',()=>{
+  const marker='[selection:owned]',slot='[slot:owned]';
+  const config=informationSelectionPrompt(seed(),'原始输入 <status_current_variable>字面数据</status_current_variable>');
+  const messages=[{role:'system',content:'预设A'},{role:'system',content:'前文<status_current_variable>重复全档</status_current_variable>后文'},
+    {role:'assistant',content:'预设示例'},{role:'system',content:slot},{role:'user',content:'<preset>'+marker+'</preset>'}];
+  assert(finalizeInformationPrompt(messages,marker,config,true,slot));
+  assert.equal(messages[0].content,'预设A');assert.equal(messages[1].content,'前文后文');
+  assert.equal(messages[2].content,'预设示例');assert(messages.at(-1).content.includes('你只负责决定'));
+  assert.equal(messages.at(-1).role,'system');
+  assert.equal(JSON.parse(messages.find(m=>m.role==='user'&&m.content.startsWith('{"目录":')).content).本轮输入,'原始输入 <status_current_variable>字面数据</status_current_variable>');
+  const unchanged=copy(messages);assert.equal(finalizeInformationPrompt(messages,'other-request',config,true,slot),false);assert.deepEqual(messages,unchanged);
+  assert(!JSON.stringify(messages).includes(slot));assert(!JSON.stringify(messages).includes(marker));
+});
+
+test('main与独立预设沿用服务器及浏览器保存，重新启动读回且不生成',async()=>{
+  await withRuntime({},async e=>{
+    for(const channel of ['variable','phone','information']){
+      const api={...copy(e.runtime.settings[channel]),mode:'main',sendPreset:channel==='information',...(channel==='information'?{reuseVariable:true}:{})};
+      await e.runtime.saveSettings({...copy(e.runtime.settings),[channel]:api},channel);
+      const shared=e.sharedFiles.get('/user/files/valoran-v1-api-'+channel+'.json');assert.equal(shared.value.mode,'main');
+      assert.equal(shared.value.sendPreset,channel==='information');
+    }
+    assert.equal(e.requests.length,0);await e.runtime.dispose();
+    e.runtime=require('../运行/host.ts').createRuntime();await e.runtime.start();
+    for(const channel of ['variable','phone','information'])assert.equal(e.runtime.settings[channel].mode,'main');
+    assert.equal(e.runtime.settings.information.sendPreset,true);assert.equal(e.runtime.settings.variable.sendPreset,false);
+    assert.equal(e.requests.length,0);
+  });
+});
+
+test('main变量失败只重试变量，原正文和提交身份不变',async()=>{
+  await withRuntime({variable:configured('main',true)},async e=>{
+    e.failVariable=true;await assert.rejects(e.runtime.send('合成输入'),/合成变量失败/);
+    assert.equal(e.runtime.view.phase,'variables');
+    const pending=copy(e.vars.澄湾待更新正文),body=e.messages.at(-1).message;
+    await e.runtime.retry();assert.equal(e.messages.at(-1).message,body);
+    assert.equal(e.requests.filter(r=>r.stage==='story').length,1);assert.equal(e.requests.filter(r=>r.stage==='worker').length,2);
+    assert.deepEqual(Object.keys(e.state()._系统.已计轮事件),[pending.id]);
+    assert(e.state()._系统.提交记录[pending.id]);assert.equal(e.vars.澄湾待更新正文,null);
+    assert.equal(e.runtime.view.phase,'');
+  });
+});
+
+test('保存确认失败停在保存阶段，同ID确认不重跑API，成功后清除阶段',async()=>{
+  await withRuntime({variable:configured('main',true)},async e=>{
+    let fail=true;
+    global.SillyTavern.saveChat=async()=>{
+      if(fail&&e.runtime.view.phase==='saving'&&e.messages.at(-1).extra?.cw_story_settlements){
+        fail=false;throw Error('合成保存确认失败');
+      }
+    };
+    await assert.rejects(e.runtime.send('保存确认阶段测试'),/合成保存确认失败/);
+    assert.equal(e.runtime.view.phase,'saving');
+    const id=e.vars.澄湾待更新正文.id,calls=e.requests.length;
+    await e.runtime.retry();
+    assert.equal(e.requests.length,calls);
+    assert.deepEqual(Object.keys(e.state()._系统.已计轮事件),[id]);
+    assert(e.state()._系统.提交记录[id]);
+    assert.equal(e.runtime.view.phase,'');
+  });
+});
+
+let converter;
+async function currentTavernConverter(){
+  if(!converter)converter=(async()=>{
+    const {pathToFileURL}=require('node:url');
+    const tavern=path.resolve(__dirname,'../../../../SillyTavern');
+    const util=await import(pathToFileURL(path.join(tavern,'src/util.js')));
+    util.setConfigFilePath(path.join(tavern,'config.yaml'));
+    return import(pathToFileURL(path.join(tavern,'src/prompt-converters.js')));
+  })();
+  return converter;
+}
+for(const mode of ['main','extra'])for(const sendPreset of [false,true])test(`最终顺序与身份：${mode}/预设${sendPreset}原生内容在前、本卡格式末尾system`,async()=>{
+  const state=seed();state._系统.角色停用标识.kassadin={姓名:'卡萨丁'};
+  const {postProcessPrompt}=await currentTavernConverter();
+  await withRuntime({informationAuto:true,variable:configured(mode,sendPreset),phone:configured(mode,sendPreset),
+    information:{...configured(mode,sendPreset),reuseVariable:false}},async e=>{
+    await e.runtime.send('合成输入');
+    await e.runtime.phoneAction({kind:'refresh',platform:'邻信'});
+    await e.runtime.novelAction({kind:'enable',operationId:'prompt-enable'});
+    await e.runtime.novelRefresh('initial');
+    for(const stage of ['knowledge','story','worker','novel'])assert(e.requests.some(r=>r.stage===stage),stage);
+    for(const request of e.requests){
+      const {messages}=request,body=messages.map(m=>m.content).join('\n');
+      assert.equal(request.phase,{knowledge:'information',story:'story',worker:'variables',novel:'novel'}[request.stage]);
+      assert.equal(request.postProcessing,'','仅本次匹配marker的请求保留原始角色与顺序');
+      assert.equal(messages.at(-1).role,'system');
+      assert.match(messages.at(-1).content,/输出格式/);
+      const upstream=postProcessPrompt(copy(messages),request.postProcessing,{});
+      assert.deepEqual(upstream,messages,'真实酒馆后处理没有重排、合并或降低system身份');
+      if(request.method==='generate'){
+        const native=['PRESET_GUIDANCE','PRESET_EXAMPLE','PRESET_TAIL'];
+        const indices=native.map(s=>messages.findIndex(m=>m.content===s));
+        assert(indices[0]>=0&&indices[0]<indices[1]&&indices[1]<indices[2]);
+        assert(indices[2]<messages.length-1,'额外格式确实位于预设尾部之后');
+      }
+      if(request.stage==='knowledge'){
+        const inputIndex=messages.findIndex(m=>m.role==='user'&&m.content.startsWith('{"目录":'));
+        assert(inputIndex>=0);
+        if(request.method==='generate')assert(inputIndex<messages.findIndex(m=>m.content==='PRESET_TAIL'),'恢复输入槽位，不移到预设尾部之后');
+        assert.equal(body.split('你只负责决定本轮需要展开哪些地点和组织资料').length-1,1);
+      }
+      if(['story','worker'].includes(request.stage)){
+        assert.equal(body.split('玩家暂时关闭的人物').length-1,1);
+        assert(body.includes('"id":"kassadin"'));
+      }
+      if(request.stage==='story')assert.equal(body.split('<status_current_variable>').length-1,1);
+      if(request.stage==='worker'){
+        assert.equal(messages.filter(m=>m.content.startsWith('{"世界":')).length,1);
+        for(const rule of e.rules)assert.equal(body.split(rule.content).length-1,1,rule.name);
+      }
+      assert(!body.includes('[chengwan-'));
+      assert(!body.includes('[valoran-context:'));
+      if(request.messages.length>2){
+        const strict=postProcessPrompt(copy(messages),'strict',{});
+        assert.equal(strict.at(-1).role,'user','反例：沿用strict会降级同一末尾system，故需请求级处理');
+      }
+    }
+  },state);
+});
+
+module.exports={withRuntime,seed,configured};

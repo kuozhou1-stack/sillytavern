@@ -185,6 +185,7 @@ import { uid } from '../../../../运行/core';
 import type { NovelAction } from '../../../../运行/novel-system';
 import type { NovelRefreshTarget } from '../../../../运行/novel-refresh';
 import { RuntimeKey, type Runtime } from '../../../../运行/host';
+import { isApiConfigured } from '../../../../运行/settings';
 import { taskPresentation } from '../../utils/task-presentation';
 import { gameplayModalSize } from '../../utils/gameplay-modal-size';
 import SvgIcon from '../icons/SvgIcon.vue';
@@ -238,8 +239,8 @@ const isRefreshing = computed(() => !!runtime && taskPresentation(runtime.view).
 
 async function handleRefresh(target: NovelRefreshTarget) {
   if (isOperationBlocked.value || !runtime?.novelRefresh) return;
-  if (!runtime.settings.phone.apiurl || !runtime.settings.phone.model) {
-    emit('feedback', '请先在“设置 → 手机与奇遇 API”填写接口和模型');
+  if (!isApiConfigured(runtime.settings.phone)) {
+    emit('feedback', '请先在“设置 → 手机与奇遇 API”选择正文连接或配置独立接口');
     return;
   }
   isPending.value = true;
@@ -276,8 +277,8 @@ async function handleAction(action: Omit<NovelAction, 'operationId'>) {
       if (newlyEnabling && novelState.value._启用) {
         if (!runtime.novelRefresh) {
           emit('feedback', '奇遇已开启；请等待后台更新后刷新任务和商店');
-        } else if (!runtime.settings.phone.apiurl || !runtime.settings.phone.model) {
-          emit('feedback', '奇遇已开启；请在“设置 → 手机与奇遇 API”配置接口，再刷新任务和商店');
+        } else if (!isApiConfigured(runtime.settings.phone)) {
+          emit('feedback', '奇遇已开启；请在“设置 → 手机与奇遇 API”选择正文连接或配置独立接口，再刷新任务和商店');
         } else {
           pendingTargetId.value = 'refresh:initial';
           try {

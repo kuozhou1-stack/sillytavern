@@ -2,11 +2,7 @@ import { requestBrowserLock, type BrowserLock } from './browser-lock';
 import { browserPreferenceScope, readSharedPreference, saveSharedPreference } from './shared-preferences';
 
 export const ApiSettingsSchema = z.object({
-  // Migrate legacy main-model mode without losing either endpoint's connection fields.
-  mode: z
-    .enum(['main', 'extra'])
-    .prefault('extra')
-    .transform(() => 'extra' as const),
+  mode: z.enum(['main', 'extra']).prefault('extra'),
   apiurl: z.string().trim().prefault(''),
   key: z.string().prefault(''),
   model: z.string().trim().prefault(''),
@@ -21,14 +17,16 @@ const apiChannels = ['variable', 'phone', 'information'] as const;
 const apiLabels = { variable: '正文变量 API', phone: '手机与奇遇 API', information: '资料选择 API' };
 export const apiBrowserKey = (channel: ApiChannel, account: string) =>
   `valoran-v1:${encodeURIComponent(account)}:api:${channel}:v1`;
-export const apiConnection = (api: ApiSettings): CustomApiConfig => ({
+export const apiConnection = (api: ApiSettings): CustomApiConfig | undefined => api.mode === 'main' ? undefined : ({
   apiurl: api.apiurl,
   key: api.key,
   model: api.model,
   source: api.source === 'google' ? 'makersuite' : 'openai',
 });
+export const isApiConfigured = (api: ApiSettings) => api.mode === 'main' || (!!api.apiurl && !!api.model);
 
 export function validateApi(api: ApiSettings, name: string, required = true) {
+  if (api.mode === 'main') return;
   if (!required && !api.apiurl && !api.model && !api.key) return;
   if (!api.apiurl || !api.model) throw Error(`请填写${name} API 的端点与模型`);
   let url: URL;
@@ -79,7 +77,7 @@ const ruleBackupKey = '澄湾额外API规则原状态';
 type RuleBackup = { uid: number; name: string; enabled: boolean };
 
 function hasExtraApi(value: Settings) {
-  return [value.variable, value.phone].some(api => !!api.apiurl && !!api.model);
+  return [value.variable, value.phone].some(isApiConfigured);
 }
 
 async function syncExtraApiRules(value: Settings, lock: BrowserLock, assertActive: () => void) {
@@ -151,7 +149,9 @@ export function validateSettings(input: unknown): Settings {
 }
 
 export function informationApi(value: Settings): ApiSettings {
-  return value.information.reuseVariable ? value.variable : value.information;
+  return value.information.reuseVariable
+    ? { ...value.variable, sendPreset: value.information.sendPreset }
+    : value.information;
 }
 
 export function createSettingsController(assertActive: () => void = () => {}) {

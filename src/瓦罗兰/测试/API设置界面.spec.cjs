@@ -29,6 +29,27 @@ test('API表单：资料默认复用变量，独立端点保留草稿，保存�
   await e.view.save();assert.equal(e.runtime.settings.information.model,'selector');
   assert.equal(e.runtime.settings.variable.model,'original');
 });
+
+test('API表单：main隐藏独立认证字段，切回extra保留连接草稿',async()=>{
+  const e=setup();e.view.draft.key='SYNTHETIC_ONLY';e.view.connectionMode.value='main';
+  let markup=await html(e.fixture);assert(markup.includes('使用酒馆当前正文 API'));
+  assert(!markup.includes('API 访问密钥'));assert(!markup.includes('SYNTHETIC_ONLY'));
+  await e.view.save();assert.equal(e.runtime.settings.variable.mode,'main');
+  e.view.connectionMode.value='extra';assert.equal(e.view.draft.model,'original');assert.equal(e.view.draft.key,'SYNTHETIC_ONLY');
+  markup=await html(e.fixture);assert(markup.includes('API 访问密钥'));
+});
+
+test('API表单：资料三种连接均显示独立预设，复用连接不覆盖变量选择',async()=>{
+  const e=setup('information');
+  for(const mode of ['reuse','main','extra']){
+    e.view.connectionMode.value=mode;e.view.draft.sendPreset=true;
+    if(mode==='extra'){e.view.draft.apiurl='https://selection.invalid';e.view.draft.model='selector';}
+    const markup=await html(e.fixture);assert(markup.includes('资料选择携带当前酒馆预设'));
+    await e.view.save();assert.equal(e.runtime.settings.information.sendPreset,true);
+    assert.equal(e.runtime.settings.information.reuseVariable,mode==='reuse');
+    assert.equal(e.runtime.settings.variable.sendPreset,false);
+  }
+});
 test('API表单：读取共用配置只指定当前通道，失败提示不清未保存草稿',async()=>{
   const e=setup('phone');e.view.draft.model='phone-draft';
   e.runtime.reloadSettings=async channel=>{e.calls.push({kind:'read',selected:channel});return '服务器读取失败，已使用浏览器副本';};

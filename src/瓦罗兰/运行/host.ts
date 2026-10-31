@@ -14,6 +14,7 @@ import {
   prepareInformationCommand, informationSelectionPrompt, finalizeInformationPrompt, applyInformationSelection,
   needsInformationSelection, assertInformationPatch, type InformationKind, type InformationMode,
   ensureInformationContext, expandInformationForRetry, InformationNotLoadedError,
+  informationPromptRule,
 } from './knowledge-context';
 import { mergeOpeningTasks, planOpeningCharacters, openingMessage, withOpeningStory } from './opening';
 import { taskReceipt, type UpdateReceipt } from './update-receipt';
@@ -39,13 +40,14 @@ import {
 
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type ApiChannel } from './settings';
 import { stripProtocol, storedNarrative, updateBlock } from './message-protocol';
-import { finalizeWorkerPrompt } from './worker-task';
+import { workerTask, storyTask, appendSystemPrompts, restorePromptSlot } from './worker-task';
+import { withPromptInstructions, promptContextPrompts } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
 import { CandidateIdentityError, isCommittedCandidate } from './committed-candidate';
 import { LIBRARY_KEY, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
 import { prepareCharacterRoster, prepareOpeningCharacterRoster } from './character-roster';
 import { createProfile, initialConnectionIds } from './creation';
-import { assertDisabledUnchanged, finalizeCharacterContext, taskHasActiveTargets } from './character-activity';
+import { assertDisabledUnchanged, finalizeCharacterContext, taskHasActiveTargets, disabledIdentityPrompt } from './character-activity';
 import { applyNovelAction, refreshNovelSystem, type NovelAction } from './novel-system';
 import { applyNovelRefresh, novelRefreshPrompt, finalizeNovelRefreshPrompt, type NovelRefreshTarget } from './novel-refresh';
 const normalizeRuntimeWorld = (state: State): State =>
@@ -126,6 +128,7 @@ export function createRuntime() {
     streaming: '',
     readOnly: false,
     operation: '',
+    phase: '',
     updates: [] as UpdateReceipt[],
     queued: [] as { id: string; label: string; kind: string }[],
     recoverable: [] as { id: string; label: string; kind: string; preview: string }[],
@@ -184,7 +187,13 @@ export function createRuntime() {
         preview: i.text ?? i.action?.text ?? blockText(i.action?.blocks ?? []),
       }));
   };
+  let phaseOwner = '';
   const scheduler = new RequestScheduler((active, waiting) => {
+    if ((active?.key ?? '') !== phaseOwner) {
+      phaseOwner = active?.key ?? '';
+      if (active) view.phase = 'preparing';
+      else if (!view.error) view.phase = '';
+    }
     view.operation = active?.kind ?? '';
     view.queued = waiting.filter(i => !i.background).map(i => ({ id: i.key, label: i.label, kind: i.kind }));
     updateQueueView();
@@ -605,8 +614,9 @@ export function createRuntime() {
     validateApi(api, '资料选择');
     const expected = activeContext(), source = messageSource();
     const config = informationSelectionPrompt(before, input, source.filter(item => item.role !== 'system'));
-    const reply = await request({ ...config, custom_api: apiConnection(api) },
-      true, api.retries, false, 'knowledge');
+    config.custom_api = apiConnection(api);
+    const reply = await request(config, before,
+      true, api.retries, api.sendPreset, 'knowledge');
     assertContext(expected, activeContext());
     assertMessageSource(source);
     return ensureInformationContext(applyInformationSelection(before, reply, key, retain), input);
@@ -619,32 +629,54 @@ export function createRuntime() {
     await service.commit(expected, uid('information_selection'), () => selected);
     refresh();
   }
-  async function requestOnce(config: GenerateConfig, extra = false, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
+  async function requestOnce(config: GenerateConfig, state: State, extra = false, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
     generationId = uid('generation');
     const marker = `[chengwan-${purpose === 'knowledge' ? 'knowledge' : extra ? purpose === 'novel' ? 'novel' : 'worker' : 'story'}:${generationId}]`;
-    const requestState = normalizeRuntimeWorld(Schema.parse(service.host.read(activeContext().floor).stat_data));
+    const requestConfig = config;
+    const presetSelection = purpose === 'knowledge' && sendPreset;
+    const taskSlot = `[valoran-information-task:${generationId}]`;
+    const contextSlot = `[valoran-context:${generationId}]`;
+    const contextPrompts = promptContextPrompts.get(config) ?? [];
+    const contextSet = new Set(contextPrompts);
+    const extraPrompts = (config.injects ?? []).filter(prompt => !contextSet.has(prompt));
+    // Use the state that produced this request, including an unpublished phone draft.
+    const requestState = Schema.parse(state);
     const taskGuard = eventOn(tavern_events.CHAT_COMPLETION_SETTINGS_READY, data => {
       if (!data.messages.some((m: any) => typeof m.content === 'string' && m.content.includes(marker))) return;
+      // Only this request needs native positions plus a trailing system contract.
+      // strict/semi/single would rewrite those roles; leave the global setting intact.
+      data.custom_prompt_post_processing = '';
       if (purpose === 'knowledge') {
-        finalizeInformationPrompt(data.messages, marker, config);
+        finalizeInformationPrompt(data.messages, marker, requestConfig, sendPreset, taskSlot);
         return;
       }
       if (purpose === 'novel') {
-        finalizeNovelRefreshPrompt(data.messages, marker, config);
+        finalizeNovelRefreshPrompt(data.messages, marker, requestConfig);
         return;
       }
-      finalizeCharacterContext(data.messages, requestState, extra);
-      if (extra) finalizeWorkerPrompt(data.messages, marker);
-      else for (const message of data.messages)
-        if (typeof message.content === 'string') message.content = message.content.replaceAll(marker, '').trim();
+      finalizeCharacterContext(data.messages, requestState, extra, { contextSlot, constraints: false });
+      restorePromptSlot(data.messages, contextSlot, contextPrompts.map(({ role, content }) => ({ role, content })));
+      const input = extraPrompts.filter(prompt => prompt.role === 'user').map(({ content }) => ({ role: 'user', content }));
+      if (extra && requestConfig.user_input?.trim()) input.push({ role: 'user', content: requestConfig.user_input });
+      restorePromptSlot(data.messages, marker, input);
+      const disabled = disabledIdentityPrompt(requestState);
+      appendSystemPrompts(data.messages, [
+        { content: informationPromptRule },
+        ...(disabled ? [{ content: disabled }] : []),
+        ...extraPrompts.filter(prompt => prompt.role !== 'user'),
+        { content: extra ? workerTask : storyTask },
+      ]);
     });
-    config = { ...config, user_input: `${config.user_input ?? ''}\n${marker}` };
+    config = { ...config,
+      injects: extra ? [] : [{ role: 'system', position: 'in_chat', depth: 0, content: contextSlot, should_scan: false }],
+      user_input: extra ? marker : `${config.user_input ?? ''}\n${marker}` };
     const startedEpoch = epoch;
     try {
-      const workerPrompts: RolePrompt[] = extra
-        ? (config.injects ?? []).map(({ role, content }) => ({ role, content }))
-        : [];
+      const workerPrompts: RolePrompt[] = presetSelection
+        ? [{ role: 'system', content: taskSlot }]
+        : extra && purpose === 'variables' ? [{ role: 'system', content: contextSlot }] : [];
       requireWriter();
+      view.phase = purpose === 'knowledge' ? 'information' : purpose === 'novel' ? 'novel' : extra ? 'variables' : 'story';
       const result = extra
         ? sendPreset
           ? await generate({
@@ -672,6 +704,7 @@ export function createRuntime() {
             })
         : await generate({ ...config, generation_id: generationId, should_stream: true });
       requireWriter();
+      view.phase = 'validating';
       if (typeof result !== 'string' || !result.trim()) throw Error('生成未返回有效正文');
       if (!extra && !stripProtocol(result)) throw Error('主模型没有返回剧情正文；请重试正文生成');
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
@@ -681,12 +714,12 @@ export function createRuntime() {
       generationId = null;
     }
   }
-  async function request(config: GenerateConfig, extra = false, attempts = 0, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
+  async function request(config: GenerateConfig, state: State, extra = false, attempts = 0, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
     let error: unknown;
     for (let index = 0; index <= attempts; index++) {
       if (cancelled || disposed) throw Error('生成已取消');
       try {
-        return await requestOnce(config, extra, sendPreset, purpose);
+        return await requestOnce(config, state, extra, sendPreset, purpose);
       } catch (e) {
         error = e;
         if (cancelled || disposed) throw e;
@@ -695,11 +728,12 @@ export function createRuntime() {
     }
     throw error;
   }
-  async function requestUpdate(config: GenerateConfig, api: ApiSettings, name: string) {
+  async function requestUpdate(config: GenerateConfig, api: ApiSettings, name: string, state: State) {
     validateApi(api, name);
     await settingsController.syncRules(settings);
     console.info('[瓦洛兰变量更新] 开始请求', name);
-    return request({ ...config, custom_api: apiConnection(api) }, true, api.retries, api.sendPreset);
+    config.custom_api = apiConnection(api);
+    return request(config, state, true, api.retries, api.sendPreset);
   }
   async function requestScopedUpdate(
     before: State, envelope: Mvu.MvuData, makeConfig: (state: State) => Promise<GenerateConfig>,
@@ -708,7 +742,7 @@ export function createRuntime() {
   ) {
     // Retry the variable handoff once with the missing records. Never regenerate the story or apply the rejected patch.
     for (let attempt = 0; attempt < 2; attempt++) {
-      const text = attempt === 0 && cachedReply !== undefined ? cachedReply : await requestUpdate(await makeConfig(before), api, name);
+      const text = attempt === 0 && cachedReply !== undefined ? cachedReply : await requestUpdate(await makeConfig(before), api, name, before);
       await receiveReply?.(text);
       try {
         const parsed = await parseUpdate(text, { ...envelope, stat_data: before }, name, id);
@@ -753,6 +787,7 @@ export function createRuntime() {
     )
       throw Error('待更新正文已被编辑，请取消后重新生成');
     if (pendingAlreadyCommitted(p)) {
+      view.phase = 'saving';
       await saveChat();
       requireWriter();
       assertMessageSource(p.source, p.replyFloor);
@@ -795,18 +830,17 @@ export function createRuntime() {
     }
     const makeUpdateConfig = async (state: State) => {
       const updateConfig = withUpdateTasks(await livePromptConfig(state, instruction, 'worker'), state, taskIds);
-      updateConfig.user_input =
-        '依据本次正文事实、已有状态和授权的后台生活待办更新变量；返回一个完整 UpdateVariable 块，不续写正文。';
+      updateConfig.user_input = '';
       updateConfig.injects = [
         ...(updateConfig.injects ?? []),
         {
-          role: 'system',
+          role: 'user',
           position: 'in_chat',
           depth: 0,
           content: `本轮玩家输入（未在正文实现的行动不算已发生）：\n${userText}`,
         },
         {
-          role: 'system',
+          role: 'user',
           position: 'in_chat',
           depth: 0,
           content: `本轮已完成正文（事实资料）：\n${narrative}`,
@@ -859,12 +893,14 @@ export function createRuntime() {
     // The MVU result is already parsed and written as floor data. Keeping the command in
     // the message would let MVU or another script apply the same patch again on a rerender.
     p.prepared = { envelope, settlement };
+    view.phase = 'saving';
     await savePending();
     await savePreparedNarrative(p, p.prepared, startedEpoch);
   }
   async function savePreparedNarrative(
     p: NonNullable<typeof pending>, prepared: NonNullable<NonNullable<typeof pending>['prepared']>, startedEpoch: number,
   ) {
+    view.phase = 'saving';
     const { envelope, settlement } = prepared;
     const candidate = envelope.stat_data as State, floor = settlement.floor, replySwipe = settlement.swipe;
     const before = Schema.parse(p.envelope.stat_data);
@@ -1018,7 +1054,7 @@ export function createRuntime() {
       const reply = await request({
         ...(opening ? withOpeningStory(storyConfig, storyState, openingTaskId) : storyConfig),
         user_input: continuation ? text : '',
-      });
+      }, storyState);
       assertContext(context, activeContext());
       assertMessageSource(requestSource);
       pending = {
@@ -1039,6 +1075,7 @@ export function createRuntime() {
       assertMessageSource(requestSource);
       if (cancelled || disposed) throw Error('生成已停止');
       // Publish completed narrative before the independent variable request; retry updates this same floor.
+      view.phase = 'story-save';
       const floor = getLastMessageId() + 1;
       await createMessages(
         [{ role: 'assistant', message: storedNarrative(reply), extra: { cw_update_pending: true, cw_story_request: origin } }],
@@ -1353,6 +1390,7 @@ export function createRuntime() {
       assertMessageSource(p.source);
       setPhoneRequest(p, p.candidate ? 'saving' : p.reply ? 'settling' : 'sending');
       if (phoneAlreadyCommitted(p)) {
+        view.phase = 'saving';
         setPhoneRequest(p, 'saving');
         await service.host.persist();
         assertPhoneWritable();
@@ -1381,25 +1419,25 @@ export function createRuntime() {
         const taskIds = pendingUpdateTasks(draft);
         const budget = phoneBudget(draft, action, view.data?._系统.生成密度);
         const instruction =
-          '玩家手机操作：' +
-          JSON.stringify(action) +
-          '\n手机新内容数量参考（不限制变量更新权限）：' +
-          JSON.stringify(budget) +
-          '。私聊通常0–3条，仅必要时才达上限。根据已有权限、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。根据同一份变量更新规则，一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。仅输出一个完整的变量更新块；所有下划线字段禁止更改。' +
+          '本次处理手机互动变量。私聊通常0–3条，仅必要时才达上限。根据已有权限、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。手机新内容数量参考不限制变量更新权限，根据同一份变量规则一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。' +
           phoneTimePrompt(draft);
         const settled = await requestScopedUpdate(
           draft,
           envelope,
-          async state =>
-            withUpdateTasks(
-              await livePromptConfig(state, instruction, 'worker', undefined, {
+          async state => {
+            let config = withUpdateTasks(
+              await livePromptConfig(state, '', 'worker', undefined, {
                 session: action.kind === 'send' ? action.id : undefined,
                 post: ['comment', 'like', 'repost'].includes(action.kind) ? action.id : undefined,
                 platform: action.platform,
               }),
               state,
               taskIds,
-            ),
+            );
+            config = withPromptInstructions(config, [{ role: 'system', position: 'in_chat', depth: 0, content: instruction }]);
+            config.user_input = JSON.stringify({ 玩家手机操作: action, 手机新内容数量参考: budget });
+            return config;
+          },
           config,
           '手机',
           id,
@@ -1447,6 +1485,7 @@ export function createRuntime() {
       }
       assertPhoneWritable();
       setPhoneRequest(p, 'saving');
+      view.phase = 'saving';
       view.updating = true;
       await service.commit(context, id, () => copy(p.candidate!), false, () => {
         assertPhoneWritable();
@@ -1493,9 +1532,11 @@ export function createRuntime() {
     try {
       if (cancelled || disposed) throw Error('奇遇刷新已取消');
       if (service.host.read(context.floor).stat_data?._系统?.提交记录?.[id]) {
+        view.phase = 'saving';
         await service.host.persist();
         if (journal?.commitId === id) await service.host.journal(null);
       } else if (journal?.commitId === id) {
+        view.phase = 'saving';
         await service.commit(journal.context, id, () => Schema.parse(journal.candidate));
         await service.host.journal(null);
       } else {
@@ -1503,11 +1544,13 @@ export function createRuntime() {
         const state = Schema.parse(service.host.read(context.floor).stat_data);
         const config = novelRefreshPrompt(state, target);
         console.info('[瓦洛兰奇遇] 开始刷新', target);
-        const text = await request({ ...config, custom_api: apiConnection(settings.phone) }, true, settings.phone.retries, false, 'novel');
+        config.custom_api = apiConnection(settings.phone);
+        const text = await request(config, state, true, settings.phone.retries, false, 'novel');
         if (cancelled || disposed) throw Error('奇遇刷新已取消');
         const item = intents.find(intent => intent.id === id);
         if (item) assertMessageSource(item.source, undefined, true);
         view.updating = true;
+        view.phase = 'saving';
         await service.commit(context, id, candidate => applyNovelRefresh(candidate, target, text, id));
       }
       setError('');

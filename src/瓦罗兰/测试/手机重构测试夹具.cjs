@@ -19,6 +19,7 @@ require.extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
 global.z = require('zod').z;
 global._ = require('lodash');
 const { Schema } = require(root + '/schema.ts');
+const { isApiConfigured } = require(root + '/运行/settings.ts');
 const phone = require(root + '/运行/phone.ts');
 const { managePhone, ensurePhoneSession } = require(root + '/运行/phone-management.ts');
 const { useLinxinDrafts } = require(root + '/界面/桌面端/utils/linxin-drafts.ts');
@@ -49,7 +50,7 @@ function component(relative, state, runtime, props = {}, additions = {}) {
     ? stmt.declarationList.declarations.flatMap(d => namesFor(d.name)) : []);
   for (const stmt of [...ast.statements].reverse()) if (ts.isImportDeclaration(stmt)) code = code.slice(0, stmt.pos) + code.slice(stmt.end);
   const emissions = [];
-  const context = { ...vue, ...phone, managePhone, ensurePhoneSession, useLinxinDrafts, console, RuntimeKey: null,
+  const context = { ...vue, ...phone, managePhone, ensurePhoneSession, useLinxinDrafts, isApiConfigured, console, RuntimeKey: null,
     defineProps: () => props, defineEmits: () => (...args) => emissions.push(args), inject: () => runtime,
     useWorldState: () => state, useStableFeed: () => ({ viewport: vue.ref(), pending: vue.ref(0), latest() {} }),
     onActivated() {}, onDeactivated() {}, onBeforeUnmount() {}, onMounted() {}, onUnmounted() {}, defineExpose() {}, setInterval() { return 0; }, clearInterval() {},

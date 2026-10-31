@@ -102,6 +102,7 @@
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue';
 import { RuntimeKey, type Runtime } from '../../../../运行/host';
 import { phoneNotificationPlatform } from '../../../../运行/phone';
+import { managePhone } from '../../../../运行/phone-management';
 import QueueStatus from '../shared/QueueStatus.vue';
 import PhoneMediaView from './PhoneMediaView.vue';
 import PhoneHome from './PhoneHome.vue';
@@ -184,10 +185,26 @@ const statusTime = computed(() => {
   return `${pad(t.时)}:${pad(t.分)}`;
 });
 
-function handleOpenApp(appName: 'home' | 'linxin' | 'weilan' | 'map' | 'settings' | 'detail') {
+async function handleOpenApp(appName: 'home' | 'linxin' | 'weilan' | 'map' | 'settings' | 'detail') {
   if (currentScreen.value !== appName) {
     screenHistory.value.push(appName);
     currentScreen.value = appName;
+  }
+  const platform = appName === 'linxin' ? '邻信' : appName === 'weilan' ? '微澜' : null;
+  if (!platform || !runtime) return;
+  // Acknowledge this app's existing reminders, not unread messages inside conversations.
+  // Capture IDs at entry so a queued save cannot dismiss reminders arriving afterwards.
+  const ids = Object.entries(props.phoneData?._通知 ?? {})
+    .filter(([, n]: [string, any]) => !n.已读 && phoneNotificationPlatform({ 手机: props.phoneData }, n) === platform)
+    .map(([id]) => id);
+  if (!ids.length) return;
+  try {
+    await runtime.commit(state => {
+      for (const id of ids) state = managePhone(state, 'readNotification', id);
+      return state;
+    });
+  } catch (e) {
+    emit('feedback', '通知已读保存失败：' + String(e));
   }
 }
 

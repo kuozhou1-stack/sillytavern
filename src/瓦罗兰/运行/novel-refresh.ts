@@ -1,0 +1,119 @@
+import { Schema } from '../schema';
+import { copy, uid, type State } from './core';
+import { storyDay, SYSTEM_GOODS } from './novel-system';
+
+export type NovelRefreshTarget = 'tasks' | 'shop' | 'initial';
+const TaskDefinition = z.object({
+  名称: z.string().trim().min(1),
+  类型: z.enum(['日常', '探索', '社交', '成长', '奇遇']),
+  难度: z.enum(['基础', '进阶', '稀有']),
+  目标: z.string().trim().min(1),
+}).strict();
+const GoodDefinition = z.object({
+  名称: z.string().trim().min(1),
+  价格: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  类别: z.string().trim().min(1),
+  描述: z.string().trim().min(1),
+  稀有: z.boolean(),
+  限购: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+}).strict().refine(good => !good.稀有 || good.限购 !== undefined, '稀有商品必须有本存档累计限购');
+const nameKey = (name: string) => name.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, '');
+const countFor = (state: State) => state._系统.生成密度 === '少量' ? 2 : state._系统.生成密度 === '丰富' ? 6 : 4;
+
+function availableTasks(state: State) {
+  const day = storyDay(state), system = state.奇遇系统;
+  return Object.entries(system.任务).filter(([id, task]) =>
+    !system._任务记录[id] && (!task.有效日 || !day || task.有效日 === day));
+}
+export function novelRefreshCapacity(state: State, target: NovelRefreshTarget) {
+  if (target === 'shop') return countFor(state);
+  return Math.min(countFor(state), Math.max(0, 8 - availableTasks(state).length));
+}
+
+/** Only public setting/rules enter this request, never saved player or NPC material. */
+export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): GenerateConfig {
+  const count = novelRefreshCapacity(state, target);
+  if (!count) throw Error('待接取任务已达8项，请先接取任务或等到新故事日期后再刷新');
+  const rareCount = availableTasks(state).some(([, task]) => task.难度 === '稀有') ? 0 : 1;
+  const taskRules = `随机创作1至${count}项可自主选择的新任务，稀有最多${rareCount}项；以生活小目标为主，具体、合理可达，不强制行动或关系结果。` +
+    '任务字段为名称、类型（日常|探索|社交|成长|奇遇）、难度（基础|进阶|稀有）、目标。' +
+    '基础为当前已知条件下单一明确行动可完成的常规目标；进阶需多个关联步骤、一定准备协调或练习；稀有须依托既有少见机会、独特线索或重要个人目标，缺少依据不编造。不能仅凭危险或难度升级为稀有，不强迫战斗。' +
+    '故事日期、任务ID和奖励由程序维护，不输出进度或奖励金额。';
+  const goodRules = `随机创作1至${countFor(state)}件新品，稀有最多1件；价格使用正整数蓝色精粹。` +
+    '普通商品具有正常生活用途；稀有商品是有限用途的消耗品，必须明确一次使用、消耗和结束条件，并给出累计限购。' +
+    '不得读心、透视、获知未接触秘密、操纵意志、买好感、瞬移或直接获得知识技能。' +
+    '基础供给不重复生成：' + SYSTEM_GOODS.map(good => good.name).join('、') + '。' +
+    '商品字段为名称、价格、类别、描述、稀有（boolean），有累计限购时增加正整数限购字段。';
+  const taskExample = '"任务":[{"名称":"…","类型":"日常","难度":"基础","目标":"…"}]';
+  const goodExample = '"商品":[{"名称":"…","价格":25,"类别":"消耗品","描述":"完整效果及使用条件","稀有":false}]';
+  const instruction = '本次仅创作瓦洛兰奇遇系统的可选内容，以瓦洛兰的瓦罗兰都市生活、音乐文化与可达区域探索为背景；科技与魔法共存，奖励遵守其描述与权限边界。' +
+    (target === 'tasks' ? '生成新的可选任务。' : target === 'shop' ? '生成新的商店商品。' : '奇遇首次开启，一次生成随机任务和商店新品。') +
+    '没有提供玩家存档，不能编造玩家身份、财富、已知线索、NPC秘密、当前天气或具体已发生事件，不声称玩家已执行目标。' +
+    '不输出任何世界、余额、任务进度、接取领奖状态、人物、手机或物品变量更新。' +
+    (target === 'tasks' ? taskRules : target === 'shop' ? goodRules : taskRules + goodRules) +
+    '根据本次创作种子变化主题和组合，不固定重复同一组生活任务或商品；种子仅用于变化，不写入任务或商品内容。' +
+    '不要输出Markdown、解释、正文、UpdateVariable或JSONPatch。' +
+    '输出格式：只输出JSON对象 {' + (target === 'tasks' ? taskExample : target === 'shop' ? goodExample : taskExample + ',' + goodExample) + '}。';
+  return {
+    overrides: { persona_description: '' },
+    injects: [{ role: 'system', position: 'in_chat', depth: 0, content: instruction }],
+    user_input: JSON.stringify({ 创作种子: uid('inspiration') }),
+  };
+}
+
+/** Keep final requests free of unrelated presets/worldbooks and private saved material. */
+export function finalizeNovelRefreshPrompt(messages: { role: string; content?: unknown }[], marker: string, config: GenerateConfig) {
+  if (!messages.some(message => typeof message.content === 'string' && message.content.includes(marker))) return false;
+  messages.splice(0, messages.length,
+    { role: 'user', content: (config.user_input ?? '').replaceAll(marker, '').trim() },
+    ...(config.injects ?? []).map(({ role, content }) => ({ role, content })));
+  return true;
+}
+
+/** Narrow payloads add content without clearing existing tasks, goods or bookkeeping. */
+export function applyNovelRefresh(before: State, target: NovelRefreshTarget, text: string, operationId: string): State {
+  if (!before._系统.建档完成 || !before.玩家.id || !before.奇遇系统._启用) throw Error('请先建档并开启奇遇系统');
+  if (!operationId.trim()) throw Error('刷新缺少提交标识');
+  const clean = text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1');
+  let raw: unknown;
+  try { raw = JSON.parse(clean); } catch { throw Error('奇遇刷新未返回有效JSON，原内容保留'); }
+  const state = copy(before), system = state.奇遇系统;
+  const taskList = z.array(TaskDefinition).min(1).max(novelRefreshCapacity(state, 'tasks'));
+  const goodList = z.array(GoodDefinition).min(1).max(countFor(state));
+  const payload = target === 'tasks' ? z.object({ 任务: taskList }).strict().parse(raw)
+    : target === 'shop' ? z.object({ 商品: goodList }).strict().parse(raw)
+    : target === 'initial' ? z.object({ 任务: taskList, 商品: goodList }).strict().parse(raw)
+    : (() => { throw Error('未知的奇遇刷新目标'); })();
+  let taskAdditions = 0, goodAdditions = 0;
+  if ('任务' in payload) {
+    const { 任务 } = payload;
+    const rareExisting = availableTasks(state).filter(([, task]) => task.难度 === '稀有').length;
+    if (rareExisting + 任务.filter(task => task.难度 === '稀有').length > 1) throw Error('可接取的稀有任务最多1项');
+    if (new Set(任务.map(task => nameKey(task.名称))).size !== 任务.length) throw Error('刷新任务名称重复');
+    任务.forEach((task, index) => {
+      if (Object.values(system.任务).some(existing => nameKey(existing.名称) === nameKey(task.名称))) return;
+      system.任务[`cw_task_${operationId}_${index}`] = {
+        ...task, 有效日: task.类型 === '日常' ? storyDay(state) : null,
+        进度: 0, 进展说明: null, 完成依据事件id: [],
+      };
+      taskAdditions++;
+    });
+  }
+  if ('商品' in payload) {
+    const { 商品 } = payload;
+    if (商品.filter(good => good.稀有).length > 1) throw Error('本次稀有新品最多1件');
+    if (new Set(商品.map(good => nameKey(good.名称))).size !== 商品.length) throw Error('刷新商品名称重复');
+    for (const good of 商品) {
+      if (SYSTEM_GOODS.some(fixed => nameKey(fixed.name) === nameKey(good.名称))) continue;
+      const id = 'cw_generated_' + encodeURIComponent(nameKey(good.名称));
+      // Stable names retain definitions and cumulative limits across repeat refreshes.
+      if (system._商店商品[id]) continue;
+      system._商店商品[id] = good;
+      goodAdditions++;
+    }
+  }
+  if (target === 'initial' && (!taskAdditions || !goodAdditions))
+    throw Error('初始内容需要同时提供新任务和新品，重复内容不会写入，请重试');
+  if (!taskAdditions && !goodAdditions) throw Error('本次内容与已有内容重复，原内容保留，请重试');
+  return Schema.parse(state);
+}

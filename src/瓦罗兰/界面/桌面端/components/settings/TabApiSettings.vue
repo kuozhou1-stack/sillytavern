@@ -133,10 +133,10 @@ const sections: ApiSectionConfig[] = [
   {
     channel: 'information',
     title: '资料选择 API',
-    desc: '选择剧情相关的地点与组织资料，支持复用正文连接',
+    desc: '选择剧情相关的地点与组织资料，连接与预设独立选择',
     icon: 'mapPin',
     specificNote:
-      '玩家消息先保存，资料选择 API 按剧情选择地点与组织资料，准备完成后生成正文，最后独立结算变量；角色启停沿用瓦罗兰现有调度。可明确选择复用正文变量连接，或独立配置端点和模型。此请求使用专用资料选择提示词；保存配置不会生成内容。',
+      '玩家消息先保存，资料选择 API 按剧情选择地点与组织资料，准备完成后生成正文，最后独立结算变量；角色启停沿用瓦罗兰现有调度。可使用酒馆正文 API、复用正文变量连接，或独立配置。预设开关由本通道单独保存，专用资料选择任务始终保留；保存配置不会生成内容。',
   },
 ];
 
@@ -171,10 +171,10 @@ function getSummaryBadge(channel: ApiChannel): string {
   if (channel === 'information') {
     const infoCfg = cfg as any;
     if (infoCfg?.reuseVariable) {
-      return `复用正文: ${runtime.settings.variable.model || '未配置'}`;
+      return `复用正文变量: ${runtime.settings.variable.mode === 'main' ? '酒馆正文 API' : runtime.settings.variable.model || '未配置'}`;
     }
   }
-  return cfg?.model ? `模型: ${cfg.model}` : '未配置模型';
+  return cfg?.mode === 'main' ? '酒馆正文 API' : cfg?.model ? `模型: ${cfg.model}` : '未配置模型';
 }
 </script>
 

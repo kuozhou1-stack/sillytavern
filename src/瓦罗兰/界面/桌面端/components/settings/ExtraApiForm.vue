@@ -13,28 +13,39 @@
       </div>
     </div>
     <fieldset :disabled="saving || runtime?.view.busy || runtime?.view.updating">
-      <div v-if="channel === 'information'" class="cw-api-section-card">
+      <div class="cw-api-section-card">
         <div class="cw-card-header">
           <SvgIcon name="sliders" :size="15" />
-          <span class="cw-card-title">资料选择使用的连接</span>
+          <span class="cw-card-title">{{ channelLabel }}使用的连接</span>
         </div>
         <div class="cw-form-row">
           <label class="cw-form-label">连接模式</label>
-          <select v-model="draft.reuseVariable" class="cw-select" aria-label="资料选择使用的连接">
-            <option :value="true">复用正文变量 API</option>
-            <option :value="false">独立配置 API</option>
+          <select v-model="connectionMode" class="cw-select" :aria-label="`${channelLabel}使用的连接`">
+            <option v-if="channel === 'information'" value="reuse">复用正文变量 API</option>
+            <option value="main">使用酒馆当前正文 API</option>
+            <option value="extra">独立配置 API</option>
           </select>
         </div>
-        <div v-if="draft.reuseVariable" class="cw-callout cw-callout-info cw-reuse-callout">
+        <div v-if="connectionMode === 'reuse'" class="cw-callout cw-callout-info cw-reuse-callout">
           <SvgIcon name="info" :size="15" class="cw-callout-icon" />
           <div class="cw-callout-body">
             <span class="cw-callout-title">当前复用正文变量连接</span>
-            <p>模型：<strong>{{ runtime?.settings.variable.model || '正文变量 API 尚未配置' }}</strong></p>
-            <p>地址：<code>{{ runtime?.settings.variable.apiurl || '未配置' }}</code></p>
+            <p v-if="runtime?.settings.variable.mode === 'main'">使用酒馆当前正文 API。</p>
+            <template v-else>
+              <p>模型：<strong>{{ runtime?.settings.variable.model || '正文变量 API 尚未配置' }}</strong></p>
+              <p>地址：<code>{{ runtime?.settings.variable.apiurl || '未配置' }}</code></p>
+            </template>
+            <p>重试次数沿用正文变量配置，是否携带预设由资料选择单独决定。</p>
+          </div>
+        </div>
+        <div v-else-if="connectionMode === 'main'" class="cw-callout cw-callout-info">
+          <SvgIcon name="info" :size="15" class="cw-callout-icon" />
+          <div class="cw-callout-body">
+            <p>沿用酒馆当前正文连接，无需在这里重复填写地址、模型或密钥。本通道仍单独执行原有任务。</p>
           </div>
         </div>
       </div>
-      <template v-if="channel !== 'information' || !draft.reuseVariable">
+      <template v-if="connectionMode === 'extra'">
       <!-- 卡片 1：连接与认证 -->
       <div class="cw-api-section-card">
         <div class="cw-card-header">
@@ -124,6 +135,7 @@
           </div>
         </div>
       </div>
+      </template>
 
       <!-- 卡片 3：请求策略与重试 -->
       <div class="cw-api-section-card">
@@ -131,20 +143,20 @@
           <SvgIcon name="settings" :size="15" />
           <span class="cw-card-title">请求策略与重试</span>
         </div>
-        <div v-if="channel !== 'information'" class="cw-form-row">
+        <div class="cw-form-row">
           <label class="cw-api-toggle">
             <input v-model="draft.sendPreset" type="checkbox" />
-            <span>{{ channel === 'phone' ? '手机变量结算携带酒馆角色卡预设' : '携带酒馆角色卡预设 (系统提示词等)' }}</span>
+            <span>{{ channel === 'information' ? '资料选择携带当前酒馆预设' : channel === 'phone' ? '手机变量结算携带酒馆角色卡预设' : '携带酒馆角色卡预设 (系统提示词等)' }}</span>
           </label>
           <div class="cw-api-tip-box">
             <SvgIcon name="info" :size="13" />
             <span>
-              {{ channel === 'phone' ? '奇遇刷新始终使用独立内容提示词；此选项只影响手机变量结算。' : '两种模式均会依据角色卡变量更新规则结算变量。' }}
-              获取模型仅测试网络连接，不触发生成和变量结算。
+              {{ channel === 'information' ? '此开关独立保存，复用连接时也不跟随正文变量。专用资料选择任务始终保留。' : channel === 'phone' ? '奇遇刷新始终使用独立内容提示词；此选项只影响手机变量结算。' : '两种模式均会依据角色卡变量更新规则结算变量。' }}
+              保存设置不触发生成。
             </span>
           </div>
         </div>
-        <div class="cw-form-row">
+        <div v-if="connectionMode !== 'reuse'" class="cw-form-row">
           <label class="cw-form-label">请求失败自动重试</label>
           <select v-model="draft.retries" class="cw-select">
             <option :value="0">不自动重试</option>
@@ -155,7 +167,6 @@
           </select>
         </div>
       </div>
-      </template>
     </fieldset>
 
     <!-- 每组操作按钮清楚归属于对应配置区，避免多个固定操作栏互相叠压 -->
@@ -224,6 +235,13 @@ function loadInitialState() {
 }
 
 const draft = reactive(InformationApiSettingsSchema.parse(loadInitialState()));
+const connectionMode = computed<'reuse' | 'main' | 'extra'>({
+  get: () => props.channel === 'information' && draft.reuseVariable ? 'reuse' : draft.mode,
+  set: value => {
+    if (props.channel === 'information') draft.reuseVariable = value === 'reuse';
+    if (value !== 'reuse') draft.mode = value;
+  },
+});
 
 // 同步草稿至缓存
 watch(
@@ -250,7 +268,7 @@ const models = ref<string[]>([]),
 let modelRequest = 0;
 
 watch(
-  () => [draft.apiurl, draft.key, draft.source],
+  () => [draft.apiurl, draft.key, draft.source, connectionMode.value],
   () => {
     modelRequest++;
     models.value = [];

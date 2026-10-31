@@ -16,7 +16,7 @@ const GoodDefinition = z.object({
   描述: z.string().trim().min(1),
   稀有: z.boolean(),
   限购: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-}).strict().refine(good => !good.稀有 || good.限购 !== undefined, '稀有商品必须有本存档累计限购');
+}).strict();
 const nameKey = (name: string) => name.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, '');
 const countFor = (state: State) => state._系统.生成密度 === '少量' ? 2 : state._系统.生成密度 === '丰富' ? 6 : 4;
 
@@ -34,15 +34,13 @@ export function novelRefreshCapacity(state: State, target: NovelRefreshTarget) {
 export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): GenerateConfig {
   const count = novelRefreshCapacity(state, target);
   if (!count) throw Error('待接取任务已达8项，请先接取任务或等到新故事日期后再刷新');
-  const rareCount = availableTasks(state).some(([, task]) => task.难度 === '稀有') ? 0 : 1;
-  const taskRules = `随机创作1至${count}项可自主选择的新任务，稀有最多${rareCount}项；以生活小目标为主，具体、合理可达，不强制行动或关系结果。` +
+  const taskRules = `随机创作1至${count}项可自主选择的新任务，目标具体、合理可达，不强制行动或关系结果。` +
     '任务字段为名称、类型（日常|探索|社交|成长|奇遇）、难度（基础|进阶|稀有）、目标。' +
-    '基础为当前已知条件下单一明确行动可完成的常规目标；进阶需多个关联步骤、一定准备协调或练习；稀有须依托既有少见机会、独特线索或重要个人目标，缺少依据不编造。不能仅凭危险或难度升级为稀有，不强迫战斗。' +
+    '基础为当前已知条件下单一明确行动可完成的常规目标；进阶需多个关联步骤、一定准备协调或练习；稀有须依托既有少见机会、独特线索或重要个人目标，缺少依据不编造。' +
     '故事日期、任务ID和奖励由程序维护，不输出进度或奖励金额。';
-  const goodRules = `随机创作1至${countFor(state)}件新品，稀有最多1件；价格使用正整数蓝色精粹。` +
-    '普通商品具有正常生活用途；稀有商品是有限用途的消耗品，必须明确一次使用、消耗和结束条件，并给出累计限购。' +
-    '不得读心、透视、获知未接触秘密、操纵意志、买好感、瞬移或直接获得知识技能。' +
-    '基础供给不重复生成：' + SYSTEM_GOODS.map(good => good.name).join('、') + '。' +
+  const goodRules = `随机创作1至${countFor(state)}件新品，价格使用正整数蓝色精粹。` +
+    '普通与稀有商品均按瓦洛兰魔法、科技共存的设定设计，可为消耗品、耐用工具、装备、魔法器物或其他有实际用途的物品；稀有表示稀缺程度与价值，不等于一次性消耗品。' +
+    '描述写明实际用途、效果及使用方式；根据商品性质说明消耗、持续时间或长期生效方式，有使用条件或累计限购时再明确填写，不统一要求一次使用后失效。' +
     '商品字段为名称、价格、类别、描述、稀有（boolean），有累计限购时增加正整数限购字段。';
   const taskExample = '"任务":[{"名称":"…","类型":"日常","难度":"基础","目标":"…"}]';
   const goodExample = '"商品":[{"名称":"…","价格":25,"类别":"消耗品","描述":"完整效果及使用条件","稀有":false}]';
@@ -51,7 +49,7 @@ export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): Ge
     '没有提供玩家存档，不能编造玩家身份、财富、已知线索、NPC秘密、当前天气或具体已发生事件，不声称玩家已执行目标。' +
     '不输出任何世界、余额、任务进度、接取领奖状态、人物、手机或物品变量更新。' +
     (target === 'tasks' ? taskRules : target === 'shop' ? goodRules : taskRules + goodRules) +
-    '根据本次创作种子变化主题和组合，不固定重复同一组生活任务或商品；种子仅用于变化，不写入任务或商品内容。' +
+    '根据本次创作种子变化主题和组合，不固定重复同一组任务或商品；种子仅用于变化，不写入任务或商品内容。' +
     '不要输出Markdown、解释、正文、UpdateVariable或JSONPatch。' +
     '输出格式：只输出JSON对象 {' + (target === 'tasks' ? taskExample : target === 'shop' ? goodExample : taskExample + ',' + goodExample) + '}。';
   return {
@@ -87,8 +85,6 @@ export function applyNovelRefresh(before: State, target: NovelRefreshTarget, tex
   let taskAdditions = 0, goodAdditions = 0;
   if ('任务' in payload) {
     const { 任务 } = payload;
-    const rareExisting = availableTasks(state).filter(([, task]) => task.难度 === '稀有').length;
-    if (rareExisting + 任务.filter(task => task.难度 === '稀有').length > 1) throw Error('可接取的稀有任务最多1项');
     if (new Set(任务.map(task => nameKey(task.名称))).size !== 任务.length) throw Error('刷新任务名称重复');
     任务.forEach((task, index) => {
       if (Object.values(system.任务).some(existing => nameKey(existing.名称) === nameKey(task.名称))) return;
@@ -101,7 +97,6 @@ export function applyNovelRefresh(before: State, target: NovelRefreshTarget, tex
   }
   if ('商品' in payload) {
     const { 商品 } = payload;
-    if (商品.filter(good => good.稀有).length > 1) throw Error('本次稀有新品最多1件');
     if (new Set(商品.map(good => nameKey(good.名称))).size !== 商品.length) throw Error('刷新商品名称重复');
     for (const good of 商品) {
       if (SYSTEM_GOODS.some(fixed => nameKey(fixed.name) === nameKey(good.名称))) continue;

@@ -1,0 +1,13 @@
+---
+变量输出格式:
+  rule:
+    - 只输出一个完整更新块。先对照旧值、已发生正文及本次授权待办判断差异，再输出实际写入；后台生活可按授权演绎，不续写面向玩家的正文。
+    - JSONPatch为合法JSON数组；replace改已有路径，insert新增键或数组项（/-末尾追加），delta增减已有非null数值，remove删除，move使用from与to。路径为JSON Pointer，只提交变化；所有_前缀字段及子字段只读。
+    - 自动调度目标须按专项要求写入具体动态；其他内容确无变化用空数组。有生活检查待办时，按待办说明在块内另附LifeCheck，未检查的人物不能声称完成。Analysis只需简述本轮关键依据，不逐项复述全体规则。
+  format: |-
+    <UpdateVariable>
+    <Analysis>简述已发生变化、后台生活依据及需保留不变的关键事项，100字以内。</Analysis>
+    <JSONPatch>
+    [{"op":"replace","path":"/已有字段路径","value":"新值"}]
+    </JSONPatch>
+    </UpdateVariable>

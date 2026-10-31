@@ -64,15 +64,15 @@ export function withUpdateTasks(config: GenerateConfig, state: State, ids: strin
   }
   if (!descriptions.length) return result;
   const lifeCheck = needsLifeCheck
-    ? `生活更新共同检查：本次请求前故事时点 ${JSON.stringify(state.世界.当前时间)}；若本轮推进时间，接续到本轮实际结束时点，不能停在排队时的旧截止时间。时间未知则仅处理有依据的事件，不臆算时长。检查当前状态、地点、穿搭、生活安排、目标、约定及最近经历；关系、认知、重要记录仅按人物实际经历更新，后台事实不得自动传播给玩家。无变化允许保留，不凭空改动人设、不凑条数。已融入人物以当前档案为准，不反复恢复导入快照。\n`
+    ? `生活更新共同检查：本次请求前故事时点 ${JSON.stringify(state.世界.当前时间)}；若本轮推进时间，接续到本轮实际结束时点，不能停在排队时的旧截止时间。时间未知则仅处理有依据的事件，不臆算时长。检查当前状态、地点、穿搭、生活安排、目标、约定及最近经历；关系、认知、重要记录按人物本轮实际生活同步，后台事实不得自动传播给玩家。按各待办的要求实际写入生活动态，不凭空改动人设、不凑条数。已融入人物以当前档案为准，不反复恢复导入快照。\n`
     : '';
   const rosterCheck = needsRosterCheck
-    ? '自动调度当前生活检查：包括未在玩家身边的开启人物。从最后已知时点接续自主生活到本轮结束，检查当前地点、状态、穿搭、生活安排、相关人物关系、认知和重要记录。主要角色同步经历；次要角色同步重要记录中的npc_current_state（当前近况）、npc_online_habits（网络往来）、npc_history（个人经历）及current_practice（近期实践），这些都是原有重要记录条目，不新建平行变量。关系含好感、信任、关系备注、当前定位、防御姿态、破壁阶段和已知私密，只有发生相应事实才变化，不因轮换涨分或自动亲密。允许无变化，不强行出场，不改写已有历史，不把后台事实赋予玩家知情。\n'
+    ? '自动调度当前生活检查：包括未在玩家身边的开启人物。每位本次调度目标必须有具体动态变化，并实际更新相应业务字段，不能只检查后原样保留或以无变化回执代替。从最后已知时点接续自主生活到本轮结束，推进当前活动、个人目标、地点、状态、注意力或生活安排，写清本轮的新进展。变化须符合故事经过的时长、人物性格、能力和既定处境。主要角色同步有新进展的经历；次要角色同步重要记录中的npc_current_state（当前近况）、npc_online_habits（网络往来）、npc_history（个人经历）及current_practice（近期实践），这些都是原有重要记录条目，不新建平行变量。关系含好感、信任、关系备注、当前定位、防御姿态、破壁阶段和已知私密，只有发生相应事实才变化，不因轮换涨分或自动亲密。人物可继续原活动，但须写入其具体进展，不以机械换词、改内部计数或重复旧经历充当动态。不强行出场，不改写已有历史，不把后台事实赋予玩家知情。\n'
     : '';
   return withPromptInstructions(result, [{
       role: 'system', position: 'in_chat', depth: 0,
       content: '本次变量更新一并处理以下待办（不另发请求）：\n' + lifeCheck + rosterCheck + descriptions.join('\n') +
-        (retriesLifeCheck ? '\n本次包含未完成的生活检查：已写入的事实不要重复演绎或再次结算。以当前存档核对既有进展，只补遗漏与本轮新事实；确无新增变化可据实回报无变化。' : '') +
+        (retriesLifeCheck ? '\n本次包含未完成的生活检查：已写入的事实不要重复演绎或再次结算。先核对当前存档中本次已保存的动态，只补遗漏与本轮新事实，不为同次失败重试额外推进一轮生活；已保存事实仅待补确认时据实回执。' : '') +
         (needsLifeCheck ? '\n' + lifeCheckPrompt() : '') +
         (sources.size ? `\n只读来源资料（共用一次）：${JSON.stringify(Object.fromEntries(sources))}` : '') +
         (missingArchiveRecords.size ? `\n归档源记录共享补充（状态资料未提供的全文，按路径共用一次）：${JSON.stringify(Object.fromEntries(missingArchiveRecords))}` : '') +

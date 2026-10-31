@@ -20,7 +20,7 @@ export function requiresLifeCheck(task: Task) {
 
 /** Output-protocol evidence; never a character field, and hidden by normal protocol filtering. */
 export function lifeCheckPrompt() {
-  return '生活检查完成凭据：在本次唯一 UpdateVariable 块内，与 JSONPatch 同级附一个 <LifeCheck>{"人物id":{"结果":"已更新","依据":"本区间的实际变化或保持理由"}}</LifeCheck>。逐人覆盖上述生活更新、自然融入、升格目标，结果只用“已更新”或“无变化”，依据写简短一句。角色非下划线业务字段确有变化用已更新；确无变化也须说明理由。只改内部计数不算更新。不为交回执编造经历、凑记录或改变数值；普通吃喝不要求新增经历。回执不放进 JSONPatch，不写存档字段，建档和摘要无需回执。';
+  return '生活检查完成凭据：在本次唯一 UpdateVariable 块内，与 JSONPatch 同级附一个 <LifeCheck>{"人物id":{"结果":"已更新","依据":"本区间的实际变化或保持理由"}}</LifeCheck>。逐人覆盖上述生活更新、自然融入、升格目标，结果只用“已更新”或“无变化”，依据写简短一句。自动调度目标按专项要求逐人写入具体动态并报告已更新；其他待办或同次重试仅核对已保存事实时，确无新增变化可报告无变化并说明理由。角色非下划线业务字段确有变化才用已更新，只改内部计数不算更新。不为交回执编造经历、凑记录或改变数值；普通吃喝不要求新增经历。回执不放进 JSONPatch，不写存档字段，建档和摘要无需回执。';
 }
 
 export function readLifeChecks(rawText?: string): LifeCheckReport {

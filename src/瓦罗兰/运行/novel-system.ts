@@ -317,8 +317,7 @@ export function assertNovelModel(before: State, after: State) {
     if (record.状态 !== '进行中' && !_.isEqual(old.任务[id], next.任务[id]))
       throw Error('已结束任务不可重新结算：' + id);
   }
-  let available = 0,
-    rareAvailable = 0;
+  let available = 0;
   for (const [id, task] of Object.entries(next.任务)) {
     if (old._任务记录[id]) continue;
     if (task.进度 || task.完成依据事件id.length) throw Error('未接取任务不能提前完成：' + id);
@@ -330,10 +329,9 @@ export function assertNovelModel(before: State, after: State) {
       throw Error('任务名称与目标不能为空');
     if (!task.有效日 || !storyDay(after) || task.有效日 === storyDay(after)) {
       available++;
-      if (task.难度 === '稀有') rareAvailable++;
     }
   }
-  if (available > 8 || rareAvailable > 1) throw Error('可接取任务最多 8 项，其中稀有任务最多 1 项');
+  if (available > 8) throw Error('可接取任务最多 8 项');
   for (const [id, item] of Object.entries(after.玩家.物品栏)) {
     if (!id.startsWith('cw_system_item_')) continue;
     const previous = before.玩家.物品栏[id];
@@ -353,8 +351,8 @@ export function novelPrompt(state: State, worker: boolean) {
   if (!state.奇遇系统._启用) return '玩家尚未开启奇遇系统，正文不触发系统提示，任务保持为空。';
   return (
     (worker
-      ? '奇遇系统已开启。仅依据本次实际正文或手机行为推进已接取任务的进度和进展说明；完成时填写接取之后新发生、参与者含玩家且事实明确的完成依据事件id。不得提前完成待接取任务，不改动已接取任务定义，不重结已结束任务。可按当前故事提供少量探索、社交、成长或奇遇任务（新任务进度0、依据空）；日常由程序按故事日期发布，可接取最多8项、稀有最多1项。全部下划线字段由程序维护，不能发币、扣币、代领、代买或生成系统商品。'
-      : '玩家专属奇遇系统已开启，以日常生活为主、少量稀有超常奖励为辅。接取、放弃、领奖、购买由玩家主动操作，不能替玩家选择；任务只是可选引导，不强推剧情。仅当玩家实际使用系统物品时按原描述结算有限效果与消耗，稀有券行动或练习结束即失效。人物不自动知道系统，城市社会与生活遵循瓦洛兰的瓦罗兰背景，普通日常与里世界按各自知情和权限边界并行。') +
-    ' 蓝色精粹独立于金币，不互兑，不买好感或操纵他人意志。商品目录与结算由程序维护；已购买物品的实际效果以玩家物品栏中的描述为准。'
+      ? '奇遇系统已开启。仅依据本次实际正文或手机行为推进已接取任务的进度和进展说明；完成时填写接取之后新发生、参与者含玩家且事实明确的完成依据事件id。不得提前完成待接取任务，不改动已接取任务定义，不重结已结束任务。可按当前故事提供探索、社交、成长或奇遇任务（新任务进度0、依据空）；日常由程序按故事日期发布，可接取最多8项。全部下划线字段由程序维护，不能发币、扣币、代领、代买或生成系统商品。'
+      : '玩家专属奇遇系统已开启，提供符合世界设定的可选任务与商品。接取、放弃、领奖、购买由玩家主动操作，不能替玩家选择；任务只是可选引导，不强推剧情。系统物品按各自描述的使用方式、效果、消耗和持续时间结算，耐用品与长期生效物品不统一视为一次性消耗品。人物不自动知道系统，城市社会与生活遵循瓦洛兰的瓦罗兰背景，普通日常与里世界按各自知情和权限边界并行。') +
+    ' 蓝色精粹独立于金币，不互兑。商品目录与结算由程序维护；已购买物品的实际效果以玩家物品栏中的描述为准。'
   );
 }

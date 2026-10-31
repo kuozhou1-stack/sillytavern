@@ -94,19 +94,18 @@ export function updateBlock(text: string) {
         current = { start: i, end: 0, patches: [], lifeChecks: [] };
       } else {
         if (!current) { i = end; continue; }
-        if (current.patch) throw Error('MVU 更新块必须包含一个完整 JSONPatch');
         current.end = end;
         blocks.push(current);
         current = undefined;
       }
     } else if (current && name === 'jsonpatch') {
       // Keep the existing JSONPatch tag spelling contract; do not add alternate formats.
-      if (!/^<\/?JSONPatch>$/i.test(tag[0])) throw Error('MVU 更新块必须包含一个 JSONPatch');
+      if (!/^<\/?JSONPatch>$/i.test(tag[0])) { i = end; continue; }
       if (!closing) {
         if (current.patch) throw Error('MVU 更新块必须包含一个 JSONPatch');
         current.patch = { start: i, contentStart: end };
       } else {
-        if (!current.patch) throw Error('MVU 更新块必须包含一个 JSONPatch');
+        if (!current.patch) { i = end; continue; }
         current.patches.push({ ...current.patch, end, content: text.slice(current.patch.contentStart, i) });
         delete current.patch;
       }

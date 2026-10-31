@@ -73,5 +73,9 @@ test('保持旧准入边界：外围未闭合思考及多余结束标签不额�
     '<thinking><think>原有不规范辅助标记</thinking>' + block([]),
     '</UpdateVariable>' + block([]),
     '<thinking 未完成的附加标记\n' + block([]),
+    '<UpdateVariable></JSONPatch><JSONPatch>[]</JSONPatch></UpdateVariable>',
+    '<UpdateVariable><JSONPatch>[]</JSONPatch></JSONPatch></UpdateVariable>',
+    '<UpdateVariable><JSONPatch note="example"></JSONPatch ><JSONPatch>[]</JSONPatch></UpdateVariable>',
+    '<UpdateVariable><JSONPatch>[]</JSONPatch><JSONPatch></UpdateVariable>',
   ]) assert.deepEqual(updateBlock(text).commands, []);
 });

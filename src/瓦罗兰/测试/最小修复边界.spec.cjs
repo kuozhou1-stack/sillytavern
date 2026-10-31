@@ -11,6 +11,48 @@ const { assertModelPrivatePatches, validateModel, privatePaths, copy } = require
 const { publicModelData } = require('../运行/model-history.ts');
 const { messageSource, assertMessageSource } = require('../运行/request-source.ts');
 const { createRuntime } = require('../运行/host.ts');
+const { registerMvuSchema } = require('../运行/mvu-schema.ts');
+
+function mvuAdapter() {
+  const env = environment();
+  global.klona = require('klona').klona;
+  global.$ = () => ({ prop: () => false });
+  registerMvuSchema(Schema);
+  return env.listeners.get('mag_command_parsed_for_zod');
+}
+test('实际MVU事件适配器允许下划线记录路径，仍保护真正私有路径', () => {
+  const apply = mvuAdapter(), data = { stat_data: Schema.parse({ 角色: {
+    _人物: { 姓名: '隔离人物', 层级: '次要' }, 普通人物: { 姓名: '普通人物', 层级: '次要' },
+  } }) };
+  const set = (path, value) => ({ type: 'set', args: [path, JSON.stringify(value)], full_match: '隔离set' });
+  for (const path of ['角色._人物.当前状态', '角色.普通人物.当前状态']) {
+    const commands = [set(path, '正常工作')]; apply(data, commands); assert.equal(commands.length, 0);
+  }
+  assert.equal(data.stat_data.角色._人物.当前状态, '正常工作');
+  assert.equal(data.stat_data.角色.普通人物.当前状态, '正常工作');
+  const before = copy(data.stat_data);
+  for (const path of ['_系统.轮数', '角色._人物._管理.版本', '角色._人物._未知字段'])
+    apply(data, [set(path, 99)]);
+  assert.deepEqual(data.stat_data, before);
+});
+
+test('MVU事件适配器保留普通set/add/insert/delete/move与错误收集语义', () => {
+  const apply = mvuAdapter(), data = { stat_data: Schema.parse({ 玩家: { id: 'p', 资金: { 余额分: 100 } } }) };
+  const command = (type, args) => ({ type, args, full_match: '隔离命令' });
+  apply(data, [command('set', ['玩家.姓名', '"甲"'])]);
+  assert.equal(data.stat_data.玩家.姓名, '甲');
+  apply(data, [command('add', ['玩家.资金.余额分', '5'])]);
+  assert.equal(data.stat_data.玩家.资金.余额分, 105);
+  apply(data, [command('insert', ['角色', '"_新人物"', JSON.stringify({ 姓名: '新人物', 层级: '次要' })])]);
+  assert.equal(data.stat_data.角色._新人物.姓名, '新人物');
+  apply(data, [command('move', ['角色._新人物', '角色._移动人物'])]);
+  assert(!data.stat_data.角色._新人物); assert.equal(data.stat_data.角色._移动人物.姓名, '新人物');
+  apply(data, [command('delete', ['角色._移动人物'])]);
+  assert(!data.stat_data.角色._移动人物);
+  const errors = [], before = copy(data.stat_data);
+  apply(data, [command('set', ['玩家.资金.余额分', '"错误金额"'])], '', error => errors.push(error));
+  assert.deepEqual(data.stat_data, before); assert.equal(errors.length, 1);
+});
 
 test('下划线是记录ID时保留公开资料与更新权限，记录内管理字段仍只读', () => {
   const before = Schema.parse({ 角色: { _合法人物: { 姓名: '隔离人物', 层级: '次要', 关系网: { _关系对象: { 关系: '朋友' } } } } });

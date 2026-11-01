@@ -12,7 +12,7 @@ const overridesKey = (kind: InformationKind) => kind === '地点' ? '地点覆�
 
 export class InformationNotLoadedError extends Error {
   constructor(kind: InformationKind, id: string) {
-    super('请先展开资料再更新其具体字段：' + kind + '/' + id);
+    super('请先展开资料再更新：' + kind + '/' + id);
   }
 }
 
@@ -186,11 +186,11 @@ export function needsInformationSelection(state: State, text: string) {
 export const informationPromptRule =
   '地点与组织采用按需资料：仅含名称的记录仍保存在完整存档，当前请求没有展开其细节。' +
   '不得据此清空、重建或补造已有资料，不将名称目录替换整个地点/组织表。' +
-  '已展开的现有记录只更新发生变化的具体字段；新增地点/组织可以用新ID新增完整记录。' +
+  '已展开的现有记录按实际变化更新；新增地点/组织可以用新ID新增完整记录。' +
   '若本次另附玩家自设地点定位清单，只按该明确授权补齐名单内的地图位置，其他隐藏字段不变。' +
   '资料展开不代表玩家知情，地图显示仍以玩家已知地点为准。';
 
-/** Validate raw JSONPatch before MVU can default omitted fields on parent replacement. */
+/** Keep writes within the information supplied to this request. */
 export function assertInformationPatch(state: State, commands: any[]) {
   const mapCompletion = new Set(pendingPlayerMapLocations(state).map(place => place.id));
   const parts = (path: unknown) => typeof path === 'string'
@@ -204,9 +204,8 @@ export function assertInformationPatch(state: State, commands: any[]) {
       const [root, id] = route;
       if (!kinds.includes(root as InformationKind)) continue;
       const kind = root as InformationKind;
-      if (!id) throw Error('地点与组织只允许逐项字段更新，不能替换或删除整张表：' + kind);
+      if (!id) throw Error('不能替换或删除整个地点/组织集合：' + kind);
       if (!Object.hasOwn(state[kind], id)) continue;
-      if (route.length === 2) throw Error('已有资料只允许更新具体字段，不能整体替换或删除：' + kind + '/' + id);
       const authorizedMapField = route === target && kind === '地点' && mapCompletion.has(id) &&
         ['add', 'replace'].includes(command.op) && route[2] === '地图位置' &&
         (route.length === 3 || (route.length === 4 && ['x', 'y', '精度'].includes(route[3])));
@@ -222,7 +221,7 @@ export function assertInformationUnchanged(before: State, after: State) {
   for (const kind of kinds) {
     const selected = effectiveInformationIds(before, kind);
     for (const [id, record] of Object.entries(before[kind])) {
-      if (!Object.hasOwn(after[kind], id)) throw Error('模型不能删除已有资料：' + kind + '/' + id);
+      if (!Object.hasOwn(after[kind], id)) continue;
       if (kind === '地点' && mapCompletion.has(id) &&
           !_.isEqual(before.地点[id].地图位置, after.地点[id].地图位置) && !validPlayerMapPosition(after.地点[id]))
         throw Error('玩家自设地点补点必须一次提供所属地区内的完整有效坐标：' + id);

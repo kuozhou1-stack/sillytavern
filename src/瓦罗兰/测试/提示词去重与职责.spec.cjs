@@ -66,7 +66,7 @@ test('停用名单只有最终来源，早期配置不再携带供二次改写�
   }
 });
 
-test('九个生活任务共同说明一份，逐项身份和回执目标保留', () => {
+test('九个生活任务共同说明一份，逐项身份保留且不要求LifeCheck', () => {
   const data = seed();
   for (let i = 0; i < 9; i++) {
     data.角色['npc' + i] = copy(data.角色.npc);
@@ -76,7 +76,7 @@ test('九个生活任务共同说明一份，逐项身份和回执目标保留',
   const state = Schema.parse(data), ids = Array.from({ length: 9 }, (_, i) => 'life' + i);
   const original = copy(state), body = text(withUpdateTasks({}, state, ids));
   assert.equal(count(body, '包括未在玩家身边的开启人物'), 1);
-  assert.equal(count(body, '<LifeCheck>'), 1);
+  assert.equal(count(body, '<LifeCheck>'), 0);
   for (const id of ids) assert.equal(count(body, '待办 ' + id + '：'), 1);
   assert.deepEqual(state, original);
 });

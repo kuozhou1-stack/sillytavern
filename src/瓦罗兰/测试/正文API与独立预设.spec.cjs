@@ -24,7 +24,7 @@ async function withRuntime(config,fn,initial=seed()){
       {role:'user',content:config.user_input??''},
       ...(config.injects??[]).map(({role,content})=>({role,content})),
       ...(method==='generate'?[{role:'system',content:'PRESET_TAIL'}]:[])];
-    const payload={messages,custom_prompt_post_processing:'strict'};
+    const payload={messages,custom_prompt_post_processing:'strict',...e.transport};
     e.listeners.get('completion_settings')?.(payload);
     const request={method,stage,config:copy(config),messages:copy(messages),postProcessing:payload.custom_prompt_post_processing,phase:e.runtime.view.phase};e.requests.push(request);
     if(stage==='knowledge')return JSON.stringify({地点:[],组织:[]});
@@ -184,6 +184,7 @@ async function currentTavernConverter(){
 }
 for(const mode of ['main','extra'])for(const sendPreset of [false,true])test(`最终顺序与身份：${mode}/预设${sendPreset}原生内容在前、本卡格式末尾system`,async()=>{
   const state=seed();state._系统.角色停用标识.kassadin={姓名:'卡萨丁'};
+  state.玩家.个人记录.个人备忘.history={内容:'曾在旧记录中见过卡萨丁（kassadin）',关联事项id:[]};
   const {postProcessPrompt}=await currentTavernConverter();
   await withRuntime({informationAuto:true,variable:configured(mode,sendPreset),phone:configured(mode,sendPreset),
     information:{...configured(mode,sendPreset),reuseVariable:false}},async e=>{
@@ -218,8 +219,12 @@ for(const mode of ['main','extra'])for(const sendPreset of [false,true])test(`�
       }
       if(request.stage==='story')assert.equal(body.split('<status_current_variable>').length-1,1);
       if(request.stage==='worker'){
+        assert(!body.includes('<LifeCheck>'),'变量请求不再要求独立生活回执');
         assert.equal(messages.filter(m=>m.content.startsWith('{"世界":')).length,1);
         for(const rule of e.rules)assert.equal(body.split(rule.content).length-1,1,rule.name);
+        assert.deepEqual(messages.slice(-2),e.rules.map(rule=>({role:'system',content:rule.content})),
+          '变量更新规则、变量输出格式按此顺序各一份，后面没有其他提示');
+        assert(messages.findIndex(m=>m.content.includes('本次执行瓦洛兰变量更新'))<messages.length-2);
       }
       assert(!body.includes('[chengwan-'));
       assert(!body.includes('[valoran-context:'));
@@ -229,6 +234,42 @@ for(const mode of ['main','extra'])for(const sendPreset of [false,true])test(`�
       }
     }
   },state);
+});
+
+for(const sendPreset of [false,true])test(`Vertex变量系统末尾：预设${sendPreset}经实际Google转换后保留身份、唯一规则和事实`,async()=>{
+  const {convertGooglePrompt}=await currentTavernConverter();
+  await withRuntime({variable:configured('main',sendPreset)},async e=>{
+    e.transport={chat_completion_source:'vertexai',use_sysprompt:true};
+    await e.runtime.send('合成Vertex输入');
+    const worker=e.requests.find(r=>r.stage==='worker');
+    const converted=convertGooglePrompt(copy(worker.messages),'gemini-2.5-pro',true,{});
+    const systems=converted.system_instruction.parts.map(p=>p.text);
+    assert.deepEqual(systems.slice(-2),e.rules.map(r=>r.content));
+    const facts=converted.contents.flatMap(m=>m.parts).map(p=>p.text??'').join('\n');
+    assert(facts.includes('合成Vertex输入'));
+    assert(facts.includes('合成正文：玩家停下脚步。'));
+    assert(!facts.includes('本次执行瓦洛兰变量更新'));
+    for(const rule of e.rules){
+      assert.equal(systems.join('\n').split(rule.content).length-1,1);
+      assert(!facts.includes(rule.content));
+    }
+    const native=worker.messages.filter(m=>!systems.includes(m.content));
+    if(sendPreset)assert(native.some(m=>m.content==='PRESET_TAIL'),'原生预设尾部不自行移动');
+    const story=e.requests.find(r=>r.stage==='story');
+    assert.equal(story.messages.at(-1).role,'system','正文通道仍维持现有顺序');
+    assert(story.messages.at(-1).content.includes('只生成剧情正文'));
+  });
+});
+
+test('Vertex未开启原生系统指令时不暗改开关；其他供应商仍维持原顺序',()=>{
+  const {appendVariableSystemPrompts}=require('../运行/worker-task.ts');
+  for(const transport of [{chat_completion_source:'vertexai',use_sysprompt:false},
+    {chat_completion_source:'openai',use_sysprompt:true},{chat_completion_source:'makersuite',use_sysprompt:true}]){
+    const messages=[{role:'system',content:'WORLD'},{role:'user',content:'FACTS'}];
+    appendVariableSystemPrompts(messages,[{content:'RULES'},{content:'FORMAT'}],transport);
+    assert.deepEqual(messages.map(m=>m.content),['WORLD','FACTS','RULES','FORMAT']);
+    assert.equal(transport.use_sysprompt,transport.chat_completion_source!=='vertexai');
+  }
 });
 
 module.exports={withRuntime,seed,configured};

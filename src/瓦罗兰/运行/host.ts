@@ -20,7 +20,7 @@ import { mergeOpeningTasks, planOpeningCharacters, openingMessage, withOpeningSt
 import { taskReceipt, type UpdateReceipt } from './update-receipt';
 import { planTasks } from './tasks';
 import { pendingUpdateTasks, withUpdateTasks, finalizeUpdateTasks } from './update-tasks';
-import { phoneTimePrompt, validatePhoneTimeline } from './phone';
+import { phoneTimePrompt } from './phone';
 import { applyPhoneAction, assertPhoneActionNotRepeated, blockText, finalizePhone, type PhoneAction } from './phone';
 import { Schema } from '../schema';
 import { messageSource, assertMessageSource, MessageSourceSchema, type MessageSource } from './request-source';
@@ -41,8 +41,8 @@ import {
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type SettingsChannel, type SettingsScope } from './settings';
 import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
-import { workerTask, storyTask, appendSystemPrompts, restorePromptSlot } from './worker-task';
-import { withPromptInstructions, promptContextPrompts } from './model-history';
+import { workerTask, storyTask, appendSystemPrompts, appendVariableSystemPrompts, restorePromptSlot } from './worker-task';
+import { withPromptInstructions, promptContextPrompts, promptVariableRules } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
 import { CandidateIdentityError, isCommittedCandidate } from './committed-candidate';
 import { LIBRARY_KEY, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
@@ -57,6 +57,9 @@ const normalizeRuntimeWorld = (state: State): State =>
 export { stripProtocol } from './message-protocol';
 export { SettingsSchema } from './settings';
 export type { PhoneRequestIdentity, PhoneRequestState, PhoneRequestStatus, PhoneActionResult } from './phone-request';
+// Tavern logs event-listener exceptions without rejecting parseMessage. Keep the
+// rejection on that exact candidate so a rolled-back update cannot look successful.
+const rejectedMvuCandidates = new WeakMap<Mvu.MvuData, unknown>();
 async function parseCandidate(text: string, envelope: Mvu.MvuData) {
   const { commands } = updateBlock(text);
   const base = copy(envelope);
@@ -68,10 +71,14 @@ async function parseCandidate(text: string, envelope: Mvu.MvuData) {
   const normalized = normalizePhoneRecordPatches(before, normalizeWorldAnchorPatches(before, commands));
   assertInformationPatch(before, normalized);
   assertModelPrivatePatches(before, normalized);
-  // MVU applies commands only. Analysis/receipts are read from the original response
-  // by this card; their example tags must not become MVU's first JSONPatch section.
+  // Give MVU only the extracted commands, without preset markup or explanation examples.
   const safeBlock = `<UpdateVariable><JSONPatch>${protocolJson(normalized)}</JSONPatch></UpdateVariable>`;
   const parsed = await Mvu.parseMessage(safeBlock, base);
+  if (parsed && rejectedMvuCandidates.has(parsed)) {
+    const error = rejectedMvuCandidates.get(parsed);
+    rejectedMvuCandidates.delete(parsed);
+    throw error;
+  }
   if (!parsed && normalized.length) throw Error('MVU 未返回更新候选');
   const result = parsed ?? base;
   return { ...result, stat_data: restoreWorldAnchors(before, result.stat_data) };
@@ -332,7 +339,6 @@ export function createRuntime() {
         channel, id, at: new Date().toISOString(),
         error: String(error), stack: error instanceof Error ? error.stack : undefined,
         response: text,
-        jsonPatch: text.match(/<JSONPatch>([\s\S]*?)<\/JSONPatch>/i)?.[1] ?? null,
       } });
       console.error('[瓦洛兰变量解析] 已保存原始回复与堆栈', { channel, id }, error);
       throw error;
@@ -644,7 +650,9 @@ export function createRuntime() {
     const contextSlot = `[valoran-context:${generationId}]`;
     const contextPrompts = promptContextPrompts.get(config) ?? [];
     const contextSet = new Set(contextPrompts);
-    const extraPrompts = (requestConfig.injects ?? []).filter(prompt => !contextSet.has(prompt));
+    const variableRules = extra && purpose === 'variables' ? promptVariableRules.get(config) ?? [] : [];
+    const variableRuleSet = new Set(variableRules);
+    const extraPrompts = (requestConfig.injects ?? []).filter(prompt => !contextSet.has(prompt) && !variableRuleSet.has(prompt));
     // Use the state that produced this request, including an unpublished phone draft.
     const requestState = Schema.parse(state);
     const taskGuard = eventOn(tavern_events.CHAT_COMPLETION_SETTINGS_READY, data => {
@@ -665,13 +673,18 @@ export function createRuntime() {
       const input = extraPrompts.filter(prompt => prompt.role === 'user').map(({ content }) => ({ role: 'user', content }));
       if (extra && requestConfig.user_input?.trim()) input.push({ role: 'user', content: requestConfig.user_input });
       restorePromptSlot(data.messages, marker, input);
-      const disabled = disabledIdentityPrompt(requestState);
-      appendSystemPrompts(data.messages, [
+      const disabled = disabledIdentityPrompt(requestState, extra ? [...data.messages, ...extraPrompts] : undefined);
+      const instructions = [
         { content: informationPromptRule },
         ...(disabled ? [{ content: disabled }] : []),
         ...extraPrompts.filter(prompt => prompt.role !== 'user'),
         { content: extra ? workerTask : storyTask },
-      ]);
+        ...variableRules,
+      ];
+      if (extra) appendVariableSystemPrompts(data.messages, instructions, {
+        chat_completion_source: data.chat_completion_source, use_sysprompt: data.use_sysprompt,
+      });
+      else appendSystemPrompts(data.messages, instructions);
     });
     config = { ...config,
       injects: extra ? [] : [{ role: 'system', position: 'in_chat', depth: 0, content: contextSlot, should_scan: false }],
@@ -1423,7 +1436,7 @@ export function createRuntime() {
         const taskIds = pendingUpdateTasks(draft);
         const budget = phoneBudget(draft, action, view.data?._系统.生成密度);
         const instruction =
-          '本次处理手机互动变量。私聊通常0–3条，仅必要时才达上限。根据已有权限、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。手机新内容数量参考不限制变量更新权限，根据同一份变量规则一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。' +
+          '本次处理手机互动变量。根据已有权限、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。手机新内容数量参考不限制变量更新权限，根据同一份变量规则一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。' +
           phoneTimePrompt(draft);
         const settled = await requestScopedUpdate(
           draft,
@@ -1467,12 +1480,10 @@ export function createRuntime() {
         draft = settled.before;
         const { text: reply, parsed } = settled;
         try {
-          if (!/<JSONPatch>[\s\S]*?<\/JSONPatch>/i.test(reply)) throw Error('手机候选缺少完整 MVU 更新块');
           if (!parsed) throw Error('手机更新解析失败');
           let candidate = validateSettlement(draft, validateModel(draft, parsed.stat_data));
           assertPhoneActionNotRepeated(Schema.parse(envelope.stat_data), draft, candidate);
           candidate = finalizePhone(draft, candidate);
-          validatePhoneTimeline(draft, candidate);
           candidate = finalizeUpdateTasks(draft, candidate, taskIds, reply);
           candidate = finalizeWorld(draft, candidate);
           candidate = refreshNovelSystem(candidate);
@@ -1934,6 +1945,7 @@ export function createRuntime() {
       if (!old?.stat_data || !next?.stat_data) return;
       try { assertDisabledUnchanged(Schema.parse(old.stat_data), Schema.parse(next.stat_data)); }
       catch (error) {
+        rejectedMvuCandidates.set(next, error);
         next.stat_data = copy(old.stat_data);
         console.warn('[瓦洛兰角色启停] 已拒绝停用人物活动', error);
         throw error;

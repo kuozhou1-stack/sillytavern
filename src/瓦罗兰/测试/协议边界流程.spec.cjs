@@ -10,11 +10,32 @@ harness._compile(fs.readFileSync(file, 'utf8').split('const novelGoodReply =')[0
   '\nmodule.exports={withEnv,environment,seed,block,patch};', file);
 const { withEnv, environment, seed, block, patch } = harness.exports;
 const { updateBlock } = require('../运行/message-protocol.ts');
-const { readLifeChecks } = require('../运行/life-check.ts');
 
 const value = '保留原文：<UpdateVariable><JSONPatch>[]</JSONPatch></UpdateVariable>，"引号"与\\反斜线';
 const response = '<Interleaving><thinking>格式 <UpdateVariable><reasoning>内层 <JSONPatch></reasoning></thinking>' +
   block([patch('/玩家/称呼', value)]) + '</Interleaving>';
+
+for (const [name, render] of [
+  ['预设思考标签包裹', patches => '<preset><thinking>' + block(patches) + '</thinking></preset>'],
+  ['直接JSON', patches => JSON.stringify(patches)],
+  ['JSONPatch片段', patches => '<answer><JSONPatch>' + JSON.stringify(patches) + '</JSONPatch></answer>'],
+  ['多段更新', patches => block(patches.slice(0, 1)) + block(patches.slice(1))],
+]) test('正文与手机实际入口均接受' + name + '，只解析提交一次', async () => {
+  await withEnv(async e => {
+    let round = 0;
+    e.update = async () => render([patch('/玩家/称呼', '读取结果' + (++round)),
+      patch('/玩家/当前状态/身体状态', '本次状态' + round)]);
+    await e.runtime.send('读取变量更新');
+    assert.equal(e.state().玩家.称呼, '读取结果1');
+    assert.equal(e.state().玩家.当前状态.身体状态, '本次状态1');
+    await e.runtime.phoneAction({ kind: 'refresh', platform: '邻信' });
+    assert.equal(e.state().玩家.称呼, '读取结果2');
+    assert.equal(e.state().玩家.当前状态.身体状态, '本次状态2');
+    assert.equal(e.parses, 2);
+    assert.equal(e.messages.length, 3);
+    assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 1);
+  });
+});
 
 test('正文结算通过真实 host 规范化与 MVU 标签交接，字面标签不截断', async () => {
   await withEnv(async e => {
@@ -54,9 +75,9 @@ test('坏协议原始响应保留，重载后沿原提交重试且不重新生�
   const e = environment();
   await e.runtime.start();
   try {
-    const broken = '<Interleaving><thinking>未闭合 <UpdateVariable>' + block([]);
+    const broken = '<Interleaving><UpdateVariable><JSONPatch>[{"op":"replace",}]</JSONPatch></UpdateVariable></Interleaving>';
     e.update = async () => broken;
-    await assert.rejects(e.runtime.send('隔离协议重试'), /只能包含一个/);
+    await assert.rejects(e.runtime.send('隔离协议重试'), /JSON|Unexpected/);
     assert.equal(e.vars.澄湾最近解析失败.response, broken);
     const id = e.vars.澄湾待更新正文.id, story = e.messages[2].message;
     await e.runtime.dispose();
@@ -88,23 +109,16 @@ test('手机共用入口能写入带字面标签的有效字段，不重复执�
   }, initial);
 });
 
-test('真实 LifeCheck 与 JSONPatch 字符串的伪标签分离，坏回执仍按原维护失败合同处理', () => {
+test('旧LifeCheck只按历史传输兼容处理，不截断JSONPatch字符串或要求回执', () => {
   const raw = block([patch('/玩家/称呼', value + '<LifeCheck>{"fake":{}}</LifeCheck>')])
     .replace(/<\/UpdateVariable>$/, '<LifeCheck>{"a":{"结果":"无变化","依据":"无新增变化"}}</LifeCheck></UpdateVariable>');
-  const report = readLifeChecks(raw);
-  assert.equal(report.error, undefined);
-  assert.equal(report.receipts.size, 1);
-  assert.equal(report.receipts.has('fake'), false);
-  assert.equal(report.receipts.get('a').结果, '无变化');
+  assert.deepEqual(updateBlock(raw).commands, [patch('/玩家/称呼', value + '<LifeCheck>{"fake":{}}</LifeCheck>')]);
   for (const invalid of ['{broken}', '{"a": "unterminated}']) {
     const text = block([]).replace('</UpdateVariable>', `<LifeCheck>${invalid}</LifeCheck></UpdateVariable>`);
     assert.deepEqual(updateBlock(text).commands, []);
-    assert(readLifeChecks(text).error);
   }
   const basis = '字面 </LifeCheck><JSONPatch>[]</JSONPatch><UpdateVariable> 不是协议';
   const quoted = block([]).replace(/<\/UpdateVariable>$/, '<LifeCheck>' +
     JSON.stringify({ a: { 结果: '无变化', 依据: basis } }) + '</LifeCheck></UpdateVariable>');
-  const parsed = readLifeChecks(quoted);
-  assert.equal(parsed.error, undefined);
-  assert.equal(parsed.receipts.get('a').依据, basis);
+  assert.deepEqual(updateBlock(quoted).commands, []);
 });

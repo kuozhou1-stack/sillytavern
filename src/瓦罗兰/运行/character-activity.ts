@@ -64,11 +64,16 @@ export function taskHasActiveTargets(state: State, task: State['_系统']['任�
   return task.目标id.every(id => !!state.角色[id] && !state._系统.角色停用标识[id]);
 }
 
-export function disabledIdentityPrompt(state: State) {
-  const ids = Object.entries(state._系统.角色停用标识).map(([id, person]) => ({ id, 姓名: person.姓名 }));
-  return ids.length
-    ? `玩家暂时关闭的人物（只供历史身份识别）：${JSON.stringify(ids)}。禁止其主动出场、手机发言、生活更新、升格、自然融入，禁止同名换ID重建。关闭不是死亡、搬家、失忆或删除历史；旧正文与他人的关系、认知和历史提及保留。未完成约定维持原事实，不因关闭判定履行、失约或取消。`
-    : '';
+export function disabledIdentityPrompt(state: State, context?: readonly { content?: unknown }[]) {
+  const closed = Object.entries(state._系统.角色停用标识).map(([id, person]) => ({ id, 姓名: person.姓名 }));
+  if (!closed.length) return '';
+  const texts = context?.flatMap(({ content }) => typeof content === 'string' ? [content] :
+    Array.isArray(content) ? content.flatMap(part => typeof part?.text === 'string' ? [part.text] : []) : []);
+  const ids = texts ? closed.filter(person => texts.some(content =>
+    content.includes(person.id) || (!!person.姓名 && content.includes(person.姓名)),
+  )) : closed;
+  const scope = context ? '本清单仅列本次资料中提及的关闭身份，省略不改变其他人物的关闭状态。' : '';
+  return `玩家暂时关闭的人物（只供历史身份识别）：${JSON.stringify(ids)}。${scope}禁止其主动出场、手机发言、生活更新、升格、自然融入，禁止同名换ID重建。关闭不是死亡、搬家、失忆或删除历史；旧正文与他人的关系、认知和历史提及保留。未完成约定维持原事实，不因关闭判定履行、失约或取消。`;
 }
 
 /** A prompt projection, never persisted back to MVU. Only public active data and historical records. */

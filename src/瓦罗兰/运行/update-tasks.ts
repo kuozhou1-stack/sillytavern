@@ -1,13 +1,13 @@
 import { copy, type State } from './core';
 import { archivePrompt, archiveSourceRecords, finalizeArchive } from './archive';
 import { openingCharacterPrompt } from './opening';
-import { validateTaskResult } from './tasks';
+import { validateTaskResult, isCharacterLifeTask } from './tasks';
 import { taskHasActiveTargets } from './character-activity';
 import { publicModelData, promptProjections, withPromptInstructions } from './model-history';
-import { lifeCheckPrompt, readLifeChecks, requiresLifeCheck } from './life-check';
+import { createSourceContextProjector } from './source-context';
 
 function currentTaskTargets(state: State, task: State['_系统']['任务'][string]) {
-  return taskHasActiveTargets(state, task) && (!requiresLifeCheck(task) || task.目标id.every(
+  return taskHasActiveTargets(state, task) && (!isCharacterLifeTask(task) || task.目标id.every(
     id => state.角色[id]._管理.版本 === task.目标版本[id],
   ));
 }
@@ -15,18 +15,19 @@ function currentTaskTargets(state: State, task: State['_系统']['任务'][strin
 /** Maintenance is folded into an authorized story/phone request, never sent on its own. */
 export function pendingUpdateTasks(state: State) {
   return Object.entries(state._系统.任务)
-    .filter(([, task]) => (task.状态 === '排队' || (task.状态 === '失败' && requiresLifeCheck(task))) && currentTaskTargets(state, task))
+    .filter(([, task]) => (task.状态 === '排队' || (task.状态 === '失败' && isCharacterLifeTask(task))) && currentTaskTargets(state, task))
     .map(([id]) => id);
 }
 
 export function withUpdateTasks(config: GenerateConfig, state: State, ids: string[]): GenerateConfig {
   const result = config;
   const descriptions: string[] = [];
-  const sources = new Map<string, State['_系统']['来源档案'][string]>();
-  let needsLifeCheck = false;
-  let retriesLifeCheck = false;
+  const sources = new Map<string, Record<string, any>>();
+  let needsLifeUpdate = false;
+  let retriesLifeUpdate = false;
   let needsRosterCheck = false;
   const archiveContext = promptProjections.get(config);
+  const projectSource = createSourceContextProjector(state, archiveContext);
   const missingArchiveRecords = new Map<string, unknown>();
   for (const id of ids) {
     const task = state._系统.任务[id];
@@ -48,41 +49,40 @@ export function withUpdateTasks(config: GenerateConfig, state: State, ids: strin
               '开场正文已经生成并显示',
               '本次正文或手机交互已提供事实依据',
             )
-          : `人物 ${task.目标id.join('、')}：${task.类别}，覆盖起点 ${JSON.stringify(task.起始时间)}。${task.类别 === '升格' ? '按玩家的升格操作补全为主要角色结构。' : ''}${rosterCheck ? '按下方自动调度共同说明检查。' : ''}`;
-    if (requiresLifeCheck(task)) needsLifeCheck = true;
+          : `人物 ${task.目标id.join('、')}：${task.类别}，覆盖起点 ${JSON.stringify(task.起始时间)}。${task.类别 === '升格' ? '按玩家的升格操作补全为主要角色结构。' : ''}`;
+    if (isCharacterLifeTask(task)) needsLifeUpdate = true;
     for (const target of task.目标id) {
       const sourceId = state.角色[target]?._管理.来源档案id;
       const source = sourceId && state._系统.来源档案[sourceId];
       if (source && (['建档', '自然融入'].includes(task.类别) ||
-          (task.类别 !== '摘要' && source.当前融入状态 !== '已融入')))
-        sources.set(sourceId, source);
+          (task.类别 !== '摘要' && source.当前融入状态 !== '已融入'))) {
+        const extra = projectSource(sourceId, source);
+        if (extra) sources.set(sourceId, extra);
+      }
     }
-    const retry = requiresLifeCheck(task) && task.状态 === '失败';
-    if (retry) retriesLifeCheck = true;
-    const reason = retry ? `\n上次检查未完成（仅诊断资料）：${JSON.stringify((task.错误 ?? '未取得有效完成凭据').replace(/\s+/g, ' ').slice(0, 160))}` : '';
-    descriptions.push(`待办 ${id}：\n${text}${reason}`);
+    const retry = isCharacterLifeTask(task) && task.状态 === '失败';
+    if (retry) retriesLifeUpdate = true;
+    descriptions.push(`待办 ${id}：\n${text}`);
   }
   if (!descriptions.length) return result;
-  const lifeCheck = needsLifeCheck
-    ? `生活更新共同检查：本次请求前故事时点 ${JSON.stringify(state.世界.当前时间)}；若本轮推进时间，接续到本轮实际结束时点，不能停在排队时的旧截止时间。时间未知则仅处理有依据的事件，不臆算时长。检查当前状态、地点、穿搭、生活安排、目标、约定及最近经历；新动态沿现有个人目标和正在发展的事件链连续接续，按共同自主生活规则复用记录与事件身份，保留后续安排和未解事项。关系、认知、重要记录按人物本轮实际生活同步，后台事实不得自动传播给玩家。按各待办的要求实际写入生活动态，不凭空改动人设、不凑条数。已融入人物以当前档案为准，不反复恢复导入快照。\n`
+  const lifeUpdate = needsLifeUpdate
+    ? `生活更新共同检查：本次请求前故事时点 ${JSON.stringify(state.世界.当前时间)}；按各待办的覆盖起点接续至本轮实际结束时点，未知时间不臆算。按常驻自主生活与记忆及变量规则，沿现有个人目标和正在发展的事件链连续接续，复用记录与事件身份。已融入人物以当前档案为准，不恢复导入快照。\n`
     : '';
   const rosterCheck = needsRosterCheck
-    ? '自动调度当前生活检查：包括未在玩家身边的开启人物。每位本次调度目标必须有具体动态变化，并实际更新相应业务字段，不能只检查后原样保留或以无变化回执代替。从最后已知时点接续自主生活到本轮结束，推进当前活动、个人目标、地点、状态、注意力或生活安排，写清本轮的新进展。变化须符合故事经过的时长、人物性格、能力和既定处境。主要角色同步有新进展的经历；次要角色同步重要记录中的npc_current_state（当前近况）、npc_online_habits（网络往来）、npc_history（个人经历）及current_practice（近期实践），这些都是原有重要记录条目，不新建平行变量。关系含好感、信任、关系备注、当前定位、防御姿态、破壁阶段和已知私密，只有发生相应事实才变化，不因轮换涨分或自动亲密。人物可继续原活动，但须写入其具体进展，不以机械换词、改内部计数或重复旧经历充当动态。不强行出场，不改写已有历史，不把后台事实赋予玩家知情。\n'
+    ? '自动调度当前生活检查：包括未在玩家身边的开启人物。每位本次调度目标必须有具体动态变化，并实际写入变化字段；变化须符合本轮时长与处境，不能原样保留或只换词。按常驻规则接续个人目标、活动与有新进展的经历，次要人物使用原有重要记录条目。关系与认知仅随相应事实变化，不强行出场或赋予玩家后台知情。\n'
     : '';
   return withPromptInstructions(result, [{
       role: 'system', position: 'in_chat', depth: 0,
-      content: '本次变量更新一并处理以下待办（不另发请求）：\n' + lifeCheck + rosterCheck + descriptions.join('\n') +
-        (retriesLifeCheck ? '\n本次包含未完成的生活检查：已写入的事实不要重复演绎或再次结算。先核对当前存档中本次已保存的动态，只补遗漏与本轮新事实，不为同次失败重试额外推进一轮生活；已保存事实仅待补确认时据实回执。' : '') +
-        (needsLifeCheck ? '\n' + lifeCheckPrompt() : '') +
-        (sources.size ? `\n只读来源资料（共用一次）：${JSON.stringify(Object.fromEntries(sources))}` : '') +
+      content: '本次变量更新一并处理以下待办（不另发请求）：\n' + lifeUpdate + rosterCheck + descriptions.join('\n') +
+        (retriesLifeUpdate ? '\n本次包含未完成的生活更新：已写入的事实不要重复演绎或再次结算。先核对当前存档中本次已保存的动态，只补遗漏与本轮新事实，不为同次失败重试额外推进一轮生活。' : '') +
+        (sources.size ? `\n只读来源资料补充（当前变量未提供）：${JSON.stringify(Object.fromEntries(sources))}` : '') +
         (missingArchiveRecords.size ? `\n归档源记录共享补充（状态资料未提供的全文，按路径共用一次）：${JSON.stringify(Object.fromEntries(missingArchiveRecords))}` : '') +
         '\n本条只描述待办，不限制本次对其他变量的正常更新。',
   }]);
 }
 
-export function finalizeUpdateTasks(before: State, candidate: State, ids: string[], rawText?: string) {
+export function finalizeUpdateTasks(before: State, candidate: State, ids: string[], _rawText?: string) {
   let result = candidate;
-  const lifeChecks = readLifeChecks(rawText);
   for (const id of ids) {
     const task = before._系统.任务[id];
     if (!task || ['失效', '取消', '已提交'].includes(task.状态) || !currentTaskTargets(before, task)) continue;
@@ -90,7 +90,7 @@ export function finalizeUpdateTasks(before: State, candidate: State, ids: string
       result =
         task.类别 === '摘要'
           ? finalizeArchive(before, copy(result), id, true)
-          : validateTaskResult(before, result, id, true, true, lifeChecks);
+          : validateTaskResult(before, result, id, true, true);
     } catch (error) {
       // Opening remains atomic. Optional maintenance failure must not discard the actual interaction.
       if (task.类别 === '建档') throw error;

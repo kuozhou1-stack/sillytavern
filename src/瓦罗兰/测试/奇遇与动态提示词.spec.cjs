@@ -68,14 +68,14 @@ test('稀有初始内容保存失败后只确认原提交，不再请求、赠�
     assert.equal(e.messages.length, 1);
   });
 });
-test('自动调度明确要求逐人具体变化，重试保留原事实；其他维护回执仍兼容', () => {
+test('自动调度仍要求逐人具体变化，移除LifeCheck后重试仍保留原事实', () => {
   const state = enabled();
   state._系统.任务.auto = Schema.parse({ _系统: { 任务: { auto: { 类别: '生活更新', 状态: '排队',
     触发来源: '自动角色调度：当前生活检查', 目标id: ['npc'], 目标版本: { npc: state.角色.npc._管理.版本 } } } } })._系统.任务.auto;
   let text = withUpdateTasks({}, state, ['auto']).injects[0].content;
   assert(text.includes('每位本次调度目标必须有具体动态变化'));
   assert(!text.includes('允许无变化') && !text.includes('无变化允许保留'));
-  assert(text.includes('自动调度目标按专项要求逐人写入具体动态'));
+  assert(!text.includes('LifeCheck') && !text.includes('回执'));
   state._系统.任务.auto.状态 = '失败'; state._系统.任务.auto.错误 = '隔离回执遗漏';
   text = withUpdateTasks({}, state, ['auto']).injects[0].content;
   assert(text.includes('不为同次失败重试额外推进一轮生活'));

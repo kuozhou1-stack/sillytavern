@@ -35,6 +35,7 @@ function child(schema: ZodType | undefined, key: string): ZodType | undefined {
 const privateField = (schema: ZodType | undefined, key: string) =>
   key.startsWith('_') && !(shape(schema) instanceof z.ZodRecord);
 const scopeAt = (path: readonly string[]) => path.reduce<ZodType | undefined>(child, Schema);
+export const isModelRecord = (path: readonly string[]) => shape(scopeAt(path)) instanceof z.ZodRecord;
 export const modelPathParts = (path: string) => path === '' ? [] :
   path.slice(1).split('/').map(key => key.replaceAll('~1', '/').replaceAll('~0', '~'));
 

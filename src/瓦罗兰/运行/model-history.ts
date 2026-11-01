@@ -6,6 +6,8 @@ export type HistoryScope = { session?: string; post?: string; platform?: string 
 /** Request-local public projection, never serialized into settings, saves or API options. */
 export const promptProjections = new WeakMap<GenerateConfig, Record<string, any>>();
 export const promptContextPrompts = new WeakMap<GenerateConfig, NonNullable<GenerateConfig['injects']>>();
+/** These two worldbook entries close a variable request, after all other instructions. */
+export const promptVariableRules = new WeakMap<GenerateConfig, NonNullable<GenerateConfig['injects']>>();
 
 /** Keep native context separate from the extra instructions appended after the preset. */
 export function withPromptInstructions(config: GenerateConfig, prompts: NonNullable<GenerateConfig['injects']>): GenerateConfig {
@@ -14,6 +16,8 @@ export function withPromptInstructions(config: GenerateConfig, prompts: NonNulla
   if (projection) promptProjections.set(result, projection);
   const context = promptContextPrompts.get(config);
   if (context) promptContextPrompts.set(result, context);
+  const variableRules = promptVariableRules.get(config);
+  if (variableRules) promptVariableRules.set(result, variableRules);
   return result;
 }
 

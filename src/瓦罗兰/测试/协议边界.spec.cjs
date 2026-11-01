@@ -46,7 +46,42 @@ test('真实回执不被补丁字符串中的伪回执取代', () => {
   const raw = block(commands).replace('</UpdateVariable>', '<LifeCheck>{"a":{"结果":"无变化","依据":"保持"}}</LifeCheck></UpdateVariable>');
   const parsed = updateBlock(raw);
   assert.deepEqual(parsed.commands, commands);
-  assert(parsed.block.includes('<LifeCheck>{"a"'));
+  assert(!parsed.block.includes('<LifeCheck>'), '旧附加内容不再重新输出到MVU传输');
+});
+
+for (const [open, close] of [
+  ['<output><content>', '</content></output>'],
+  ['<Interleaving data-preset="test">', '</Interleaving>'],
+  ['<thinking>', '</thinking>'],
+  ['<reasoning><answer>', '</answer></reasoning>'],
+  ['<Analysis>预设包装说明\n', '</Analysis>'],
+  ['```xml\n<response>', '</response>\n```'],
+]) test('完整变量块可由预设包装：' + open, () => {
+  const commands = command('包装内的实际更新');
+  const parsed = updateBlock(open + block(commands) + close);
+  assert.deepEqual(parsed.commands, commands);
+  assert.equal(parsed.block, block(commands));
+});
+
+test('JSONPatch允许标签空白、属性和完整JSON代码围栏，不要求Analysis', () => {
+  const commands = command('保留值');
+  const raw = '<UpdateVariable preset="x"><JSONPatch format="json">\n```json\n' +
+    JSON.stringify(commands) + '\n```\n</JSONPatch ></UpdateVariable >';
+  assert.deepEqual(updateBlock(raw).commands, commands);
+});
+
+test('终端协议被预设包裹时保留正文标签，纯变量包装不伪装成正文', () => {
+  const { stripProtocol, storedNarrative } = protocol.exports;
+  assert.equal(stripProtocol('<answer>正文\n' + block([]) + '</answer>'), '<answer>正文</answer>');
+  assert.equal(stripProtocol('<answer><details>' + block([]) + '</details></answer>'), '');
+  assert.equal(storedNarrative('<answer>正文\n<StatusPlaceHolderImpl/>\n' + block([]) + '</answer>'),
+    '<answer>正文\n<StatusPlaceHolderImpl/></answer>');
+});
+
+test('思考中的完整示例不覆盖正文外的实际更新', () => {
+  const actual = command('实际更新');
+  assert.deepEqual(updateBlock('<thinking>' + block(command('示例')) + '</thinking><answer>' +
+    block(actual) + '</answer>').commands, actual);
 });
 
 test('合法空数组继续接受，原始 JSON 不自动修复', () => {
@@ -56,15 +91,22 @@ test('合法空数组继续接受，原始 JSON 不自动修复', () => {
 });
 
 for (const raw of [
-  block([]) + block([]),
-  '<UpdateVariable><JSONPatch>[]</JSONPatch>',
   '<UpdateVariable><JSONPatch>[]</UpdateVariable>',
-  '<thinking>未闭合 <UpdateVariable>' + block([]),
-  block([]) + '<UpdateVariable>',
-  block([]).replace('</UpdateVariable>', '"</UpdateVariable><UpdateVariable>"</UpdateVariable>'),
-  '<UpdateVariable><JSONPatch>[]</JSONPatch><JSONPatch>[]</JSONPatch></UpdateVariable>',
-  '[{"op":"replace","path":"/玩家/称呼","value":"裸JSON不接受"}]',
+  '<UpdateVariable><JSONPatch>{}</JSONPatch></UpdateVariable>',
+  '<UpdateVariable><JSONPatch>[{"op":"replace",}]</JSONPatch></UpdateVariable>',
 ]) test('坏协议继续拒绝 ' + raw.slice(0, 55), () => assert.throws(() => updateBlock(raw)));
+
+test('直接JSON、JSONPatch片段和多个完整段落按数据读取，不以变量块数量或外围标签阻断', () => {
+  const first = command('先写入'), second = [{ op: 'replace', path: '/玩家/姓名', value: '再写入' }];
+  assert.deepEqual(updateBlock(JSON.stringify(first)).commands, first);
+  assert.deepEqual(updateBlock('<answer>' + JSON.stringify(first) + '</answer>').commands, first);
+  assert.deepEqual(updateBlock('```json\n' + JSON.stringify(first) + '\n```').commands, first);
+  assert.deepEqual(updateBlock('<JSONPatch>' + JSON.stringify(first) + '</JSONPatch>').commands, first);
+  assert.deepEqual(updateBlock(block(first) + block(second)).commands, [...first, ...second]);
+  assert.deepEqual(updateBlock(block(first) + '<UpdateVariable>').commands, first);
+  assert.deepEqual(updateBlock('<thinking>未闭合 <UpdateVariable>' + block(first)).commands, first);
+  assert.deepEqual(updateBlock('<UpdateVariable><JSONPatch>' + JSON.stringify(first) + '</JSONPatch>').commands, first);
+});
 
 test('保持旧准入边界：外围未闭合思考及多余结束标签不额外拒绝完整变量块', () => {
   for (const text of [
@@ -77,5 +119,6 @@ test('保持旧准入边界：外围未闭合思考及多余结束标签不额�
     '<UpdateVariable><JSONPatch>[]</JSONPatch></JSONPatch></UpdateVariable>',
     '<UpdateVariable><JSONPatch note="example"></JSONPatch ><JSONPatch>[]</JSONPatch></UpdateVariable>',
     '<UpdateVariable><JSONPatch>[]</JSONPatch><JSONPatch></UpdateVariable>',
+    block([]).replace('</UpdateVariable>', '"</UpdateVariable><UpdateVariable>"</UpdateVariable>'),
   ]) assert.deepEqual(updateBlock(text).commands, []);
 });

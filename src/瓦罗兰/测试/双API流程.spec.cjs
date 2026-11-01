@@ -41,16 +41,6 @@ const { normalizeWorldInformation } = require(root + '/运行/世界资料.ts');
 const { normalizeMapLandmarks } = require(root + '/运行/地图地标.ts');
 const { normalizeGeographicNames } = require(root + '/运行/地理名称.ts');
 const block = patches => `<UpdateVariable><JSONPatch>${JSON.stringify(patches)}</JSONPatch></UpdateVariable>`;
-// Opt in only in fixtures that intend to finish the pending life checks.
-function lifeCheckedBlock(state, patches = [], updated = {}) {
-  const targets = [...new Set(pendingUpdateTasks(state)
-    .filter(id => ['生活更新', '自然融入', '升格'].includes(state._系统.任务[id].类别))
-    .flatMap(id => state._系统.任务[id].目标id))];
-  const receipts = Object.fromEntries(targets.map(id => [id, updated[id]
-    ? { 结果: '已更新', 依据: updated[id] }
-    : { 结果: '无变化', 依据: '本次检查覆盖区间内无新增事实，保留既定生活状态' }]));
-  return block(patches).replace('</UpdateVariable>', '<LifeCheck>' + JSON.stringify(receipts) + '</LifeCheck></UpdateVariable>');
-}
 const patch = (path, value) => ({ op: 'replace', path, value });
 const time = 分 => ({ 年: 2026, 月: 9, 日: 22, 时: 10, 分 });
 const publicPerson = person => { const result = copy(person); delete result._管理; delete result._更新循环; return result; };
@@ -1359,7 +1349,7 @@ test('JSONPatch 解析失败保留原始响应与堆栈，变量不写入且重�
     e.update = async () => response;
     await assert.rejects(e.runtime.send('查看时间'), /JSON/);
     assert.equal(e.vars.澄湾最近解析失败.response, response);
-    assert.equal(e.vars.澄湾最近解析失败.jsonPatch, '\n[] {"unexpected":true}');
+    assert(!Object.hasOwn(e.vars.澄湾最近解析失败, 'jsonPatch'), '原始响应已完整保留，不重复保存不可靠的正则截取');
     assert.match(e.vars.澄湾最近解析失败.stack, /updateBlock/);
     assert.equal(activeContext().floor, 0);
     assert.equal(e.parses, 0);
@@ -1407,8 +1397,8 @@ test('预设前置思考提及协议标签不冒充第二个更新块，补丁�
   const commands = [patch('/玩家/称呼', '<thinking>字段中的原文</thinking>')];
   const reply = '<thinking>本次应返回一个 <UpdateVariable> 更新块。</thinking>\n' + block(commands);
   assert.deepEqual(updateBlock(reply).commands, commands);
-  assert.throws(() => updateBlock(reply + block([])), /只能包含一个/);
-  assert.throws(() => updateBlock('<thinking>未闭合 <UpdateVariable>\n' + block([])), /只能包含一个/);
+  assert.deepEqual(updateBlock(reply + block([])).commands, commands);
+  assert.deepEqual(updateBlock('<thinking>未闭合 <UpdateVariable>\n' + block([])).commands, []);
 });
 
 test('保存后真实编辑输入使旧正文失效，重试及重载不得重新绑定新源', async () => {
@@ -2064,7 +2054,7 @@ test('加载、保存设置、本地管理、查看与待办重新排队不调�
     await turn();
     assert.equal(e.calls.length, 0);
     assert.equal(e.state()._系统.任务.job.状态, '排队');
-    e.update = async () => lifeCheckedBlock(e.state());
+    e.update = async () => block([]);
     await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
     assert.equal(e.calls.length, 1);
     assert.equal(e.state()._系统.任务.job.状态, '已提交');
@@ -2726,7 +2716,7 @@ test('后台主要NPC五轮后自动排队，下一次交互更新生活与记�
         );
       }
       return round === 6
-        ? lifeCheckedBlock(e.state(), commands, { remote: '已记录独自完成备课、目标进展与最近经历' })
+        ? block(commands)
         : block(commands);
     };
     for (let i = 0; i < 5; i++) await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '交流' });
@@ -2747,7 +2737,7 @@ test('后台主要NPC五轮后自动排队，下一次交互更新生活与记�
   }, initial);
 });
 
-test('生活检查缺回执仍保存本轮事实，下次玩家手机交互自动补检且不重复生活经历', async () => {
+test('生活更新只输出JSONPatch即可完成，下次手机交互不因缺LifeCheck重复补更', async () => {
   const initial = seed();
   initial.角色.remote = Schema.parse({
     角色: { remote: {
@@ -2773,25 +2763,24 @@ test('生活检查缺回执仍保存本轮事实，下次玩家手机交互自�
     assert.equal(e.calls.length, 2);
     assert.equal(e.state().玩家.当前状态.身体状态, '喝水后口渴缓解');
     assert.equal(e.state().角色.remote.当前状态, '独自完成备课，正在整理讲义');
-    assert.equal(e.state()._系统.任务.life_remote.状态, '失败');
-    assert.equal(e.state().角色.remote._更新循环.当前计数, 6);
-    assert.deepEqual(e.state().角色.remote._更新循环.上次更新变量时间, time(0));
-    assert.equal(e.state().角色.remote._更新循环.待处理任务id, 'life_remote');
+    assert.equal(e.state()._系统.任务.life_remote.状态, '已提交');
+    assert.equal(e.state().角色.remote._更新循环.当前计数, 1);
+    assert.deepEqual(e.state().角色.remote._更新循环.上次更新变量时间, time(5));
+    assert.equal(e.state().角色.remote._更新循环.待处理任务id, null);
     const facts = copy(e.state().角色.remote.经历.最近经历);
     e.runtime.refresh();
     await turn();
-    assert.equal(e.calls.length, 2, '失败后空闲不立即循环请求');
+    assert.equal(e.calls.length, 2, '空闲不发额外请求');
     e.update = async config => {
-      assert.match(JSON.stringify(config), /上次检查未完成/);
-      assert.match(JSON.stringify(config), /已写入的事实不要重复演绎/);
-      return lifeCheckedBlock(e.state(), [patch('/世界/当前时间', time(6))]);
+      assert(!JSON.stringify(config).includes('<LifeCheck>'));
+      return block([patch('/世界/当前时间', time(6))]);
     };
     await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '问候一句' });
     assert.deepEqual(e.calls.map(call => call.config.custom_api?.model ?? 'main'), ['main', 'variable', 'phone']);
     assert.equal(e.state()._系统.任务.life_remote.状态, '已提交');
     assert.equal(e.state()._系统.任务.life_remote.错误, null);
     assert.equal(e.state().角色.remote._更新循环.当前计数, 2);
-    assert.deepEqual(e.state().角色.remote._更新循环.上次更新变量时间, time(6));
+    assert.deepEqual(e.state().角色.remote._更新循环.上次更新变量时间, time(5));
     assert.equal(e.state().角色.remote._更新循环.待处理任务id, null);
     assert.deepEqual(e.state().角色.remote.经历.最近经历, facts);
     assert.equal(e.state().玩家.当前状态.身体状态, '喝水后口渴缓解');
@@ -3262,7 +3251,7 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
       if (!extra) rosters.push(Object.keys(people));
     };
     e.story = async config => { capture(config); return '本轮只是观察环境。'; };
-    e.update = async config => { capture(config); return lifeCheckedBlock(e.state()); };
+    e.update = async config => { capture(config); return block([]); };
     await e.runtime.send('观察环境');
     await e.runtime.send('继续观察环境');
     assert.equal(rosters[1].filter(id => id.startsWith('m') && !rosters[0].includes(id)).length, 3);
@@ -3295,7 +3284,7 @@ test('自动调度：正文、变量和手机最终请求均为6+3，关闭完�
       final.push(extra ? config.custom_api.model : 'story');
     };
     e.story = async config => { capture(config); return '玩家观察了当前环境，未与远处人物互动。'; };
-    e.update = async config => { capture(config); return lifeCheckedBlock(e.state()); };
+    e.update = async config => { capture(config); return block([]); };
     await e.runtime.send('观察环境');
     const roster = e.vars.澄湾角色库.revisions[e.state()._系统.角色库版本].automatic;
     assert.equal(Object.keys(roster.checks).length, 9);
@@ -3316,7 +3305,7 @@ test('自动调度：正文失败重试不重复轮换或复制快照，检查�
     const snapshotCount = Object.keys(library.snapshots).length;
     const roster = copy(library.revisions[e.state()._系统.角色库版本].automatic);
     assert(Object.values(roster.rotation).every(id => e.state()._系统.任务[id].状态 === '排队'));
-    e.story = async () => '本轮没有特殊事件。'; e.update = async () => lifeCheckedBlock(e.state());
+    e.story = async () => '本轮没有特殊事件。'; e.update = async () => block([]);
     await e.runtime.retry();
     assert.equal(Object.keys(e.vars.澄湾角色库.snapshots).length, snapshotCount);
     assert(Object.values(roster.rotation).every(id => e.state()._系统.任务[id].状态 === '已提交'));
@@ -3367,7 +3356,10 @@ test('角色库：100人仅10人开启，正文/变量/手机最终构造均无�
   const s = seed(); s.角色 = {};
   for (let i = 0; i < 100; i++) {
     s.角色['npc' + i] = Schema.parse({ 角色: { a: { 层级: '主要', 姓名: '测试' + i, 简介: `PROFILE_${i}_SECRET ` + '专属资料'.repeat(100), _管理: { 来源档案id: 'source' + i } } } }).角色.a;
-    s._系统.来源档案['source' + i] = Schema.parse({ _系统: { 来源档案: { a: { 人物id: 'npc' + i, 原始快照JSON: 'SOURCE_' + i + '_SECRET' } } } })._系统.来源档案.a;
+    s._系统.来源档案['source' + i] = Schema.parse({ _系统: { 来源档案: { a: {
+      人物id: 'npc' + i, 格式版本: '裸角色资料',
+      原始快照JSON: JSON.stringify({ id: 'npc' + i, 角色: s.角色['npc' + i], 来源说明: 'SOURCE_' + i + '_SECRET' }),
+    } } } })._系统.来源档案.a;
   }
   await withEnv(async e => {
     const beforeBytes = JSON.stringify(e.state().角色).length;

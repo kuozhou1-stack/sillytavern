@@ -1,5 +1,5 @@
 import type { State } from './core';
-import { publicModelData, promptProjections, promptContextPrompts } from './model-history';
+import { publicModelData, promptProjections, promptContextPrompts, promptVariableRules } from './model-history';
 import { normalizeRuleName, variableRuleNames } from './settings';
 import { worldUpdatePrompt } from './world';
 import { modelState } from './character-activity';
@@ -46,18 +46,23 @@ export async function livePromptConfig(
   if (mode === 'worker') {
     // Active public state plus recent history/summaries; do not repeat the player as a persona.
     config.overrides!.persona_description = '';
+    // The card description asks for an opening story; this channel only settles variables.
+    config.overrides!.char_description = '';
     const data = modelState(state, scope);
     promptProjections.set(config, data);
     config.injects!.push({ role: 'user', position: 'in_chat', depth: 0, content: JSON.stringify(data) });
     const entries = await getWorldbook(name);
     if (chat !== SillyTavern.getCurrentChatId() || name !== getCharWorldbookNames('current').primary)
       throw Error('读取提示词时聊天或世界书已切换');
+    const variableRules: NonNullable<GenerateConfig['injects']> = [];
     for (const rule of variableRuleNames) {
       const found = entries.filter(e => normalizeRuleName(e.name) === rule);
       if (found.length !== 1 || !found[0].content.trim()) throw Error('变量规则缺失、重复或为空：' + rule);
       const prompt = { role: 'system' as const, position: 'in_chat' as const, depth: 0, content: found[0].content };
       config.injects!.push(prompt);
+      variableRules.push(prompt);
     }
+    promptVariableRules.set(config, variableRules);
     const sharedRules: WorldbookEntry[] = [];
     for (const rule of workerDepthRuleNames) {
       const found = entries.filter(entry => entry.enabled && normalizeRuleName(entry.name) === rule);
@@ -81,7 +86,7 @@ export async function livePromptConfig(
       sharedPrompts.push({ role: 'system', position: 'in_chat', depth: 0, content: entry.content });
     }
     config.injects!.unshift(...sharedPrompts);
-    promptContextPrompts.set(config, [...config.injects!]);
+    promptContextPrompts.set(config, config.injects!.filter(prompt => !variableRules.includes(prompt)));
     const mapLocation = playerMapLocationPrompt(state);
     if (mapLocation) config.injects!.push({ role: 'system', position: 'in_chat', depth: 0, content: mapLocation });
   }
@@ -89,9 +94,7 @@ export async function livePromptConfig(
     role: 'system',
     position: 'in_chat',
     depth: 0,
-    content: '根据本次直接提供的世界书变量规则检查所有可更新字段。缺席不代表冻结；人物知情边界及下划线只读规则继续生效。' +
-        '当前状态省略了内部缓存及已被摘要覆盖的旧原文，这些记录仍在存档；只更新发生变化的具体路径，不用当前投影替换整个状态、人物或历史容器。' +
-        worldUpdatePrompt(state),
+    content: worldUpdatePrompt(state),
   });
   // The request's final hook owns the disabled list; do not send an early copy.
   config.injects!.push({ role: 'system', position: 'in_chat', depth: 0, content: novelPrompt(state, mode === 'worker') });

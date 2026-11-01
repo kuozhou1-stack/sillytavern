@@ -142,25 +142,48 @@ test('选择输出严格校验，错误结果不能改原选择；后续展开�
   assert.equal(needsInformationSelection(prepareInformationCommand(before, '地点', 'library', '仅名称'), '进入测试图书馆'), false);
 });
 
-test('原始patch禁止整表与已有记录覆盖，隐藏资料不能经Schema默认值被洗掉', () => {
-  const before = applyInformationSelection(seed(), selectorReply(['cafe']), 'turn');
+test('原始patch保留资料加载边界，已展开记录允许整项替换或删除', () => {
+  const before = applyInformationSelection(seed(), selectorReply(['cafe'], ['guild']), 'turn');
   for (const command of [
     { op: 'replace', path: '/地点', value: {} },
-    { op: 'replace', path: '/地点/cafe', value: { 名称: '只有名称' } },
     { op: 'remove', path: '/地点/home' },
     { op: 'replace', path: '/地点/home/简介', value: '猜测内容' },
     { op: 'move', from: '/地点/home', path: '/地点/renamed' },
   ]) assert.throws(() => assertInformationPatch(before, [command]));
+  assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'replace', path: '/地点/cafe', value: { 名称: '替换后的咖啡馆' } }]));
+  assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'remove', path: '/地点/cafe' }]));
+  assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'replace', path: '/组织/guild', value: { 名称: '替换后的协会' } }]));
+  assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'remove', path: '/组织/guild' }]));
   assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'replace', path: '/地点/cafe/简介', value: '可更新具体字段' }]));
   assert.doesNotThrow(() => assertInformationPatch(before, [{ op: 'add', path: '/地点/new', value: { 名称: '新店' } }]));
   const candidate = structuredClone(before);
-  delete candidate.地点.home;
-  assert.throws(() => validateModel(before, candidate), /不能删除已有资料/);
+  candidate.地点.cafe = Schema.parse({ 地点: { cafe: { 名称: '替换后的咖啡馆' } } }).地点.cafe;
+  candidate.组织.guild = Schema.parse({ 组织: { guild: { 名称: '替换后的协会' } } }).组织.guild;
+  assert.doesNotThrow(() => validateModel(before, candidate));
+  delete candidate.地点.cafe;
+  delete candidate.组织.guild;
+  assert.doesNotThrow(() => validateModel(before, candidate));
+  candidate.地点.cafe = structuredClone(before.地点.cafe);
   candidate.地点.home = { 名称: '测试居所' };
   assert.throws(() => validateModel(before, candidate), /未展开/);
   candidate.地点.home = structuredClone(before.地点.home);
   candidate.地点.cafe.简介 = '已完成正文中的明确变化';
   assert.doesNotThrow(() => assertInformationUnchanged(before, Schema.parse(candidate)));
+});
+
+test('正文变量结算可以整项替换地点和删除组织并保存', async () => {
+  await withEnv(async e => {
+    e.select = async () => selectorReply(['cafe'], ['guild']);
+    e.story = async () => '咖啡馆已按新安排调整，原测试协会已注销。';
+    e.update = async () => block([
+      { op: 'replace', path: '/地点/cafe', value: { ...seed().地点.cafe, 简介: '整项替换后的资料' } },
+      { op: 'remove', path: '/组织/guild' },
+    ]);
+    await e.runtime.send('按已发生的变动更新资料');
+    assert.equal(e.state().地点.cafe.简介, '整项替换后的资料');
+    assert.equal(Object.hasOwn(e.state().组织, 'guild'), false);
+    assert.equal(e.runtime.view.error, '');
+  });
 });
 
 test('实际host正文前完成选择，正文和结算仅拿选中细节，保存仍保留全部资料', async () => {

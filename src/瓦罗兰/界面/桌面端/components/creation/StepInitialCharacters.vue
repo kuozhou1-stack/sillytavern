@@ -283,7 +283,6 @@
             placeholder="填写自定义性别设定"
             class="cw-input cw-input-sm"
             style="margin-top: 4px;"
-            maxlength="20"
           />
         </div>
         <div class="cw-form-item">

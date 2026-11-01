@@ -1,0 +1,1 @@
+/*! Adapted from StageDog/tavern_resource util/mvu_zod.ts. Local change: schema-aware readonly paths for record IDs. License: PolyForm Noncommercial 1.0.0 https://polyformproject.org/licenses/noncommercial/1.0.0/ */

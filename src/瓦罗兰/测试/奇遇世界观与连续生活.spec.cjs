@@ -54,7 +54,7 @@ for (const target of ['initial','tasks','shop']) test(`奇遇${target}：世界�
   assert(text.includes(novelPublicSetting)); assert(text.includes('先按当前地区的功能与文明特征选择主题'));
   assert(text.includes('异常入侵度0–9为潜伏')); assert(text.includes('未知不默认平静或灾变'));
   assert(text.includes('任务可提供待发现的线索')); assert(!text.includes('没有提供玩家存档'));
-  assert(text.endsWith('}。')); assert(!text.includes('稀有最多'));
+  assert.doesNotThrow(() => JSON.parse(text.split('  format: |-\n')[1].trim())); assert(!text.includes('稀有最多'));
   const marker='[isolated-novel-source]';
   const messages=[{role:'system',content:'PRIVATE_FULL_STATE'},{role:'user',content:marker}];
   assert(finalizeNovelRefreshPrompt(messages,marker,config)); assert.equal(messages.length,2); assert.equal(messages.at(-1).role,'system');
@@ -69,7 +69,7 @@ test('实际Runtime刷新仍只发一次手机通道请求，保存重试复用�
       assert(!JSON.stringify(messages).includes('PRIVATE_PLAYER_NAME'));
       return JSON.stringify({任务:[{名称:'双城工艺委托',类型:'探索',难度:'稀有',目标:'选择一次公开工艺交流并记录发现'}]});
     };
-    let failed=false;global.SillyTavern.saveChat=async()=>{if(!failed){failed=true;throw Error('保存未确认');}};
+    let failed=false;global.SillyTavern.saveChat=async()=>{if(!failed){failed=true;throw Error('保存未确认');} e.saveDisk(); };
     await assert.rejects(e.runtime.novelRefresh('tasks'),/保存未确认/);
     const id=e.vars.澄湾待确认提交.commitId;
     await e.runtime.resumeQueued(e.runtime.view.recoverable[0].id);

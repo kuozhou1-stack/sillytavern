@@ -137,7 +137,7 @@ test('NX08 候选已写入但保存确认失败，同ID确认不重跑模型或�
         fail = false;
         throw Error('NX08合成保存确认失败');
       }
-    };
+     e.saveDisk(); };
     e.update = async () => block([{ op: 'replace', path: '/世界/天气/气温', value: 26 }]);
     await assert.rejects(e.runtime.send('保存确认隔离样本'), /NX08合成保存确认失败/);
     const id = e.vars.澄湾待更新正文.id, saved = copy(e.messages.at(-1).data.stat_data), calls = e.calls.length;

@@ -29,7 +29,6 @@
             <CharacterAvatar :name="name(c.对方账号id)" :size="24" shape="rounded" />
             <span class="cw-chip-name">{{ name(c.对方账号id) }}</span>
             <span v-if="c.免打扰" class="cw-chip-badge mute" title="已免打扰">🔕</span>
-            <span v-if="c.状态 === '拉黑'" class="cw-chip-badge block" title="已屏蔽">🚫</span>
           </button>
         </div>
       </div>
@@ -44,8 +43,7 @@
               class="cw-status-indicator"
               :class="{
                 'is-muted': contact.免打扰,
-                'is-blocked': contact.状态 === '拉黑',
-                'is-normal': !contact.免打扰 && contact.状态 !== '拉黑'
+                'is-normal': !contact.免打扰
               }"
               :title="contact.状态"
             ></span>
@@ -126,7 +124,7 @@
         <div class="cw-info-section">
           <div class="cw-section-head">
             <SvgIcon name="settings" :size="13" />
-            <span>偏好设置与安全控制</span>
+            <span>消息偏好设置</span>
           </div>
 
           <div class="cw-settings-menu-list">
@@ -139,21 +137,6 @@
               <span
                 class="cw-toggle-switch"
                 :class="{ active: contact.免打扰 }"
-                aria-hidden="true"
-              >
-                <span class="cw-toggle-thumb"></span>
-              </span>
-            </button>
-
-            <!-- 屏蔽 / 黑名单行 -->
-            <button type="button" class="cw-setting-menu-row" role="switch" :aria-checked="contact.状态 === '拉黑'" :disabled="busy || contact.状态 === '移除'" @click="run('block', selectedContact)">
-              <span class="cw-setting-label-col">
-                <span class="cw-setting-title">加入黑名单 (屏蔽)</span>
-                <span class="cw-setting-desc">屏蔽私聊和好友申请，共同群聊中的消息仍可见</span>
-              </span>
-              <span
-                class="cw-toggle-switch switch-danger"
-                :class="{ active: contact.状态 === '拉黑' }"
                 aria-hidden="true"
               >
                 <span class="cw-toggle-thumb"></span>
@@ -242,8 +225,7 @@
                 <span class="cw-badge cw-badge-subtle cw-badge-xs">共 {{ members.length }} 位成员</span>
               </div>
               <div class="cw-group-role-tag">
-                <span v-if="group.创建者账号id === self" class="cw-role-chip owner">群主</span>
-                <span v-else-if="group.管理员账号id?.includes(self)" class="cw-role-chip admin">管理员</span>
+                <span v-if="group.创建者账号id === self" class="cw-role-chip owner">创建者</span>
                 <span v-else class="cw-role-chip member">成员</span>
               </div>
             </div>
@@ -297,8 +279,7 @@
               >
                 <div class="cw-member-avatar-wrap">
                   <CharacterAvatar :name="member.群昵称 || name(id)" :size="34" shape="rounded" />
-                  <span v-if="id === group.创建者账号id" class="cw-member-role-mark owner" title="群主">👑</span>
-                  <span v-else-if="group.管理员账号id?.includes(id)" class="cw-member-role-mark admin" title="管理员">🛡️</span>
+                  <span v-if="id === group.创建者账号id" class="cw-member-role-mark owner" title="创建者">👑</span>
                 </div>
 
                 <div class="cw-member-tile-info">
@@ -308,7 +289,7 @@
                   <span v-if="id === self" class="cw-me-indicator">我</span>
                 </div>
 
-                <!-- 管理员移除成员操作 -->
+                <!-- 移除群成员 -->
                 <button
                   v-if="canRemoveMember(id)"
                   type="button"
@@ -336,14 +317,13 @@
             <button
               type="button"
               class="cw-btn cw-btn-danger-outline cw-btn-block"
-              :disabled="busy || !canLeaveGroup"
-              :title="canLeaveGroup ? '退出当前群聊' : '请先转交群主后再退出'"
+              :disabled="busy"
+              title="退出当前群聊"
               @click="ask('leaveGroup', selectedGroup, `确定退出群聊「${group.名称 || '当前群聊'}」？本地历史记录仍会保留。`)"
             >
               <SvgIcon name="trash" :size="14" />
               <span>退出群聊</span>
             </button>
-            <p v-if="!canLeaveGroup" class="cw-setting-desc">群内还有其他成员，请先转交群主后再退出。</p>
           </div>
         </article>
 
@@ -561,11 +541,8 @@ const publicInfoEntries = computed(() => {
 const groups = computed(() => Object.entries(state.value.手机.群).filter(([, g]) => currentMember(g.成员[self.value ?? ''])));
 const group = computed(() => groups.value.find(([id]) => id === selectedGroup.value)?.[1]);
 const members = computed(() => Object.entries(group.value?.成员 ?? {}).filter(([, m]) => currentMember(m)));
-const canManage = computed(() => !!self.value && !!group.value && (group.value.创建者账号id === self.value || group.value.管理员账号id.includes(self.value)));
-const canLeaveGroup = computed(() => group.value?.创建者账号id !== self.value || members.value.length <= 1);
 function canRemoveMember(id: string) {
-  return canManage.value && id !== self.value && id !== group.value?.创建者账号id &&
-    (group.value?.创建者账号id === self.value || !group.value?.管理员账号id.includes(id));
+  return id !== self.value;
 }
 
 watch(() => props.initialGroup, id => {
@@ -854,7 +831,6 @@ function emitGroupChat(groupId: string) {
 
     &.is-normal { background: #07c160; }
     &.is-muted { background: #f59e0b; }
-    &.is-blocked { background: #ef4444; }
   }
 }
 
@@ -913,12 +889,6 @@ function emitGroupChat(groupId: string) {
     color: #07c160;
     border-color: rgba(7, 193, 96, 0.3);
     background: rgba(7, 193, 96, 0.08);
-  }
-  &[data-status='拉黑'],
-  &.status-拉黑 {
-    color: #ef4444;
-    border-color: rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.08);
   }
   &.badge-warning {
     color: #f59e0b;
@@ -1130,9 +1100,6 @@ function emitGroupChat(groupId: string) {
       transform: translateX(18px);
     }
 
-    &.switch-danger {
-      background: #ef4444;
-    }
   }
 }
 

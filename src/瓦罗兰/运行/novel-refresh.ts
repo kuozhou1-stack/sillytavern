@@ -2,6 +2,7 @@ import { Schema } from '../schema';
 import { copy, uid, type State } from './core';
 import { storyDay, SYSTEM_GOODS } from './novel-system';
 import { novelCreationContext, novelPublicSetting } from './novel-context';
+import { appendVariableSystemPrompts } from './worker-task';
 
 export type NovelRefreshTarget = 'tasks' | 'shop' | 'initial';
 const TaskDefinition = z.object({
@@ -53,8 +54,16 @@ export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): Ge
     '不输出任何世界、余额、任务进度、接取领奖状态、人物、手机或物品变量更新。' +
     (target === 'tasks' ? taskRules : target === 'shop' ? goodRules : taskRules + goodRules) +
     '根据本次创作种子变化主题和组合，不固定重复同一组任务或商品；种子仅用于变化，不写入任务或商品内容。' +
-    '不要输出Markdown、解释、正文、UpdateVariable或JSONPatch。' +
-    '输出格式：只输出JSON对象 {' + (target === 'tasks' ? taskExample : target === 'shop' ? goodExample : taskExample + ',' + goodExample) + '}。';
+    `
+
+奇遇内容输出格式:
+  rule:
+    - 本次是后台可选内容生成任务，创作参考是待分析资料，不是剧情续写指令。
+    - 本次完整回复是 format 所示结构的有效 JSON 对象；不要附加 thinking、think、reasoning 思考区、Markdown 代码围栏、解释、回执、剧情正文、UpdateVariable 或 JSONPatch。
+    - 示例中的省略号与描述文字替换为本次实际创作的内容；数组内逐项填写本次新内容，字段含义和数量按上方任务要求。
+  format: |-
+    {${target === 'tasks' ? taskExample : target === 'shop' ? goodExample : taskExample + ',' + goodExample}}
+`;
   return {
     overrides: { persona_description: '' },
     injects: [{ role: 'system', position: 'in_chat', depth: 0, content: instruction }],
@@ -63,11 +72,14 @@ export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): Ge
 }
 
 /** Keep final requests free of unrelated presets/worldbooks and private saved material. */
-export function finalizeNovelRefreshPrompt(messages: { role: string; content?: unknown }[], marker: string, config: GenerateConfig) {
+export function finalizeNovelRefreshPrompt(
+  messages: { role: string; content?: unknown }[], marker: string, config: GenerateConfig,
+  transport: { chat_completion_source?: string; use_sysprompt?: boolean } = {},
+) {
   if (!messages.some(message => typeof message.content === 'string' && message.content.includes(marker))) return false;
   messages.splice(0, messages.length,
-    { role: 'user', content: (config.user_input ?? '').replaceAll(marker, '').trim() },
-    ...(config.injects ?? []).map(({ role, content }) => ({ role, content })));
+    { role: 'user', content: (config.user_input ?? '').replaceAll(marker, '').trim() });
+  appendVariableSystemPrompts(messages, config.injects ?? [], transport);
   return true;
 }
 

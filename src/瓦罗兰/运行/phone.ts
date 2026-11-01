@@ -68,7 +68,9 @@ export function postActivity(state: State, id: string) {
 export function recipientsFor(state: State, sessionId: string, sender: string, time: any): string[] {
   const phone = state.手机,
     session = phone.会话[sessionId];
-  if (!session || !session.参与账号id.includes(sender) || !phone.账号[sender]) throw Error('消息发送者没有会话权限');
+  if (!session) throw Error('会话不存在');
+  if (!phone.账号[sender]) throw Error('消息发送账号不存在');
+  if (!session.参与账号id.includes(sender)) throw Error('消息发送账号未列入会话参与账号');
   if (disabledAccount(state, sender)) throw Error('角色已停用，不能发送新消息');
   if (session.类型 === '群聊') {
     const group = phone.群[session.群id!];
@@ -79,17 +81,10 @@ export function recipientsFor(state: State, sessionId: string, sender: string, t
             (i.离开时间 === null || storyMinute(time) < storyMinute(i.离开时间))
           : i.离开时间 === null,
       );
-    if (!active(sender)) throw Error('发送者不在本次群成员期间');
     return session.参与账号id.filter(id => id !== sender && active(id) && !disabledAccount(state, id));
   }
   const recipients = session.参与账号id.filter(id => id !== sender);
   if (recipients.some(id => disabledAccount(state, id))) throw Error('对方角色已停用，历史聊天可查看；请先在角色库开启');
-  for (const target of recipients)
-    if (
-      !Object.values(phone.联系人).some(c => c.本人账号id === sender && c.对方账号id === target && c.状态 === '正常') ||
-      Object.values(phone.联系人).some(c => c.本人账号id === target && c.对方账号id === sender && c.状态 === '拉黑')
-    )
-      throw Error('本次消息无法投递');
   return recipients;
 }
 /** Changing the ID of a scripted player action does not authorize sending that action twice. */
@@ -106,14 +101,6 @@ export function assertPhoneActionNotRepeated(base: State, draft: State, candidat
       if (!Object.hasOwn(draft.手机.原文[root], id) && actions.some(([, action]) => equal(signature(action), signature(value))))
         throw Error('模型重复本次玩家手机操作（更换记录ID）：' + id);
   }
-}
-/** Snapshot the same contact audience for scripted actions and model-created posts. */
-function contactAudience(state: State, author: string) {
-  const contacts = Object.values(state.手机.联系人);
-  return contacts.filter(contact => contact.本人账号id === author && contact.状态 === '正常' &&
-    !contacts.some(reverse => reverse.本人账号id === contact.对方账号id &&
-      reverse.对方账号id === author && reverse.状态 === '拉黑'))
-    .map(contact => contact.对方账号id!);
 }
 /** Derive delivery and ordering only after the model's public fields have passed validation. */
 export function finalizePhone(before: State, candidate: State): State {
@@ -147,17 +134,15 @@ export function finalizePhone(before: State, candidate: State): State {
     if (!before.手机.原文.帖子[id]) {
       if (!post.发布账号id || !phone.账号[post.发布账号id]) throw Error('动态作者账号不存在');
       post._顺序 = ++s._系统.稳定序号;
-      if (post.可见范围 === '联系人可见')
-        post.受众账号id = contactAudience(s, post.发布账号id);
-      if (post.可见范围 === '仅自己') post.受众账号id = [];
       const window = phone._动态流[post.平台];
       window._近期id = [id, ...window._近期id.filter(x => x !== id)];
     }
   for (const [id, comment] of Object.entries(raw.评论))
     if (!before.手机.原文.评论[id]) {
       const post = raw.帖子[comment.帖子id!];
-      if (!post || !comment.评论账号id || !phone.账号[comment.评论账号id] || !canSeePost(s, post, comment.评论账号id))
-        throw Error('评论者没有动态可见权限');
+      if (!post) throw Error('评论引用的帖子不存在：' + comment.帖子id);
+      if (!comment.评论账号id || !phone.账号[comment.评论账号id])
+        throw Error('评论账号不存在：' + comment.评论账号id);
       comment._顺序 = ++s._系统.稳定序号;
       const window = phone._动态流[post.平台];
       window._近期id = [comment.帖子id!, ...window._近期id.filter(x => x !== comment.帖子id)];
@@ -183,12 +168,6 @@ export function finalizePhone(before: State, candidate: State): State {
   for (const window of Object.values(phone._动态流))
     window._近期id.sort((a, b) => byNewest(postActivity(s, a), postActivity(s, b)));
   return Schema.parse(s);
-}
-export function canSeePost(_state: any, post: any, account: string | undefined) {
-  return (
-    !post.删除时间 &&
-    (post.可见范围 === '公开' || post.发布账号id === account || (account && post.受众账号id.includes(account)))
-  );
 }
 /** A summary is visible only if every covered record is visible, including nested summaries. */
 export function visiblePhoneSummaries(state: State) {
@@ -300,7 +279,7 @@ export function phoneProjection(state: any, platform = '邻信', archive = false
       ([id, p]: any) =>
         (archive || phone._动态流[p.平台]._近期id.includes(id)) &&
         p.平台 === (platform === '邻信' ? '朋友圈' : '微澜') &&
-        canSeePost(state, p, account),
+        !p.删除时间,
     )
     .map(([id, p]: any) => {
       const likes = Object.values(raw.点赞).filter((l: any) => l.内容id === id) as any[];
@@ -354,8 +333,6 @@ export type PhoneAction = {
   replyTo?: string;
   text?: string;
   demand?: string;
-  audience?: string[];
-  visibility?: string;
   blocks?: any[];
   topics?: string[];
   targets?: string[];
@@ -387,16 +364,13 @@ function applyGroupInvitations(state: State, action: PhoneAction, account: strin
   const targets = [...new Set(action.targets)], groupName = action.groupName?.trim();
   const active = (id: string, group: State['手机']['群'][string]) => Object.values(group.成员[id]?.成员区间 ?? {}).some(interval => interval.离开时间 === null);
   const existingGroup = action.groupId ? phone.群[action.groupId] : null;
-  if (action.groupId && (!existingGroup || !active(account, existingGroup))) throw Error('当前未加入目标群聊');
+  if (action.groupId && !existingGroup) throw Error('目标群聊不存在');
   if (!action.groupId && !groupName) throw Error('请填写建群名称');
   // Validate every recipient before creating any group, session or message.
   const sessions = new Map<string, string>();
   for (const target of targets) {
     if (target === account || phone.账号[target]?.平台 !== '邻信') throw Error('受邀邻信账号不存在');
     if (disabledAccount(state, target)) throw Error('受邀角色已停用，请先在角色库开启');
-    if (!Object.values(phone.联系人).some(c => c.本人账号id === account && c.对方账号id === target && c.状态 === '正常') ||
-        Object.values(phone.联系人).some(c => c.本人账号id === target && c.对方账号id === account && c.状态 === '拉黑'))
-      throw Error('受邀账号不是可联系的好友');
     if (existingGroup && active(target, existingGroup)) throw Error('受邀好友已经在目标群聊中');
     const existing = Object.entries(phone.会话).find(([, session]) => session.类型 === '私聊' && session.参与账号id.includes(account) && session.参与账号id.includes(target));
     if (existing) {
@@ -419,7 +393,7 @@ function applyGroupInvitations(state: State, action: PhoneAction, account: strin
       sessionId = uid('chat');
       phone.会话[sessionId] = { ...copy(template), 参与账号id: [account, target] };
     }
-    const text = `群组邀约：邀请你加入「${group.名称 || '未命名群聊'}」（群组ID：${groupId}）。邀约说明：${action.text.trim()}。请按双方意愿决定，明确同意后再由群主管理员确认入群；尚未接受时不加入群组。`;
+    const text = `群组邀约：邀请你加入「${group.名称 || '未命名群聊'}」（群组ID：${groupId}）。邀约说明：${action.text.trim()}。请按双方意愿决定，明确同意后再记录入群；尚未接受时不加入群组。`;
     recordPhoneMessage(state, account, sessionId, [{ 类型: '文字', id: uid('block'), 正文: text }], [target]);
   }
   return Schema.parse(state);
@@ -446,31 +420,10 @@ export function applyPhoneAction(state: State, action: PhoneAction) {
   const raw = phone.原文;
   if (action.kind === 'send') {
     const session = phone.会话[action.id!];
-    if (!session || !session.参与账号id.includes(account)) throw Error('无权向此会话发送');
+    if (!session) throw Error('会话不存在');
     const recipients = recipientsFor(state, action.id!, account, time);
-    if (session.类型 === '私聊')
-      for (const target of recipients) {
-        if (
-          !Object.values(phone.联系人).some(
-            (c: any) => c.本人账号id === account && c.对方账号id === target && c.状态 === '正常',
-          ) ||
-          Object.values(phone.联系人).some(
-            (c: any) => c.本人账号id === target && c.对方账号id === account && c.状态 === '拉黑',
-          )
-        )
-          throw Error('本次消息无法投递');
-      }
-    if (session.类型 === '群聊') {
-      const group = phone.群[session.群id];
-      if (!group || !Object.values(group.成员[account]?.成员区间 ?? {}).some((i: any) => i.离开时间 == null))
-        throw Error('当前不在群成员期间');
-    }
     recordPhoneMessage(state, account, action.id!, content, recipients, id, order);
   } else if (action.kind === 'post') {
-    const audience =
-      platform === '邻信'
-        ? contactAudience(state, account)
-        : [];
     raw.帖子[id] = {
       平台: platform === '邻信' ? '朋友圈' : '微澜',
       发布账号id: account,
@@ -479,13 +432,11 @@ export function applyPhoneAction(state: State, action: PhoneAction) {
       _顺序: order,
       内容块: content,
       话题: action.topics ?? [],
-      可见范围: action.visibility ?? (platform === '邻信' ? '联系人可见' : '公开'),
-      受众账号id: action.audience ?? audience,
     };
     phone._动态流[raw.帖子[id].平台]._近期id.unshift(id);
   } else {
     const post = raw.帖子[action.id!];
-    if (!post || !canSeePost(s, post, account)) throw Error('无权访问此动态');
+    if (!post || post.删除时间) throw Error('动态不存在或已删除');
     if (action.kind === 'comment') {
       if (action.replyTo && raw.评论[action.replyTo]?.帖子id !== action.id) throw Error('回复目标不属于此帖子');
       raw.评论[id] = {
@@ -516,11 +467,6 @@ export function applyPhoneAction(state: State, action: PhoneAction) {
         故事时间: time,
         _顺序: order,
         内容块: [...content, { 类型: '分享', id: uid('block'), 目标类型: '帖子', 目标id: action.id }],
-        可见范围: platform === '邻信' ? '联系人可见' : '公开',
-        受众账号id:
-          platform === '邻信'
-            ? contactAudience(state, account)
-            : [],
       };
       raw.转发[id] = { 账号id: account, 原帖id: action.id, 新帖id: repost, 时间: time, 附言: action.text };
       phone._动态流[raw.帖子[repost].平台]._近期id.unshift(repost);

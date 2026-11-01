@@ -3,6 +3,16 @@ import { prettifyErrorWithInput } from '../../../util/common';
 import { isPrivateModelPath } from './model-fields';
 import type { ZodType } from 'zod';
 
+// Schema and settlement run in separate card iframes. Keep the error on the exact
+// candidate, outside enumerable/save data, rather than relying on UI notifications.
+const commandErrors = Symbol.for('valoran.mvu.commandErrors');
+export function assertMvuCommandResult(candidate: Mvu.MvuData) {
+  const errors: string[] | undefined = (candidate as any)[commandErrors];
+  if (!errors?.length) return;
+  delete (candidate as any)[commandErrors];
+  throw Error(errors.join('\n'));
+}
+
 export function registerMvuSchema(input: ZodType<Record<string, any>> | (() => ZodType<Record<string, any>>)) {
   const unwrapSchema = () => {
     const original_schema = typeof input === 'function' ? input() : input;
@@ -47,6 +57,9 @@ export function registerMvuSchema(input: ZodType<Record<string, any>> | (() => Z
     /** 收集模式不受通知开关影响，并由调用方负责展示；未提供回调时保留原有通知。 */
     const report_command_error = (content: string, command: Mvu.CommandInfo) => {
       const title = `发生变量更新错误, 可能需要重Roll: ${command.full_match}`;
+      if (!Object.hasOwn(variables, commandErrors))
+        Object.defineProperty(variables, commandErrors, { value: [], configurable: true });
+      (variables as any)[commandErrors].push(`${title}\n${content}`);
       if (on_error) {
         on_error(`${title}\n${content}`);
       } else if (notification_enabled) {

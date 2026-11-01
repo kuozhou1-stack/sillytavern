@@ -12,7 +12,8 @@ const { withEnv, seed, block, patch, time } = harness.exports;
 const { Schema } = require('../schema.ts');
 const { copy, validateModel } = require('../运行/core.ts');
 const { validateSettlement } = require('../运行/settlement.ts');
-const { applyPhoneAction, finalizePhone, canSeePost } = require('../运行/phone.ts');
+const { applyPhoneAction, finalizePhone, phoneProjection } = require('../运行/phone.ts');
+const { managePhone, ensurePhoneSession } = require('../运行/phone-management.ts');
 const { prepareLibraryCommand } = require('../运行/character-library.ts');
 
 function ledger() {
@@ -59,7 +60,7 @@ test('正文和手机共用时间一致性：未来消息不落盘，重试只�
   });
 });
 
-test('玩家发布、转发与模型发布使用同一拉黑受众，既往受众不重算', () => {
+test('旧拉黑状态转为正常，发布与转发不再携带受众控制，旧动态正常显示', () => {
   const before = seed(); before.手机.联系人.b.状态 = '拉黑';
   before.手机.原文.帖子.original = Schema.parse({ 手机: { 原文: { 帖子: { original: {
     平台: '朋友圈', 发布账号id: 'me', 可见范围: '公开', 故事时间: time(0),
@@ -68,14 +69,54 @@ test('玩家发布、转发与模型发布使用同一拉黑受众，既往受�
   for (const kind of ['post', 'repost']) {
     const next = applyPhoneAction(copy(before), { kind, platform: '邻信', id: 'original', text: '新动态' });
     const post = Object.entries(next.手机.原文.帖子).find(([id]) => id !== 'original')[1];
-    assert.deepEqual(post.受众账号id, []);
-    assert.equal(canSeePost(next, post, 'npc'), false);
+    assert.equal(Object.hasOwn(post, '受众账号id'), false);
+    assert.equal(Object.hasOwn(post, '可见范围'), false);
+    assert.equal(next.手机.联系人.b.状态, '正常');
   }
   const candidate = copy(before);
   candidate.手机.原文.帖子.model = { ...copy(before.手机.原文.帖子.original), 可见范围: '联系人可见' };
-  assert.deepEqual(finalizePhone(before, candidate).手机.原文.帖子.model.受众账号id, []);
+  assert.equal(Object.hasOwn(finalizePhone(before, candidate).手机.原文.帖子.model, '受众账号id'), false);
   const history = copy(before); history.手机.原文.帖子.original.受众账号id = ['npc'];
-  assert.deepEqual(finalizePhone(history, copy(history)).手机.原文.帖子.original.受众账号id, ['npc']);
+  history.手机.原文.帖子.original.可见范围 = '仅自己';
+  const cleaned = Schema.parse(history);
+  assert.equal(Object.hasOwn(cleaned.手机.原文.帖子.original, '可见范围'), false);
+  assert(phoneProjection(cleaned, '邻信', true).posts.some(p => p.id === 'original'));
+  assert.deepEqual(Schema.parse(cleaned), cleaned);
+});
+
+test('非好友可以在现有会话发送，动态评论不再检查受众，缺少账号或帖子仍明确报错', () => {
+  const before = seed();
+  before.手机.联系人 = {};
+  assert.doesNotThrow(() => applyPhoneAction(copy(before), { kind: 'send', id: 'chat', text: '继续已有会话' }));
+  const fresh = copy(before); fresh.手机.会话 = {};
+  assert.doesNotThrow(() => ensurePhoneSession(fresh, '私聊', 'npc'));
+  const candidate = Schema.parse(before);
+  candidate.手机.原文.帖子.post = Schema.parse({ 手机: { 原文: { 帖子: { post: {
+    发布账号id: 'npc', 平台: '朋友圈', 故事时间: time(0),
+  } } } } }).手机.原文.帖子.post;
+  candidate.手机.原文.评论.comment = Schema.parse({ 手机: { 原文: { 评论: { comment: {
+    帖子id: 'post', 评论账号id: 'me', 故事时间: time(0),
+  } } } } }).手机.原文.评论.comment;
+  assert.doesNotThrow(() => finalizePhone(before, copy(candidate)));
+  const missingPost = copy(candidate); missingPost.手机.原文.评论.comment.帖子id = 'missing';
+  assert.throws(() => finalizePhone(before, missingPost), /评论引用的帖子不存在/);
+  const missingAccount = copy(candidate); missingAccount.手机.原文.评论.comment.评论账号id = 'missing';
+  assert.throws(() => finalizePhone(before, missingAccount), /评论账号不存在/);
+});
+
+test('群成员管理不按群主或管理员限制，创建者退出仍保留群和消息历史', () => {
+  const before = seed();
+  before.手机.群 = Schema.parse({ 手机: { 群: { group: {
+    创建者账号id: 'npc', 管理员账号id: ['npc'], 成员: {
+      me: { 成员区间: { first: { 加入时间: time(0) } } },
+      npc: { 成员区间: { first: { 加入时间: time(0) } } },
+    },
+  } } } }).手机.群;
+  const changed = managePhone(before, 'removeMember', 'group', 'npc');
+  assert.deepEqual(changed.手机.群.group.成员.npc.成员区间.first.离开时间, time(0));
+  assert.equal(Object.hasOwn(changed.手机.群.group, '管理员账号id'), false);
+  const owned = copy(before); owned.手机.群.group.创建者账号id = 'me';
+  assert.doesNotThrow(() => managePhone(owned, 'leaveGroup', 'group'));
 });
 
 test('群名、邀约说明和分类名按完整输入保存，不受额外字数门槛限制', () => {

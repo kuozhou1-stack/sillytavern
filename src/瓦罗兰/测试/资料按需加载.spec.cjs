@@ -36,13 +36,15 @@ function seed() {
   });
 }
 const settings = () => ({ informationAuto: true, characterAuto: false, variable: endpoint('variable'), phone: endpoint('phone') });
-function selectorReply(places = ['cafe'], groups = []) { return JSON.stringify({ 地点: places, 组织: groups }); }
+function selectorReply(places = ['cafe'], groups = []) {
+  return '<InformationSelection>\n' + JSON.stringify({ 地点: places, 组织: groups }) + '\n</InformationSelection>';
+}
 async function withEnv(fn, initial = seed(), config = settings(), beforeStart) {
   const e = environment(initial, config);
   e.selected = [];
   e.payloads = [];
   e.select = async () => selectorReply();
-  function finalPayload(config) {
+  async function finalPayload(config) {
     const data = { messages: [
       { role: 'system', content: '<status_current_variable>' + JSON.stringify(e.state()) + '</status_current_variable>' },
       { role: 'system', content: '模拟酒馆预设/世界书内容' },
@@ -50,17 +52,17 @@ async function withEnv(fn, initial = seed(), config = settings(), beforeStart) {
         .filter(value => typeof value === 'object').map(value => ({ role: value.role, content: value.content })),
       { role: 'user', content: config.user_input || '' },
     ] };
-    e.listeners.get('completion_settings')?.(data);
+    await e.listeners.get('completion_settings')?.(data);
     e.payloads.push({ selection: config.user_input?.includes('[chengwan-knowledge:'), messages: structuredClone(data.messages) });
     return data;
   }
   global.generate = async config => {
-    finalPayload(config);
+    await finalPayload(config);
     e.calls.push({ kind: config.custom_api ? 'preset-update' : 'story', config: structuredClone(config) });
     return config.custom_api ? e.update(config) : e.story(config);
   };
   global.generateRaw = async config => {
-    finalPayload(config);
+    await finalPayload(config);
     if (config.user_input?.includes('[chengwan-knowledge:')) {
       e.selected.push(structuredClone(config));
       return e.select(config);
@@ -140,6 +142,76 @@ test('选择输出严格校验，错误结果不能改原选择；后续展开�
   assert.deepEqual(added._系统.资料加载.地点, ['cafe', 'library']);
   assert.equal(needsInformationSelection(before, '进入测试图书馆'), true);
   assert.equal(needsInformationSelection(prepareInformationCommand(before, '地点', 'library', '仅名称'), '进入测试图书馆'), false);
+});
+
+test('资料选择有独立任务和完整输出示例，玩家输入不进入格式说明', () => {
+  const config = informationSelectionPrompt(seed(), '请继续讲述这段故事');
+  const task = config.injects.map(item => item.content).join('\n');
+  assert(task.includes('后台资料选择任务'));
+  assert(task.includes('资料选择输出格式:'));
+  assert(task.includes('format: |-'));
+  assert(task.includes('<InformationSelection>'));
+  assert(task.includes('"地点": ["目录中的地点ID"]'));
+  assert(task.includes('"组织": ["目录中的组织ID"]'));
+  assert(task.includes('{"地点": [], "组织": []}'));
+  assert(task.includes('剧情续写、正文字数和思考区格式不改变本通道职责'));
+  assert(task.includes('本次完整回复就是 format 所示的选择结果区块'));
+  assert(!task.includes('携带酒馆预设时保留其补充指引'));
+  assert(!task.includes('请继续讲述这段故事'));
+  assert.equal(JSON.parse(config.user_input).本轮输入, '请继续讲述这段故事');
+});
+
+test('资料选择识别结果区块、代码围栏和预设外层，兼容旧纯JSON', () => {
+  const json = JSON.stringify({ 地点: ['library'], 组织: ['guild'] });
+  const tagged = '<InformationSelection>\n' + json + '\n</InformationSelection>';
+  for (const reply of [
+    json, '```json\n' + json + '\n```', tagged,
+    '<InformationSelection>```json\n' + json + '\n```</InformationSelection>',
+    '<response><answer>' + tagged + '</answer></response>',
+    '<response>预设前言。<answer>' + tagged + '</answer></response>',
+    '<response><answer>```json\n' + json + '\n```</answer></response>',
+    '<thinking>预设将整个结果包在这里。' + tagged + '</thinking>',
+  ]) {
+    const selected = applyInformationSelection(seed(), reply, 'formatted-turn');
+    assert.deepEqual(selected._系统.资料加载.地点, ['library'], reply);
+    assert.deepEqual(selected._系统.资料加载.组织, ['guild'], reply);
+    assert.equal(selected._系统.资料加载.选择依据, 'formatted-turn');
+  }
+});
+
+test('资料选择读取思考区外的结果，不采用嵌套思考中的示例', () => {
+  const actual = selectorReply(['library'], ['guild']);
+  const example = selectorReply(['missing-example']);
+  const reply = '<response><thinking><think>' + example + '</think></thinking>' +
+    '<answer>' + actual + '</answer><reasoning>' + example + '</reasoning></response>';
+  const selected = applyInformationSelection(seed(), reply, 'actual-turn');
+  assert.deepEqual(selected._系统.资料加载.地点, ['library']);
+  assert.deepEqual(selected._系统.资料加载.组织, ['guild']);
+});
+
+test('实际新回复中的思考区标签提及不吞掉正式结果，附带正文不进入选择状态', () => {
+  const actual = selectorReply(['library'], ['guild']);
+  const reply = '<thinking>\nThe requested format includes `<InformationSelection>`.\n' +
+    '1. <thinking>\n2. <InformationSelection>\n3. Narrative text.\n</thinking>\n' +
+    actual + '\n午后的阳光穿过图书馆。随后是错误附带的长篇正文。';
+  const selected = applyInformationSelection(seed(), reply, 'actual-pasted-turn');
+  assert.deepEqual(selected._系统.资料加载.地点, ['library']);
+  assert.deepEqual(selected._系统.资料加载.组织, ['guild']);
+  assert.equal(selected._系统.资料加载.选择依据, 'actual-pasted-turn');
+  assert(!JSON.stringify(selected).includes('午后的阳光'));
+});
+
+test('资料选择空结果正常提交；正文、损坏JSON和无效ID仍报原错误且不改存档', () => {
+  const before = applyInformationSelection(seed(), selectorReply(['cafe'], ['guild']), 'old-turn');
+  const snapshot = structuredClone(before);
+  const empty = applyInformationSelection(before, selectorReply([], []), 'empty-turn');
+  assert.deepEqual(empty._系统.资料加载.地点, []);
+  assert.deepEqual(empty._系统.资料加载.组织, []);
+  assert.equal(empty._系统.资料加载.选择依据, 'empty-turn');
+  for (const reply of ['你走进咖啡馆，故事继续。', '<InformationSelection>{bad}</InformationSelection>'])
+    assert.throws(() => applyInformationSelection(before, reply, 'bad-turn'), /没有返回有效JSON/);
+  assert.throws(() => applyInformationSelection(before, selectorReply(['missing']), 'bad-turn'), /不存在的地点ID/);
+  assert.deepEqual(before, snapshot);
 });
 
 test('原始patch保留资料加载边界，已展开记录允许整项替换或删除', () => {

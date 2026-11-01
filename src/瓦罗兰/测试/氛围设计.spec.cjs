@@ -17,7 +17,7 @@ async function fixture(run,{mode='extra',preset=false,atmosphere=mood,initial=se
   const stage=config.user_input?.match(/\[chengwan-(knowledge|worker|novel|story):/)?.[1];assert(stage);
   const native=method==='generate'?[{role:'system',content:'NATIVE_PRESET'},{role:'system',content:'NATIVE_WORLD_BEFORE'},{role:'system',content:'NATIVE_CHARACTER'},{role:'system',content:'NATIVE_WORLD_AFTER'},{role:'assistant',content:'NATIVE_HISTORY'}]:[];
   const messages=[...native,...[...(config.ordered_prompts??[]),...(config.overrides?.chat_history?.prompts??[])].filter(p=>p&&typeof p==='object').map(({role,content})=>({role,content})),{role:'user',content:config.user_input??''},...(config.injects??[]).map(({role,content})=>({role,content})),...(method==='generate'?[{role:'system',content:'NATIVE_PRESET_TAIL'}]:[])];
-  const data={messages,custom_prompt_post_processing:'strict'};e.listeners.get('completion_settings')?.(data);
+  const data={messages,custom_prompt_post_processing:'strict'};await e.listeners.get('completion_settings')?.(data);
   const final={...config,finalMessages:copy(messages)};
   e.requests.push({stage,method,config:copy(config),messages:copy(messages),postProcessing:data.custom_prompt_post_processing});
   if(stage==='knowledge')return JSON.stringify({地点:[],组织:[]});
@@ -84,7 +84,7 @@ for(const mode of ['main','extra'])for(const preset of [false,true])test(`正文
   assert.deepEqual(e.requests.map(r=>r.stage),['knowledge','story','worker','knowledge','worker','novel']);
   for(const request of e.requests){
    const moods=request.messages.filter(m=>String(m.content).includes('<atmosphere_design>'));assert.equal(moods.length,1);assert.equal(moods[0].role,'system');assert(moods[0].content.includes(mood));
-   assert.equal(request.postProcessing,'');assert.equal(request.messages.at(-1).role,'system');assert.notEqual(request.messages.at(-1),moods[0]);
+   assert.equal(request.postProcessing,'');assert.equal(request.messages.at(-1).role,request.stage==='story'?'user':'system');assert.notEqual(request.messages.at(-1),moods[0]);
    assert(!JSON.stringify(request.messages).includes('[chengwan-'));
    if(request.method==='generate'){
     const names=['NATIVE_PRESET','NATIVE_WORLD_BEFORE','NATIVE_CHARACTER','NATIVE_WORLD_AFTER','NATIVE_HISTORY','NATIVE_PRESET_TAIL'];

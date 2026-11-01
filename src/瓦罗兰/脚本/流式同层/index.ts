@@ -165,17 +165,18 @@ $(() => {
     console.error('[瓦洛兰-流式同层] 挂载失败', e);
     toastr.error('瓦洛兰前端挂载失败：' + String(e));
   });
-  const listener = eventOn(tavern_events.CHAT_CHANGED, () => {
+  const onChatChanged = () => {
     if (SillyTavern.getCurrentChatId() !== chat) {
       host.__chengwanFrontendReady = false;
       removeNativeControls();
       window.location.reload();
     }
-  });
+  };
+  eventOn(tavern_events.CHAT_CHANGED, onChatChanged);
   $(window).one('pagehide.cwLayer', () => {
     stopped = true;
     clearInterval(timer);
-    listener.stop();
+    eventRemoveListener(tavern_events.CHAT_CHANGED, onChatChanged);
     try {
       mount?.unmount();
     } catch (e) {

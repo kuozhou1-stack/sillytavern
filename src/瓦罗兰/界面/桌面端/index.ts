@@ -15,10 +15,11 @@ $(() => {
   let failed = false;
   let connection: ReturnType<typeof connectRuntime> | undefined;
   let app: ReturnType<typeof createApp> | undefined;
-  const recovery = eventOn('chengwan:runtime_changed', () => {
+  const recover = () => {
     const service = (window.parent as any).__chengwanService;
     if (failed && service?.ready && service.chat === SillyTavern.getCurrentChatId()) window.location.reload();
-  });
+  };
+  eventOn('chengwan:runtime_changed', recover);
   const root = document.getElementById('app')!;
   const stopSizing = installDesktopSizing(root, height => {
     $(window.parent.document)
@@ -28,7 +29,7 @@ $(() => {
 
   $(window).one('pagehide.cwDesktop', () => {
     stopped = true;
-    recovery.stop();
+    eventRemoveListener('chengwan:runtime_changed', recover);
     stopSizing();
     try {
       app?.unmount();

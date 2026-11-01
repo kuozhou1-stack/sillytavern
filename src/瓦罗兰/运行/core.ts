@@ -156,7 +156,7 @@ export class CommitService {
         const readback = Schema.parse(this.host.read(expected.floor).stat_data);
         if (!equal(readback, validated)) throw Error('写回后的完整数据不一致，保留恢复记录');
         await this.host.persist();
-        // Host acknowledgement is the persistence boundary; no claim of independent disk verification.
+        // The card's persistence adapter confirms server readback before resolving.
         const after = this.host.context();
         if (
           after.chat !== expected.chat ||

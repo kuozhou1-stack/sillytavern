@@ -9,6 +9,93 @@ harness._compile(fs.readFileSync(file, 'utf8').split('const novelGoodReply =')[0
 const { environment, withEnv, seed, block, patch, time, Schema, copy } = harness.exports;
 const { planOpeningCharacters } = require('../运行/opening.ts');
 const { validateTaskResult } = require('../运行/tasks.ts');
+const { registerMvuSchema, assertMvuCommandResult } = require('../运行/mvu-schema.ts');
+global.klona = require('klona').klona;
+
+function useRealSchema(e, { notify = false, collect = false } = {}) {
+  const notifications = [], collected = [], candidates = [];
+  global.$ = () => ({ prop: () => notify });
+  global.toastr = { warning: (...args) => notifications.push(args), error: (...args) => notifications.push(args) };
+  registerMvuSchema(Schema);
+  const apply = e.listeners.get('mag_command_parsed_for_zod');
+  const end = e.listeners.get('mag_command_parsed_ended_for_zod');
+  Mvu.parseMessage = async (text, old) => {
+    const candidate = copy(old);
+    const commands = require('../运行/message-protocol.ts').updateBlock(text).commands.map(command => {
+      assert.equal(command.op, 'replace');
+      return { type: 'set', args: [command.path.slice(1).replaceAll('/', '.'), JSON.stringify(command.value)], full_match: JSON.stringify(command) };
+    });
+    apply(candidate, commands, text, collect ? error => collected.push(error) : undefined);
+    end(candidate, commands);
+    candidates.push(candidate);
+    return candidate;
+  };
+  return { notifications, collected, candidates };
+}
+
+for (const mode of [{}, { notify: true }, { collect: true }])
+  test(`真实Zod处理器拒绝整轮并保留原ID重试：${JSON.stringify(mode)}`, async () => {
+    await withEnv(async e => {
+      const schema = useRealSchema(e, mode), before = copy(e.state());
+      e.update = async () => block([
+        patch('/世界/当前时间', { ...time(1), 月: 99 }),
+        patch('/玩家/当前状态/体力值', 79),
+      ]);
+      await assert.rejects(e.runtime.send('非法日期与合法体力混合'), /发生变量更新错误/);
+      const id = e.vars.澄湾待更新正文.id;
+      assert.equal(e.state().玩家.当前状态.体力值, before.玩家.当前状态.体力值);
+      assert.deepEqual(e.state().世界.当前时间, before.世界.当前时间);
+      assert(!e.state()._系统.已计轮事件[id]);
+      assert.match(e.vars.澄湾最近解析失败.error, /发生变量更新错误/);
+      assert.equal(schema.notifications.length, mode.notify ? 1 : 0);
+      assert.equal(schema.collected.length, mode.collect ? 1 : 0);
+      assert(!JSON.stringify(schema.candidates[0]).includes('valoran.mvu.commandErrors'));
+      e.update = async () => block([patch('/玩家/当前状态/体力值', 79)]);
+      await e.runtime.retry();
+      assert.equal(e.calls.filter(call => call.kind === 'story').length, 1);
+      assert.equal(e.state().玩家.当前状态.体力值, 79);
+      assert(e.state()._系统.提交记录[id]);
+      assert(e.state()._系统.已计轮事件[id]);
+      assert.equal(e.vars.澄湾待更新正文, null);
+    });
+  });
+
+for (const patches of [[], [patch('/世界/当前时间', time(0))]])
+  test(`真实Zod处理器合法无变化仍完成：${JSON.stringify(patches)}`, async () => {
+    await withEnv(async e => {
+      useRealSchema(e);
+      e.update = async () => block(patches);
+      await e.runtime.send('合法无变化');
+      assert.equal(e.vars.澄湾待更新正文, null);
+      assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 1);
+      assert(!e.vars.澄湾最近解析失败);
+    });
+  });
+
+test('手机Zod失败保留原请求，不提交混合补丁中的合法部分', async () => {
+  await withEnv(async e => {
+    useRealSchema(e);
+    e.update = async () => block([patch('/世界/当前时间', { ...time(1), 月: 99 }), patch('/玩家/当前状态/体力值', 79)]);
+    await assert.rejects(e.runtime.phoneAction({ kind: 'refresh', id: 'chat' }), /发生变量更新错误/);
+    assert.equal(e.runtime.view.phoneRequest.status, 'failed');
+    assert.equal(e.state().玩家.当前状态.体力值, 80);
+    const id = e.runtime.view.phoneRequest.id;
+    e.update = async () => block([]);
+    await e.runtime.retry();
+    assert(e.state()._系统.提交记录[id]);
+  });
+});
+
+test('候选错误标记不进入序列化，其他候选不受影响', () => {
+  const e = environment(seed()), schema = useRealSchema(e);
+  const apply = e.listeners.get('mag_command_parsed_for_zod');
+  const invalid = { stat_data: seed() }, valid = { stat_data: seed() };
+  apply(invalid, [{ type: 'set', args: ['世界.当前时间.月', '99'], full_match: 'invalid-month' }]);
+  assert.doesNotThrow(() => assertMvuCommandResult(valid));
+  assert.throws(() => assertMvuCommandResult(invalid), /invalid-month/);
+  assert.equal(Object.getOwnPropertySymbols(invalid).length, 0);
+  assert.equal(schema.notifications.length, 0);
+});
 
 test('开局资料已经满足要求时，无业务变化仍可完成原任务', () => {
   const state = planOpeningCharacters(seed(), [], true);

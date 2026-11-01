@@ -51,7 +51,7 @@ export function storedNarrative(text: string) {
 export const protocolJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 
 /** Locate complete thought spans; incomplete auxiliary markup is not an extra rejection rule. */
-function completeThoughtEnds(text: string) {
+export function completeThoughtEnds(text: string) {
   const tags = [...text.matchAll(/<(\/?)(thinking|think|reasoning)\b[^<>]*>/gi)];
   const ends = new Map<number, number>(), nextClose = new Map<string, number>();
   // Preserve the old same-name closing interpretation, including literal nested examples.

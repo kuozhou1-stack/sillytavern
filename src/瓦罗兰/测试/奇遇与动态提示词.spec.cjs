@@ -24,6 +24,16 @@ for (const target of ['initial', 'tasks', 'shop']) test(`奇遇${target}：已�
     assert(!text.includes(old), old);
   if (target !== 'tasks') assert(text.includes('不等于一次性消耗品') && text.includes('长期生效方式'));
 });
+
+for (const target of ['initial', 'tasks', 'shop']) test(`奇遇${target}格式示例与现有解析契约一致，只生成当前目标内容`, () => {
+  const config = novelRefreshPrompt(enabled(), target), text = config.injects[0].content;
+  assert(text.includes('本次是后台可选内容生成任务'));
+  assert(text.includes('本次完整回复是 format 所示结构的有效 JSON 对象'));
+  assert(text.includes('不要附加 thinking、think、reasoning 思考区'));
+  const example = text.split('  format: |-\n')[1].trim(), payload = JSON.parse(example);
+  assert.deepEqual(Object.keys(payload), target === 'tasks' ? ['任务'] : target === 'shop' ? ['商品'] : ['任务', '商品']);
+  assert.doesNotThrow(() => applyNovelRefresh(enabled(), target, example, 'format-example-' + target));
+});
 test('初始和刷新接受多个稀有任务/商品，稀有商品限购可选，旧定义与存档字段保持', () => {
   let state = enabled();
   state = applyNovelRefresh(state, 'initial', JSON.stringify({ 任务: tasks(), 商品: goods() }), 'first');
@@ -55,7 +65,7 @@ test('稀有初始内容保存失败后只确认原提交，不再请求、赠�
     await e.runtime.novelAction({ kind: 'enable', operationId: 'enable' });
     e.update = async () => JSON.stringify({ 任务: tasks(), 商品: goods() });
     let fail = true;
-    global.SillyTavern.saveChat = async () => { if (fail) { fail = false; throw Error('隔离保存未确认'); } };
+    global.SillyTavern.saveChat = async () => { if (fail) { fail = false; throw Error('隔离保存未确认'); }  e.saveDisk(); };
     await assert.rejects(e.runtime.novelRefresh('initial'), /保存未确认/);
     const id = e.vars.澄湾待确认提交.commitId;
     await e.runtime.resumeQueued(e.runtime.view.recoverable[0].id);

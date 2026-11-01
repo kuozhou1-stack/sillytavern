@@ -2485,13 +2485,12 @@
                 "type": "boolean"
               },
               "状态": {
-                "default": "正常",
                 "type": "string",
                 "enum": [
                   "正常",
-                  "移除",
-                  "拉黑"
-                ]
+                  "移除"
+                ],
+                "default": "正常"
               },
               "建立时间": {
                 "default": null,
@@ -2634,13 +2633,6 @@
                   "string",
                   "null"
                 ]
-              },
-              "管理员账号id": {
-                "default": [],
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
               },
               "公告": {
                 "default": null,
@@ -2972,63 +2964,6 @@
                       ]
                     }
                   },
-                  "可见范围": {
-                    "default": "联系人可见",
-                    "type": "string",
-                    "enum": [
-                      "联系人可见",
-                      "指定联系人",
-                      "除指定联系人外",
-                      "仅自己",
-                      "公开"
-                    ]
-                  },
-                  "受众账号id": {
-                    "default": [],
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "可见范围变更": {
-                    "default": {},
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string",
-                      "description": "变更id"
-                    },
-                    "additionalProperties": {
-                      "default": {},
-                      "type": "object",
-                      "properties": {
-                        "时间": {
-                          "default": null,
-                          "anyOf": [
-                            {
-                              "$ref": "#/$defs/故事时间"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "可见范围": {
-                          "default": null,
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "受众账号id": {
-                          "default": [],
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
                   "地点id": {
                     "default": null,
                     "type": [
@@ -3200,10 +3135,6 @@
                       "string",
                       "null"
                     ]
-                  },
-                  "可见依据": {
-                    "$ref": "#/$defs/信息来源",
-                    "default": {}
                   }
                 }
               }

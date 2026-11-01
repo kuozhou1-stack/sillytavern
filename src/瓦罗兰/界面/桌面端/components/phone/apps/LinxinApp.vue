@@ -263,7 +263,7 @@
             </div>
             <div class="cw-action-text-col">
               <span class="cw-action-title">联系人资料与偏好</span>
-              <span class="cw-action-desc">好友备注、屏蔽与免打扰</span>
+              <span class="cw-action-desc">好友备注与免打扰</span>
             </div>
             <SvgIcon name="chevronRight" :size="16" class="cw-action-arrow" />
           </div>

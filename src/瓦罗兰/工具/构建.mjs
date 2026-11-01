@@ -98,15 +98,25 @@ const done = (error, stats) => {
     .readdirSync(dist, { recursive: true })
     .filter(file => fs.statSync(path.join(dist, file)).isFile() && file !== '构建状态.json')
     .map(file => ({ path: file.replaceAll('\\', '/'), sha256: digest(path.join(dist, file)) }));
-  fs.writeFileSync(
-    path.join(dist, '构建状态.json'),
-    JSON.stringify(
-      { time: new Date().toISOString(), watching, release, catalogUrl: catalogUrl ?? null,
-        entries: configs.map(c => c.entry), inputs, outputs, errors: 0 },
-      null,
-      2,
-    ),
-  );
+  buildReady = false;
+  try {
+    fs.writeFileSync(
+      path.join(dist, '构建状态.json'),
+      JSON.stringify(
+        { time: new Date().toISOString(), watching, release, catalogUrl: catalogUrl ?? null,
+          entries: configs.map(c => c.entry), inputs, outputs, errors: 0 },
+        null,
+        2,
+      ),
+    );
+  } catch (writeError) {
+    console.error(writeError);
+    if (!watching) {
+      process.exitCode = 1;
+      compiler.close(() => {});
+    }
+    return;
+  }
   buildReady = true;
   const files = outputs
     .filter(row => /\.(?:js|html)$/.test(row.path))

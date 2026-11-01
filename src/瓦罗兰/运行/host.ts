@@ -41,10 +41,12 @@ import {
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type SettingsChannel, type SettingsScope } from './settings';
 import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
-import { workerTask, storyTask, appendSystemPrompts, appendVariableSystemPrompts, restorePromptSlot } from './worker-task';
+import { workerTask, storyTask, storyEndingTask, appendVariableSystemPrompts, restorePromptSlot, assertFinalPromptBudget } from './worker-task';
 import { withPromptInstructions, promptContextPrompts, promptVariableRules } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
 import { CandidateIdentityError, isCommittedCandidate } from './committed-candidate';
+import { assertMvuCommandResult } from './mvu-schema';
+import { persistChat } from './chat-persistence';
 import { LIBRARY_KEY, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
 import { prepareCharacterRoster, prepareOpeningCharacterRoster } from './character-roster';
 import { createProfile, initialConnectionIds } from './creation';
@@ -74,6 +76,7 @@ async function parseCandidate(text: string, envelope: Mvu.MvuData) {
   // Give MVU only the extracted commands, without preset markup or explanation examples.
   const safeBlock = `<UpdateVariable><JSONPatch>${protocolJson(normalized)}</JSONPatch></UpdateVariable>`;
   const parsed = await Mvu.parseMessage(safeBlock, base);
+  if (parsed) assertMvuCommandResult(parsed);
   if (parsed && rejectedMvuCandidates.has(parsed)) {
     const error = rejectedMvuCandidates.get(parsed);
     rejectedMvuCandidates.delete(parsed);
@@ -124,6 +127,11 @@ export function activeContext(): Context {
   };
 }
 export function createRuntime() {
+  // Keep the original callback: Helper's returned stop handle loses this mapping.
+  function listen<T extends EventType>(event: T, listener: ListenerType[T]): EventOnReturn {
+    eventOn(event, listener);
+    return { stop: () => eventRemoveListener(event, listener) };
+  }
   const boundChat = SillyTavern.getCurrentChatId();
   const view = reactive({
     data: null as State | null,
@@ -228,18 +236,33 @@ export function createRuntime() {
   };
   const saveChat = () => {
     requireWriter();
-    return SillyTavern.saveChat();
+    return persistChat();
   };
   function patchChat(patch: Record<string, unknown>) {
     const saved = copy(patch);
     const operation = chatWrites.then(async () => {
       requireWriter();
-      await replaceVariables({ ...getVariables({ type: 'chat' }), ...saved }, { type: 'chat' });
+      const previous = getVariables({ type: 'chat' });
+      await replaceVariables({ ...previous, ...saved }, { type: 'chat' });
       requireWriter();
       const readback = getVariables({ type: 'chat' });
       for (const key of Object.keys(saved))
         if (!equal(readback[key], saved[key])) throw Error('聊天恢复记录保存不一致：' + key);
-      await saveChat();
+      try {
+        await saveChat();
+      } catch (error) {
+        // Failed acknowledgement must not remove the only local recovery record.
+        // Keep newly created records; restore only this operation's null clears.
+        if (!disposed && SillyTavern.getCurrentChatId() === boundChat) {
+          requireWriter();
+          const current = getVariables({ type: 'chat' });
+          const restore = Object.fromEntries(Object.keys(saved)
+            .filter(key => saved[key] === null && current[key] === null && previous[key] != null)
+            .map(key => [key, previous[key]]));
+          if (Object.keys(restore).length) await replaceVariables({ ...current, ...restore }, { type: 'chat' });
+        }
+        throw error;
+      }
     });
     chatWrites = operation.catch(() => {});
     return operation;
@@ -655,36 +678,50 @@ export function createRuntime() {
     const extraPrompts = (requestConfig.injects ?? []).filter(prompt => !contextSet.has(prompt) && !variableRuleSet.has(prompt));
     // Use the state that produced this request, including an unpublished phone draft.
     const requestState = Schema.parse(state);
-    const taskGuard = eventOn(tavern_events.CHAT_COMPLETION_SETTINGS_READY, data => {
+    const requestId = generationId;
+    let preparationError: unknown;
+    const taskGuard = listen(tavern_events.CHAT_COMPLETION_SETTINGS_READY, async data => {
       if (!data.messages.some((m: any) => typeof m.content === 'string' && m.content.includes(marker))) return;
-      // Only this request needs native positions plus a trailing system contract.
-      // strict/semi/single would rewrite those roles; leave the global setting intact.
-      data.custom_prompt_post_processing = '';
-      if (purpose === 'knowledge') {
-        finalizeInformationPrompt(data.messages, marker, requestConfig, sendPreset, taskSlot);
-        return;
+      try {
+        // Only this request needs native positions plus a trailing system contract.
+        // strict/semi/single would rewrite those roles; leave the global setting intact.
+        data.custom_prompt_post_processing = '';
+        // Background channels return data directly. Honor the preset transport's caller opt-out from story tool wrapping.
+        if (extra) data.tool_choice = 'none';
+        const transport = { chat_completion_source: data.chat_completion_source, use_sysprompt: data.use_sysprompt };
+        if (purpose === 'knowledge') {
+          finalizeInformationPrompt(data.messages, marker, requestConfig, sendPreset, taskSlot, transport);
+          await assertFinalPromptBudget(data);
+          return;
+        }
+        if (purpose === 'novel') {
+          finalizeNovelRefreshPrompt(data.messages, marker, requestConfig, transport);
+          await assertFinalPromptBudget(data);
+          return;
+        }
+        finalizeCharacterContext(data.messages, requestState, extra, { contextSlot, constraints: false });
+        restorePromptSlot(data.messages, contextSlot, contextPrompts.map(({ role, content }) => ({ role, content })));
+        const input = extraPrompts.filter(prompt => prompt.role === 'user').map(({ content }) => ({ role: 'user', content }));
+        if (extra && requestConfig.user_input?.trim()) input.push({ role: 'user', content: requestConfig.user_input });
+        restorePromptSlot(data.messages, marker, input);
+        const disabled = disabledIdentityPrompt(requestState, extra ? [...data.messages, ...extraPrompts] : undefined);
+        const instructions = [
+          { content: informationPromptRule },
+          ...(disabled ? [{ content: disabled }] : []),
+          ...extraPrompts.filter(prompt => prompt.role !== 'user'),
+          { content: extra ? workerTask : storyTask },
+          ...variableRules,
+        ];
+        appendVariableSystemPrompts(data.messages, instructions, transport);
+        // This explicit writing preference follows the preset/history even when a transport flattens their roles.
+        if (!extra) data.messages.push({ role: 'user', content: storyEndingTask });
+        await assertFinalPromptBudget(data);
+      } catch (error) {
+        // Tavern logs listener exceptions and continues. Abort only this request,
+        // then return the original preparation error through the existing retry UI.
+        preparationError = error;
+        stopGenerationById(requestId);
       }
-      if (purpose === 'novel') {
-        finalizeNovelRefreshPrompt(data.messages, marker, requestConfig);
-        return;
-      }
-      finalizeCharacterContext(data.messages, requestState, extra, { contextSlot, constraints: false });
-      restorePromptSlot(data.messages, contextSlot, contextPrompts.map(({ role, content }) => ({ role, content })));
-      const input = extraPrompts.filter(prompt => prompt.role === 'user').map(({ content }) => ({ role: 'user', content }));
-      if (extra && requestConfig.user_input?.trim()) input.push({ role: 'user', content: requestConfig.user_input });
-      restorePromptSlot(data.messages, marker, input);
-      const disabled = disabledIdentityPrompt(requestState, extra ? [...data.messages, ...extraPrompts] : undefined);
-      const instructions = [
-        { content: informationPromptRule },
-        ...(disabled ? [{ content: disabled }] : []),
-        ...extraPrompts.filter(prompt => prompt.role !== 'user'),
-        { content: extra ? workerTask : storyTask },
-        ...variableRules,
-      ];
-      if (extra) appendVariableSystemPrompts(data.messages, instructions, {
-        chat_completion_source: data.chat_completion_source, use_sysprompt: data.use_sysprompt,
-      });
-      else appendSystemPrompts(data.messages, instructions);
     });
     config = { ...config,
       injects: extra ? [] : [{ role: 'system', position: 'in_chat', depth: 0, content: contextSlot, should_scan: false }],
@@ -722,12 +759,15 @@ export function createRuntime() {
               should_stream: false,
             })
         : await generate({ ...config, generation_id: generationId, should_stream: true });
+      if (preparationError) throw preparationError;
       requireWriter();
       view.phase = 'validating';
       if (typeof result !== 'string' || !result.trim()) throw Error('生成未返回有效正文');
       if (!extra && !stripProtocol(result)) throw Error('主模型没有返回剧情正文；请重试正文生成');
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
       return result;
+    } catch (error) {
+      throw preparationError ?? error;
     } finally {
       taskGuard?.stop();
       generationId = null;
@@ -1193,6 +1233,18 @@ export function createRuntime() {
           }
         }
       }
+      const informationJournal = getVariables({ type: 'chat' }).澄湾待确认提交;
+      if (failedSend?.id && String(informationJournal?.commitId).startsWith('information_selection_') &&
+          informationJournal.candidate?._系统?.资料加载?.选择依据 === 'story:' + failedSend.id) {
+        assertContext(failedSend.context, informationJournal.context);
+        assertMessageSource(failedSend.source);
+        await service.commit(informationJournal.context, informationJournal.commitId,
+          () => Schema.parse(informationJournal.candidate));
+        await service.host.journal(null);
+        failedSend.context = activeContext();
+        await saveFailed();
+        refresh();
+      }
       if (pending?.replyFloor !== undefined) await discardStaleRecovery();
       await restoreOrphanedNarrative();
       if (!pending && firstUnsettledNarrative()) throw Error(view.error || '待结算正文尚未恢复，请先处理该楼层');
@@ -1220,6 +1272,11 @@ export function createRuntime() {
       } else {
         const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
         if (journal) {
+          const novel = intents.find(item => item.kind === 'novel' && item.id === journal.commitId);
+          if (novel?.target) {
+            await refreshNovelContent(novel.target, novel.id);
+            return;
+          }
           if (journal.rollbackOnFailure) libraryView(Schema.parse(journal.candidate), getVariables({ type: 'chat' })[LIBRARY_KEY]);
           await service.commit(journal.context, journal.commitId, () => Schema.parse(journal.candidate), !!journal.rollbackOnFailure);
           await service.host.journal(null);
@@ -1436,7 +1493,7 @@ export function createRuntime() {
         const taskIds = pendingUpdateTasks(draft);
         const budget = phoneBudget(draft, action, view.data?._系统.生成密度);
         const instruction =
-          '本次处理手机互动变量。根据已有权限、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。手机新内容数量参考不限制变量更新权限，根据同一份变量规则一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。' +
+          '本次处理手机互动变量。手机消息、帖子、评论等新内容写入对应手机变量，通过本次 UpdateVariable/JSONPatch 返回，不直接作为聊天正文回复。根据已有交流、知情和实际活动处理回应，允许没有回应。玩家本次操作已写入候选快照，不重复发送。手机新内容数量参考不限制变量更新范围，根据同一份变量规则一并更新世界时间、天气、玩家状态、所有人物、关系、约定、资金、物品、地点、组织、事件及手机等需要变化的变量；不受当前会话或手机字段限制。时间按实际过程与规则判断，不使用现实API耗时。' +
           phoneTimePrompt(draft);
         const settled = await requestScopedUpdate(
           draft,
@@ -1543,16 +1600,22 @@ export function createRuntime() {
   async function refreshNovelContent(target: NovelRefreshTarget, id: string) {
     requireWriter();
     const context = activeContext(), journal = getVariables({ type: 'chat' }).澄湾待确认提交;
+    const startedEpoch = epoch, source = intents.find(intent => intent.id === id)?.source;
+    const assertNovelWritable = () => {
+      requireWriter();
+      if (cancelled || disposed || epoch !== startedEpoch) throw Error('奇遇刷新已取消或上下文已变化');
+      if (source) assertMessageSource(source, undefined, true);
+    };
     view.busy = true;
     try {
-      if (cancelled || disposed) throw Error('奇遇刷新已取消');
+      assertNovelWritable();
       if (service.host.read(context.floor).stat_data?._系统?.提交记录?.[id]) {
         view.phase = 'saving';
         await service.host.persist();
         if (journal?.commitId === id) await service.host.journal(null);
       } else if (journal?.commitId === id) {
         view.phase = 'saving';
-        await service.commit(journal.context, id, () => Schema.parse(journal.candidate));
+        await service.commit(journal.context, id, () => Schema.parse(journal.candidate), false, assertNovelWritable);
         await service.host.journal(null);
       } else {
         validateApi(settings.phone, '手机与奇遇');
@@ -1561,17 +1624,25 @@ export function createRuntime() {
         console.info('[瓦洛兰奇遇] 开始刷新', target);
         config.custom_api = apiConnection(settings.phone);
         const text = await request(config, state, true, settings.phone.retries, false, 'novel');
-        if (cancelled || disposed) throw Error('奇遇刷新已取消');
-        const item = intents.find(intent => intent.id === id);
-        if (item) assertMessageSource(item.source, undefined, true);
+        assertNovelWritable();
         view.updating = true;
         view.phase = 'saving';
-        await service.commit(context, id, candidate => applyNovelRefresh(candidate, target, text, id));
+        await service.commit(context, id, candidate => applyNovelRefresh(candidate, target, text, id), false, assertNovelWritable);
       }
       setError('');
       console.info('[瓦洛兰奇遇] 刷新已保存', target);
     } catch (error) {
-      if (cancelled) await persistIntents([id]);
+      if (cancelled && !disposed && SillyTavern.getCurrentChatId() === boundChat) {
+        try {
+          const savedJournal = getVariables({ type: 'chat' }).澄湾待确认提交;
+          const written = service.host.read(context.floor).stat_data?._系统?.提交记录?.[id];
+          if (!written && savedJournal?.commitId === id) await service.host.journal(null);
+          await persistIntents([id]);
+        } catch (saveError) {
+          setError('奇遇停止记录保存未确认：' + String(saveError));
+          throw Error(view.error, { cause: saveError });
+        }
+      }
       setError(cancelled ? '' : error);
       throw error;
     } finally {
@@ -1937,11 +2008,11 @@ export function createRuntime() {
     }
     if (pending || failedSend || pendingPhone) setError('上次请求尚未完成，请点击重试');
     listeners.push(
-      eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, id) => {
+      listen(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, id) => {
         if (id === generationId && view.operation === 'story' && !view.updating) view.streaming = text;
       }),
     );
-    listeners.push(eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (next, old) => {
+    listeners.push(listen(Mvu.events.VARIABLE_UPDATE_ENDED, (next, old) => {
       if (!old?.stat_data || !next?.stat_data) return;
       try { assertDisabledUnchanged(Schema.parse(old.stat_data), Schema.parse(next.stat_data)); }
       catch (error) {
@@ -1953,7 +2024,7 @@ export function createRuntime() {
     }));
     const chat = SillyTavern.getCurrentChatId();
     listeners.push(
-      eventOn(tavern_events.CHAT_CHANGED, () => {
+      listen(tavern_events.CHAT_CHANGED, () => {
         if (SillyTavern.getCurrentChatId() !== chat) {
           epoch++;
           stop();
@@ -1962,7 +2033,7 @@ export function createRuntime() {
       }),
     );
     listeners.push(
-      eventOn(tavern_events.MESSAGE_EDITED, async id => {
+      listen(tavern_events.MESSAGE_EDITED, async id => {
         try {
           if (view.readOnly || id === 0 || id !== getLastMessageId()) return;
           const edited = getChatMessages(id)[0];
@@ -2001,7 +2072,7 @@ export function createRuntime() {
       Mvu.events.VARIABLE_UPDATE_ENDED,
     ])
       listeners.push(
-        eventOn(event as any, () => {
+        listen(event as any, () => {
           if (event === tavern_events.MESSAGE_UPDATED && requestSource) {
             try {
               assertMessageSource(requestSource, undefined, true);

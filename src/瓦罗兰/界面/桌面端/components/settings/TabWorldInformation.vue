@@ -1,5 +1,6 @@
 <template>
   <div class="cw-information-tab" :aria-label="`${kind}资料管理`">
+    <WorldInformationQuota :kind="kind" @feedback="emit('feedback', $event)" />
     <!-- 统一卡片设计：自动调度面板 (与角色调度卡片保持视觉与交互一致，地点与组织共用 informationAuto) -->
     <div class="cw-auto-control-panel" :class="{ 'is-enabled': autoEnabled, 'is-disabled': !autoEnabled }">
       <div class="cw-auto-control-main">
@@ -193,6 +194,7 @@ import { RuntimeKey, type Runtime } from '../../../../运行/host';
 import { effectiveInformationIds } from '../../../../运行/knowledge-context';
 import { resolveCharacterName } from '../../utils/entity';
 import SvgIcon from '../icons/SvgIcon.vue';
+import WorldInformationQuota from './WorldInformationQuota.vue';
 
 type Kind = '地点' | '组织';
 type Mode = '自动' | '展开' | '仅名称';

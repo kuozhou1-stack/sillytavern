@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://testingcf.jsdelivr.net/gh/StageDog/tavern_sync/dist/schema/character.zh.json
 头像: 头像.png
-版本: 0.7.0-local-no-lifecheck-20261101
+版本: 0.7.0-local-20261105
 作者: 瓦洛兰项目
 备注: 正文与手机操作分别调用对应变量API；开局整批更新，失败可重试。
 第一条消息:
@@ -204,6 +204,26 @@
           冷却: null
           延迟: null
         文件: 世界书/常驻/自主生活与记忆.md
+      - 名称: 规则｜氛围设计
+        uid: 52
+        启用: false
+        激活策略:
+          类型: 蓝灯
+        插入位置:
+          类型: 指定深度
+          角色: 系统
+          深度: 4
+          顺序: 340
+        激活概率: 100
+        递归:
+          不可被其他条目激活: true
+          不可激活其他条目: true
+          延迟递归: null
+        特殊效果:
+          黏性: null
+          冷却: null
+          延迟: null
+        文件: 世界书/常驻/氛围设计.md
   - 文件夹: MVU变量
     条目:
       - 名称: "[initvar]变量初始化勿开"

@@ -46,6 +46,13 @@ export async function persistChat() {
     throw Error('保存期间聊天已变化，未确认原提交');
   if (!Array.isArray(saved) || !saved[0]?.chat_metadata)
     throw Error('聊天保存未确认：服务端没有返回有效聊天存档');
-  if (!equal(expected, chatSaveSnapshot(saved.slice(1), saved[0].chat_metadata.variables ?? {})))
+  const actual = chatSaveSnapshot(saved.slice(1), saved[0].chat_metadata.variables ?? {});
+  // 手机入队/取消允许发生在原生保存等待期间；只接受该队列的完整旧值或当前值。
+  // 正文、变量和提交恢复记录仍必须与本次待确认快照完全一致。
+  const queueKey = '澄湾排队操作';
+  const queueMatches = equal(actual.recovery[queueKey], expected.recovery[queueKey]) ||
+    equal(actual.recovery[queueKey], getVariables({ type: 'chat' })[queueKey]);
+  if (!queueMatches || !equal(actual.messages, expected.messages) ||
+      !equal(_.omit(actual.recovery, queueKey), _.omit(expected.recovery, queueKey)))
     throw Error('聊天保存未确认：服务端的正文、变量或恢复记录与本次保存不一致，请重试保存');
 }

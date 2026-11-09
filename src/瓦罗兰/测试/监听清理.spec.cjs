@@ -19,6 +19,7 @@ function installedEvents(e) {
   vm.runInContext(fs.readFileSync(path.join(tavern, 'public/lib/eventemitter.js'), 'utf8')
     .replace('export { EventEmitter }', '') + '\nthis.Emitter=EventEmitter;', context);
   const bus = new context.Emitter(), api = {}, frame = {};
+  e.emitNativeSettings=data=>bus.emit(tavern_events.CHAT_COMPLETION_SETTINGS_READY,data);
   const dependencies = {
     '@/function/script': { _getButtonEvent: name => name },
     '@/function/util': { _getIframeName: () => 'valoran-cleanup-fixture' },
@@ -69,12 +70,12 @@ test('原助手句柄缺口仍存在，按原回调取消普通监听可用', as
 
 test('连续正文与变量请求清理各自监听，流式正文正常且不接收其他请求片段', async () => {
   const { e, events } = setup(); await e.runtime.start();
-  const base = events.total(); let observed = 0;
+  const base = events.total(); let observed = 0; e.presetBudget.should_stream=true;
   events.bus.on(tavern_events.CHAT_COMPLETION_SETTINGS_READY, () => observed++);
   try {
     for (let index = 0; index < 3; index++) {
       e.story = async config => {
-        assert.equal(events.count(tavern_events.CHAT_COMPLETION_SETTINGS_READY), 2);
+        assert.equal(events.count(tavern_events.CHAT_COMPLETION_SETTINGS_READY), 1);
         assert.equal(config.should_stream, true);
         await events.bus.emit(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, '本轮流式正文', config.generation_id);
         assert.equal(e.runtime.view.streaming, '本轮流式正文');
@@ -84,7 +85,7 @@ test('连续正文与变量请求清理各自监听，流式正文正常且不�
       };
       e.update = async config => {
         assert.equal(config.should_stream, false);
-        assert.equal(events.count(tavern_events.CHAT_COMPLETION_SETTINGS_READY), 2);
+        assert.equal(events.count(tavern_events.CHAT_COMPLETION_SETTINGS_READY), 1);
         return block([patch('/玩家/当前状态/体力值', 79 - index)]);
       };
       await e.runtime.send('连续清理测试' + index);
@@ -156,25 +157,22 @@ test(`${channel}停止后迟到响应不提交，监听在请求结束时移除`
   assert.equal(events.total(), 0);
 });
 
-test('提示词准备失败也清理监听，原错误继续显示', async () => {
-  const { e, events } = setup(); await e.runtime.start(); const base = events.total();
-  try {
-    e.countTokens = () => { throw Error('synthetic-tokenizer-failure'); };
-    await assert.rejects(e.runtime.send('准备失败清理'), /synthetic-tokenizer-failure/);
-    assert.equal(events.total(), base);
-    assert.match(e.runtime.view.error, /synthetic-tokenizer-failure/);
-  } finally { await e.runtime.dispose(); }
-});
+test('原生准备依赖失败清理请求内容上下文，原错误继续显示',async()=>{const {e,events}=setup();await e.runtime.start();const base=events.total(),previous=getPreset;
+ try{global.getPreset=()=>{throw Error('合成原生准备失败');};await assert.rejects(e.runtime.send('观察'),/合成原生准备失败/);
+ assert.equal(events.total(),base);assert.equal(events.count(tavern_events.CHAT_COMPLETION_SETTINGS_READY),0);
+ }finally{global.getPreset=previous;await e.runtime.dispose();}});
 
 test('异步提示词处理完成后才继续正文与变量请求', async () => {
   const { e, events } = setup(); await e.runtime.start(); const base = events.total();
   const entered = deferred(), gate = deferred();
-  e.countTokens = async () => { entered.resolve(); await gate.promise; return 10; };
+  const nativePreparation = async () => { entered.resolve(); await gate.promise; };
+  eventOn(tavern_events.CHAT_COMPLETION_SETTINGS_READY, nativePreparation);
   const pending = e.runtime.send('等待异步准备');
   try {
     await entered.promise;
     assert.equal(e.calls.length, 0, '等待最终提示词处理时不能先调用模型');
     gate.resolve(); await pending;
+    eventRemoveListener(tavern_events.CHAT_COMPLETION_SETTINGS_READY, nativePreparation);
     assert.deepEqual(e.calls.map(call => call.kind), ['story', 'update']);
     assert.equal(e.parses, 1);
     assert.equal(events.total(), base);

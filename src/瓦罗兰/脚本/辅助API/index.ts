@@ -1,5 +1,7 @@
 import { waitUntil } from 'async-wait-until';
-import { createRuntime, type Runtime } from '../../运行/host';
+import { activeContext, createRuntime, type Runtime } from '../../运行/host';
+import { Schema } from '../../schema';
+import { registerPromptMacros } from '../../运行/prompt-context';
 import { watch, type WatchStopHandle } from 'vue';
 
 $(() => {
@@ -9,10 +11,14 @@ $(() => {
   let runtime: Runtime | undefined;
   const slot = { chat, runtime, ready: false };
   let unwatch: WatchStopHandle | undefined;
+  const unregisterPrompts = registerPromptMacros(() => Schema.parse(
+    getVariables({ type: 'message', message_id: activeContext().floor }).stat_data,
+  ));
   $(window).one('pagehide.cwApi', () => {
     stopped = true;
     slot.ready = false;
     unwatch?.();
+    unregisterPrompts();
     void runtime?.dispose();
     void eventEmit('chengwan:runtime_changed');
     if (host.__chengwanService === slot) {

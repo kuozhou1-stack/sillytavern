@@ -3,7 +3,7 @@
     <div class="cw-callout cw-callout-info">
       <SvgIcon name="info" :size="15" class="cw-callout-icon" />
       <div class="cw-callout-body">
-        <p>填写希望呈现的氛围、互动方式、关系节奏或事件倾向。偏好会用于正文、资料选择、人物自主生活和经历，以及手机互动与奇遇创作。</p>
+        <p>填写希望呈现的氛围、互动方式、关系节奏或事件倾向。保存会同步角色卡世界书，按原生位置影响正文；也用于资料选择、人物自主生活和经历，以及手机互动与奇遇创作。</p>
         <p>瓦罗兰独立按酒馆账号保存，另留当前浏览器副本。可随时修改或留空保存；保存后用于后续 AI 请求。另一端已打开时，可点击“读取共用配置”。</p>
       </div>
     </div>
@@ -69,7 +69,7 @@ async function save() {
     const warning = await runtime.saveSettings({ atmosphere: submitted }, 'atmosphere');
     if (draft.value === submitted) delete cache.__VALORAN_ATMOSPHERE_DRAFT__;
     if (warning) error.value = warning;
-    else notice.value = submitted.trim() ? '氛围设计已保存，将用于后续 AI 请求。' : '已保存空白氛围设计，后续请求沿用原有创作方向。';
+    else notice.value = submitted.trim() ? '氛围设计已保存并同步世界书，将用于后续 AI 请求。' : '氛围设计已清空，世界书条目已停用。';
     emit('feedback', warning || notice.value);
   } catch (cause) { error.value = `保存失败：${String(cause)}`; }
   finally { saving.value = false; }

@@ -2,23 +2,8 @@ import { Schema } from '../schema';
 import { copy, uid, type State } from './core';
 import { playerMapLocationIds, pendingPlayerMapLocations, playerMapLocationPrompt, validPlayerMapPosition } from './player-map-location';
 
-/** Only this short action is stored in chat; the one-off instructions stay request-local. */
+/** The saved action and native worldbook state drive opening generation. */
 export const openingMessage = '请根据已保存的建档资料生成开场。';
-
-export function withOpeningStory(config: GenerateConfig, state: State, taskId?: string): GenerateConfig {
-  const task = taskId && state._系统.任务[taskId];
-  if (!task || task.类别 !== '建档' || ['已提交', '失效', '取消'].includes(task.状态)) return config;
-  return {
-    ...config,
-    injects: [...(config.injects ?? []), { role: 'system', position: 'in_chat', depth: 0,
-      content: '【本次开场专用】依据已保存的玩家建档、本次启用人物和瓦洛兰设定生成开场。' +
-        '玩家已授权补全、修订所有适用的档案内容，已填内容也可按最新要求修订；保持身份与设定连贯，不随意改动已确定事实。' +
-        '合理补全外貌、背景、身份和生活，保留明确的无、0、false，不为填满资料编造未发生的交易、邀约或重大经历。' +
-        '建档生理值由程序默认100，保留玩家填写和已保存数值。只有本次启用人物可参与整理，远处联系人不等于在场。' +
-        '不替玩家决定或执行行动，不把后台秘密授予玩家知情。本次只输出正文，随后由建档变量任务完成档案写入。',
-    }],
-  };
-}
 
 /** One NPC batch and/or player profile revisions. Runtime generates opening narrative before settling this batch. */
 export function planOpeningCharacters(state: State, ids: string[], allowEmpty = false): State {

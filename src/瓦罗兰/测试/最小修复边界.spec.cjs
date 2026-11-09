@@ -91,14 +91,14 @@ test('无关旧API不完整时，外观和另一个API仍可保存、读回与�
     assert.deepEqual(e.runtime.settings.variable, invalid);
     assert.deepEqual(e.character.澄湾设置.variable, beforeLegacy);
     await e.runtime.saveSettings({ phone: { mode: 'main', sendPreset: true } }, 'phone');
-    assert.equal(e.runtime.settings.phone.sendPreset, true);
+    assert.equal(Object.hasOwn(e.runtime.settings.phone, 'sendPreset'), false);
     assert.deepEqual(e.runtime.settings.variable, invalid);
     await e.runtime.saveSettings({ information: { reuseVariable: true, sendPreset: true },
       variable: { retries: '无关损坏字段' } }, 'information');
-    assert.equal(e.runtime.settings.information.sendPreset, true);
+    assert.equal(Object.hasOwn(e.runtime.settings.information, 'sendPreset'), false);
     await e.runtime.reloadSettings();
     assert.equal(e.runtime.settings.fontSize, 19);
-    assert.equal(e.runtime.settings.phone.sendPreset, true);
+    assert.equal(Object.hasOwn(e.runtime.settings.phone, 'sendPreset'), false);
     assert.deepEqual(e.runtime.settings.variable, invalid);
     await assert.rejects(e.runtime.saveSettings({ variable: invalid }, 'variable'), /端点与模型/);
     assert.equal(e.calls.length, 0);
@@ -112,13 +112,13 @@ test('旧外观快照晚保存不会覆盖新确认的API，非API保存不会�
     await e.runtime.saveSettings({ variable: { mode: 'main', sendPreset: true } }, 'variable');
     await e.runtime.saveSettings({ ...stale, fontSize: 20 }, 'general');
     assert.equal(e.runtime.settings.variable.mode, 'main');
-    assert.equal(e.runtime.settings.variable.sendPreset, true);
+    assert.equal(Object.hasOwn(e.runtime.settings.variable, 'sendPreset'), false);
     assert.deepEqual(e.character.澄湾设置.variable, legacy.variable);
     await e.runtime.dispose(); e.localFiles.clear();
     e.runtime = createRuntime(); await e.runtime.start();
     assert.equal(e.runtime.settings.fontSize, 20);
     assert.equal(e.runtime.settings.variable.mode, 'main');
-    assert.equal(e.runtime.settings.variable.sendPreset, true);
+    assert.equal(Object.hasOwn(e.runtime.settings.variable, 'sendPreset'), false);
   });
 });
 

@@ -41,7 +41,7 @@
             <span v-if="bondedCount > 0" class="cw-badge cw-badge-accent">⭐ 开局结识 {{ bondedCount }} 位</span>
           </h4>
           <p class="cw-text-muted">
-            入选人物将纳入世界角色库；在此填写<strong>相识依据</strong>或勾选<strong>已交换邻信</strong>的人物，将作为<strong>开局已结识的直接联系人物</strong>优先登场。
+            入选人物将纳入世界角色库；填写<strong>相识依据</strong>或勾选<strong>已交换邻信</strong>会保留相识关系，并按开启配额优先准备其资料。其余人物自动待机，关系仍保留；开启资料不表示人物进入当前场景。
           </p>
         </div>
       </div>

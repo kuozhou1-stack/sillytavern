@@ -23,8 +23,8 @@ global._ = require('lodash');
 const { Schema } = require(root + '/schema.ts');
 const { SettingsSchema, validateSettings, createSettingsController, apiBrowserKey } = require(root + '/运行/settings.ts');
 const { createRuntime, activeContext } = require(root + '/运行/host.ts');
-const { livePromptConfig } = require(root + '/运行/prompts.ts');
-const { finalizeWorkerPrompt, workerTask } = require(root + '/运行/worker-task.ts');
+const { livePromptConfig, variableRulePrompts } = require(root + '/运行/prompts.ts');
+const { workerTask } = require(root + '/运行/worker-task.ts');
 const { connectRuntime } = require(root + '/运行/bridge.ts');
 const { copy } = require(root + '/运行/core.ts');
 const { prepareLibraryCommand, LibrarySchema, libraryView } = require(root + '/运行/character-library.ts');
@@ -41,23 +41,34 @@ const { normalizeWorldInformation } = require(root + '/运行/世界资料.ts');
 const { normalizeMapLandmarks } = require(root + '/运行/地图地标.ts');
 const { normalizeGeographicNames } = require(root + '/运行/地理名称.ts');
 const block = patches => `<UpdateVariable><JSONPatch>${JSON.stringify(patches)}</JSONPatch></UpdateVariable>`;
+function structuredFixtureReply(config, reply) {
+  if (config.json_schema?.name !== 'variable_update' || typeof reply !== 'string') return reply;
+  try {
+    return JSON.stringify({ JSONPatch: JSON.stringify(updateBlock(reply).commands) });
+  } catch {
+    // Intentionally malformed provider fixtures stay malformed for error tests.
+    return reply;
+  }
+}
 const patch = (path, value) => ({ op: 'replace', path, value });
 const time = 分 => ({ 年: 2026, 月: 9, 日: 22, 时: 10, 分 });
 const publicPerson = person => { const result = copy(person); delete result._管理; delete result._更新循环; return result; };
 const endpoint = name => ({ apiurl: `https://${name}.invalid/v1`, model: name, key: `test-${name}` });
 const turn = () => new Promise(resolve => setImmediate(resolve));
-// Generation parameters are not the final prompt: production now restores its
-// owned system instructions in CHAT_COMPLETION_SETTINGS_READY.
+// Inspect the mock native builder output; no card final-message hook is installed.
 const sentPrompts = config => config.finalMessages ??
   config.overrides?.chat_history?.prompts ?? config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.injects ?? [];
+const sentState = config => JSON.parse(sentPrompts(config).map(p => p.content).join('\n').match(/<status_current_variable>\s*([\s\S]*?)\s*<\/status_current_variable>/)[1]);
+const taskFact = (config, label) => config.user_input.slice(config.user_input.indexOf(label) + label.length).split('\n\n本轮已完成正文')[0].trim();
 
-
-test('建档说明仅临时注入：失败重试仍可用，成功后退出，历史不保存长清单', async () => {
+test('建档正文走原生入口，建档变量任务失败重试仍可用，历史不保存长清单', async () => {
   await withEnv(async e => {
     await e.runtime.createProfile({ player: { 姓名: '建档测试者' }, characters: [] });
     const configs = [];
     e.story = async config => {
-      assert.match(JSON.stringify(sentPrompts(config)), /本次开场专用/);
+      assert.equal(config.injects, undefined);
+      assert.equal(config.overrides, undefined);
+      assert.equal(e.listeners.has('completion_settings'), false);
       assert.equal(e.messages.at(-1).message, openingMessage);
       return '清晨，玩家在住所整理书桌。';
     };
@@ -129,8 +140,10 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     parses: 0,
     writes: 0,
     ruleWrites: 0,
+    atmosphereEntries: [],
+    atmosphereWrites: 0,
     stops: [],
-    presetBudget: { max_context: 1000000, max_completion_tokens: 1000 },
+    presetBudget: { max_context: 1000000, max_completion_tokens: 1000, should_stream: false },
     countTokens: message => Math.ceil(JSON.stringify(message).length / 4),
     diskReads: 0,
     mutations: [],
@@ -143,6 +156,7 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
       name,
       content: `${name}-当前世界书内容`,
       enabled: true,
+      position: { type: 'at_depth', role: 'system', depth: 0, order: 14730 + uid * 10 },
       strategy: { type: 'selective', keys: [] },
     })),
   };
@@ -207,10 +221,20 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     else e.vars = copy(data);
   };
   global.getCharWorldbookNames = () => ({ primary: 'test-worldbook' });
-  global.getWorldbook = async () => copy(e.rules);
+  global.getWorldbook = async () => copy([...e.rules, ...e.atmosphereEntries]);
+  global.createWorldbookEntries = async (_book, entries) => {
+    const added = entries.map((entry, index) => ({ uid: 100000 + index, ...copy(entry) }));
+    e.atmosphereEntries.push(...added); e.atmosphereWrites++;
+    return { worldbook: await getWorldbook(), new_entries: copy(added) };
+  };
   global.updateWorldbookWith = async (_book, fn) => {
-    e.ruleWrites++;
-    e.rules = fn(copy(e.rules));
+    const next = fn(copy([...e.rules, ...e.atmosphereEntries]));
+    const rules = next.filter(entry => entry.name !== '规则｜氛围设计');
+    const atmosphere = next.filter(entry => entry.name === '规则｜氛围设计');
+    if (!_.isEqual(rules, e.rules)) e.ruleWrites++;
+    if (!_.isEqual(atmosphere, e.atmosphereEntries)) e.atmosphereWrites++;
+    e.rules = rules; e.atmosphereEntries = atmosphere;
+    return copy(next);
   };
   global.window = {
     parent: { TavernHelper: { updateWorldbookWith: global.updateWorldbookWith },
@@ -261,26 +285,33 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     e.messages = e.messages.filter((_, i) => !ids.includes(i));
   };
   async function finalConfig(config) {
-    const data = { messages: [
+    const { promptContextText, variableRuleText } = require('../运行/prompt-context.ts');
+    const depthEntries = config.overrides?.chat_history?.with_depth_entries !== false;
+    const data = { custom_prompt_post_processing: 'strict', messages: [
       { role: 'system', content: '模拟原生世界书/预设' },
+      ...(depthEntries ? [
+        ...[...e.rules, ...e.atmosphereEntries].filter(entry => entry.enabled)
+          .map(({ position, content, name }) => ({ role: position?.role ?? 'system',
+            content: name.startsWith('[mvu_update]') ? variableRuleText(content.replace(/^# \{\{valoran_variables\}\}\r?\n|^# \{\{valoran_variables_end\}\}\r?\n?/gm,'')) : content }))
+          .filter(entry => entry.content.trim()),
+        ...[promptContextText(() => e.state())].filter(Boolean).map(content => ({ role: 'system', content })),
+      ] : []),
       ...[...(config.injects ?? []), ...(config.ordered_prompts ?? []), ...(config.overrides?.chat_history?.prompts ?? [])]
         .filter(p => typeof p === 'object').map(({ role, content }) => ({ role, content })),
       { role: 'user', content: config.user_input ?? '' },
+      { role: 'system', content: '模拟原生预设尾部' },
     ] };
-    await e.listeners.get('completion_settings')?.(data);
+    if(e.emitNativeSettings)await e.emitNativeSettings(data);else await e.listeners.get('completion_settings')?.(data);
     if (e.stops.includes(config.generation_id)) throw Error('模拟已取消请求');
     return { ...config, finalMessages: copy(data.messages) };
   }
   global.generate = async config => {
     const final = await finalConfig(config);
-    e.calls.push({ kind: config.custom_api ? 'preset-update' : 'story', config: copy(final) });
-    return config.custom_api ? e.update(final) : e.story(final);
+    const stage = e.runtime.view.phase;
+    e.calls.push({ kind: stage === 'story' ? 'story' : 'update', stage, config: copy(final) });
+    return structuredFixtureReply(config, await (stage === 'story' ? e.story(final) : e.update(final)));
   };
-  global.generateRaw = async config => {
-    const final = await finalConfig(config);
-    e.calls.push({ kind: 'update', config: copy(final) });
-    return e.update(final);
-  };
+  global.generateRaw = async () => { throw Error('角色卡请求必须携带预设'); };
   global.stopGenerationById = id => { e.stops.push(id); };
   global.formatAsTavernRegexedString = text => text;
   global.eventOn = (event, fn) => {
@@ -304,6 +335,7 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     USER_MESSAGE_RENDERED: 'user_rendered',
     CHARACTER_MESSAGE_RENDERED: 'character_rendered',
     CHAT_COMPLETION_SETTINGS_READY: 'completion_settings',
+    GENERATION_STOPPED: 'generation_stopped',
   };
   global.Mvu = {
     events: { VARIABLE_UPDATE_ENDED: 'mvu' },
@@ -453,8 +485,7 @@ test('新技能品质和角色形态可经MVU正文结算落到消息快照，�
     assert.equal(saved.角色.npc.种族, '自定义种族');
     assert.equal(saved.角色.npc.当前形态, '常态');
     const config = await livePromptConfig(e.state(), '后续互动', 'worker');
-    const projected = config.injects.map(item => { try { return JSON.parse(item.content); } catch { return null; } })
-      .find(item => item?.玩家 && item?.角色);
+    const projected = require('../运行/model-history.ts').promptProjections.get(config);
     assert.deepEqual(projected.玩家.技能栏, saved.玩家.技能栏);
     assert.equal(projected.角色.npc.种族, saved.角色.npc.种族);
     assert.equal(projected.角色.npc.当前形态, saved.角色.npc.当前形态);
@@ -654,37 +685,15 @@ test('初始请求失败重载后保留恢复入口，只恢复内容请求，�
   });
 });
 
-test('奇遇刷新仅携地区与局势参考，保留手机端点且不带完整存档或变量规则', async () => {
-  await withEnv(async e => {
-    await e.runtime.novelAction({ kind: 'enable', operationId: 'enable' });
-    e.update = async config => {
-      assert.equal(config.custom_api.model, 'phone');
-      assert(!config.ordered_prompts.some(p => typeof p === 'string' && p !== 'user_input'));
-      const messages = [{ role: 'system', content: JSON.stringify(e.state()) },
-        { role: 'system', content: '外部预设的私有插入标记' }, { role: 'user', content: config.user_input }];
-      await e.listeners.get('completion_settings')({ messages });
-      const input = JSON.parse(messages.find(message => message.role === 'user').content);
-      assert.deepEqual(Object.keys(input.创作参考).sort(), ['当前地区id', '异常入侵度', '地区目录'].sort());
-      const payload = JSON.stringify(messages);
-      for (const text of ['完整资料标记', '不在场人物', '外部预设的私有插入标记', '_系统币', '[chengwan-', '<UpdateVariable>'])
-        assert(!payload.includes(text));
-      return novelGoodReply();
-    };
-    global.window.parent.__chengwanService = { ready: true, runtime: e.runtime };
-    const connection = connectRuntime(e.runtime);
-    try {
-      await connection.runtime.novelRefresh('shop');
-      assert.equal(e.calls.length, 1);
-      assert.equal(e.parses, 0);
-      const good = systemGoods(e.state()).find(g => g.name === '城市便携杯');
-      assert(good);
-      assert(connection.runtime.view.data.奇遇系统._商店商品[good.id]);
-      await connection.runtime.novelAction({ kind: 'buy', id: good.id, operationId: 'buy-new' });
-      assert.equal(e.state().奇遇系统._系统币, 18);
-      assert.equal(e.state().玩家.物品栏['cw_system_item_' + good.id].数量, 1);
-      assert.equal(e.calls.length, 1);
-    } finally { connection.disconnect(); }
-  }, seed(), { phone: endpoint('phone') });
+test('奇遇刷新携带预设及地区参考，不携完整存档或变量规则',async()=>{
+ await withEnv(async e=>{await e.runtime.novelAction({kind:'enable',operationId:'enable'});
+ e.update=async c=>{assert.equal(c.custom_api.model,'phone');assert.equal(c.injects,undefined);
+ const input=JSON.parse(c.user_input.slice(c.user_input.lastIndexOf('\n\n')+2));
+ assert.deepEqual(Object.keys(input.创作参考).sort(),['当前地区id','异常入侵度','地区目录'].sort());
+ assert(c.finalMessages.some(m=>m.content==='模拟原生世界书/预设'));
+ assert.equal(c.finalMessages.at(-1).content,'模拟原生预设尾部');
+ assert(!JSON.stringify(c).includes('<status_current_variable>'));return novelGoodReply();};
+ await e.runtime.novelRefresh('shop');assert.equal(e.calls.length,1);});
 });
 
 test('任务刷新只补新目标，保留玩家、时间、所有旧任务和接取进度', async () => {
@@ -984,7 +993,7 @@ test('发送确认时前端已显示玩家楼层，保存仍在等待也不依�
   });
 });
 
-test('世界书读取仍在等待时玩家楼层已显示并确认发送，模型请求继续等待准备完成', async () => {
+test('变量规则读取等待时玩家与完整正文已显示，变量模型等待准备完成', async () => {
   await withEnv(async e => {
     const gate = deferred();
     const read = global.getWorldbook;
@@ -998,8 +1007,10 @@ test('世界书读取仍在等待时玩家楼层已显示并确认发送，模�
     try {
       await until(() => reading);
       assert.equal(acknowledged, 1);
-      assert.equal(e.runtime.view.messages.at(-1).content, '先显示玩家消息');
-      assert.equal(e.calls.length, 0, '模型不得跳过必要的世界书准备');
+      assert(e.runtime.view.messages.some(message => message.content === '先显示玩家消息'));
+      assert.equal(e.runtime.view.messages.at(-1).content, '已经完成的正文');
+      assert.equal(e.calls.length, 1, '变量模型不得跳过必要的规则读取');
+      assert.equal(e.calls[0].kind, 'story');
     } finally {
       gate.resolve();
       await sending;
@@ -1068,82 +1079,43 @@ test('删楼在保存结束前刷新可见正文，同一按钮重复点击只�
   });
 });
 
-test('额外 API 自动关闭世界书规则，正文和手机更新都直接收到完整规则与变量', async () => {
-  await withEnv(async e => {
-    assert(e.rules.every(r => !r.enabled));
-    assert.equal(e.ruleWrites, 1);
-    assert(e.character.澄湾额外API规则原状态['test-worldbook'].every(r => r.enabled));
-    const normal = await livePromptConfig(e.state(), '正文', 'story');
-    const storyUpdate = await livePromptConfig(e.state(), '正文结算', 'worker');
-    const phoneUpdate = await livePromptConfig(e.state(), '手机操作', 'worker', undefined, { session: 'chat' });
-    assert.match(normal.overrides.persona_description, /玩家以本次建档为准/);
-    for (const result of [storyUpdate, phoneUpdate]) {
-      assert.equal(result.overrides.persona_description, '');
-      const content = result.injects.map(p => p.content).join('\n');
-      assert.doesNotMatch(content, /以下是当前存档的完整事实资料/);
-      const data = JSON.parse(result.injects[0].content);
-      assert.deepEqual(data.角色.remote, publicPerson(e.state().角色.remote));
-      assert.deepEqual(data.手机.账号, e.state().手机.账号);
-      assert.deepEqual(data.手机.联系人, e.state().手机.联系人);
-      assert.deepEqual(data.手机.会话.chat.参与账号id, e.state().手机.会话.chat.参与账号id);
-      assert(!data.手机.会话.chat._窗口 && !data.角色.remote._管理);
-      for (const rule of e.rules) assert(content.includes(rule.content));
-    }
-    assert.equal(normal.injects.length, 1);
-    assert.match(normal.injects[0].content, /玩家尚未开启奇遇系统/);
-    assert.match(require('../运行/worker-task.ts').storyTask, /只生成剧情正文/);
-    e.rules[0].content = '动态修改后的规则';
-    assert.match(JSON.stringify((await livePromptConfig(e.state(), '手机操作', 'worker')).injects), /动态修改后的规则/);
-    assert(e.rules.every(r => !r.enabled));
-    assert.equal(e.ruleWrites, 1);
-  });
+test('变量规则默认关闭且位置不改，状态经世界书展开，规则只在变量请求原生注入', async () => {
+ await withEnv(async e => {
+  assert(e.rules.every(r => !r.enabled)); const positions=e.rules.map(r=>structuredClone(r.position));
+  const c=await livePromptConfig(e.state(),'更新','worker');
+  const data=require('../运行/model-history.ts').promptProjections.get(c);
+  assert.deepEqual(data.角色.remote,publicPerson(e.state().角色.remote));
+  for(const rule of e.rules)assert(!JSON.stringify(c.injects).includes(rule.content));
+  await e.runtime.phoneAction({kind:'refresh',id:'chat'});
+  assert(e.rules.every(r=>!r.enabled)); assert.deepEqual(e.rules.map(r=>r.position),positions);
+  assert.equal(e.listeners.has('completion_settings'),false);
+  assert.equal(e.calls[0].config.injects.length,2);
+  assert.equal(sentState(e.calls[0].config).玩家.id,e.state().玩家.id);
+ });
 });
 
-test('旧存档遗留规则先恢复原状态，再由额外 API 接管开关', async () => {
-  const e = environment();
-  e.character.澄湾世界书开关 = { 'test-worldbook': e.rules.map(r => ({ uid: r.uid, name: r.name, enabled: true })) };
-  e.rules.forEach(r => {
-    r.enabled = false;
-  });
-  await e.runtime.start();
-  try {
-    assert(e.rules.every(r => !r.enabled));
-    assert.deepEqual(e.character.澄湾世界书开关, {});
-    await livePromptConfig(e.state(), '继续', 'worker');
-    assert(e.rules.every(r => !r.enabled));
-    await e.runtime.saveSettings({ variable: {}, phone: {} });
-    assert(e.rules.every(r => r.enabled));
-    assert.deepEqual(e.character.澄湾额外API规则原状态, {});
-  } finally {
-    await e.runtime.dispose();
-  }
+test('旧版备份迁移后变量规则仍保持关闭，后续请求不切换共享开关', async()=>{
+ const e=environment(); e.character.澄湾额外API规则原状态={'test-worldbook':e.rules.map(r=>({uid:r.uid,name:r.name,enabled:r.enabled}))};
+ e.rules.forEach(r=>r.enabled=false); await e.runtime.start();
+ try{assert(e.rules.every(r=>!r.enabled));assert.deepEqual(e.character.澄湾额外API规则原状态,{});
+ const writes=e.ruleWrites;await e.runtime.phoneAction({kind:'refresh',id:'chat'});assert.equal(e.ruleWrites,writes);
+ }finally{await e.runtime.dispose();}
 });
 
-test('手动停用世界书规则后，额外 API 仍能读取当前内容并更新手机', async () => {
-  const e = environment();
-  e.rules.forEach(rule => { rule.enabled = false; });
-  await e.runtime.start();
-  try {
-    assert.equal(e.ruleWrites, 0);
-    const config = await livePromptConfig(e.state(), '更新', 'worker');
-    for (const rule of e.rules) assert(JSON.stringify(config.injects).includes(rule.content));
-    await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
-    assert.equal(e.calls.filter(call => call.kind === 'update').length, 1);
-    await e.runtime.saveSettings({ variable: {}, phone: {} });
-    assert(e.rules.every(rule => !rule.enabled));
-  } finally {
-    await e.runtime.dispose();
-  }
+test('关闭的规则内容仍仅由变量API收到，读取不重新启用共享条目',async()=>{
+ const e=environment();e.rules.forEach(r=>r.enabled=false);await e.runtime.start();
+ try{const writes=e.ruleWrites;await e.runtime.phoneAction({kind:'refresh',id:'chat'});
+ assert(e.rules.every(r=>!r.enabled));assert.equal(e.ruleWrites,writes);
+ assert.equal(e.calls[0].config.injects.length,2);
+ assert(e.calls[0].config.injects.every(p=>p.content.includes('当前世界书内容')));
+ }finally{await e.runtime.dispose();}
 });
 
-test('游玩途中手动重新启用规则，下一次额外 API 请求前会再次关闭', async () => {
-  await withEnv(async e => {
-    assert(e.rules.every(rule => !rule.enabled));
-    e.rules[0].enabled = true;
-    await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
-    assert(e.rules.every(rule => !rule.enabled));
-    assert.equal(e.ruleWrites, 2);
-  });
+test('游玩途中修改规则开关由原生激活处理，后续请求保留选择',async()=>{
+ await withEnv(async e=>{e.rules[0].enabled=false;const writes=e.ruleWrites;
+ await e.runtime.phoneAction({kind:'refresh',id:'chat'});assert.equal(e.rules[0].enabled,false);
+ e.rules[0].enabled=true;await e.runtime.phoneAction({kind:'refresh',id:'chat'});
+ assert.equal(e.rules[0].enabled,true);assert.equal(e.ruleWrites,writes);});
 });
 
 test('后台短暂未就绪后，即使快照没有变化，主界面也恢复按钮状态', () => {
@@ -1235,11 +1207,11 @@ test('正文完成才请求变量 API，先显示正文，忽略主模型夹带�
     story.resolve('完整正文' + block([patch('/玩家/年龄', 99)]));
     await until(() => e.calls.length === 2);
     assert.equal(e.calls[1].config.custom_api.model, 'variable');
-    assert.deepEqual(e.calls[1].config.injects, []);
-    assert(!e.calls[1].config.ordered_prompts.includes('chat_history'));
-    assert(!e.calls[1].config.ordered_prompts.includes('persona_description'));
+    assert.equal(e.calls[1].config.injects.length, 2);
+    assert.equal(e.calls[1].config.overrides.chat_history.with_depth_entries, true);
+    assert.equal(e.calls[1].config.overrides.persona_description, '');
     for (const rule of e.rules)
-      assert(sentPrompts(e.calls[1].config).some(p => p.content === rule.content));
+      assert(sentPrompts(e.calls[1].config).some(p => p.content.trim() === rule.content.replace(/^# \{\{valoran_variables\}\}\r?\n|^# \{\{valoran_variables_end\}\}\r?\n?/gm,'').trim()));
     assert.equal(e.messages.at(-1).message, '完整正文');
     assert.equal(e.messages.at(-1).extra.cw_update_pending, true);
     assert.equal(e.state().玩家.年龄, null);
@@ -1362,12 +1334,12 @@ test('旧聊天多段正文缺少原请求归属时保留原文，禁止猜测�
 
 test('JSONPatch 解析失败保留原始响应与堆栈，变量不写入且重试不重复正文', async () => {
   await withEnv(async e => {
-    const response = '<UpdateVariable><JSONPatch>\n[] {"unexpected":true}</JSONPatch></UpdateVariable>';
+    const response = JSON.stringify({ JSONPatch: '[] {"unexpected":true}' });
     e.update = async () => response;
     await assert.rejects(e.runtime.send('查看时间'), /JSON/);
     assert.equal(e.vars.澄湾最近解析失败.response, response);
     assert(!Object.hasOwn(e.vars.澄湾最近解析失败, 'jsonPatch'), '原始响应已完整保留，不重复保存不可靠的正则截取');
-    assert.match(e.vars.澄湾最近解析失败.stack, /updateBlock/);
+    assert.match(e.vars.澄湾最近解析失败.stack, /SyntaxError/);
     assert.equal(activeContext().floor, 0);
     assert.equal(e.parses, 0);
     e.update = async () => block([]);
@@ -1378,19 +1350,18 @@ test('JSONPatch 解析失败保留原始响应与堆栈，变量不写入且重�
   });
 });
 
-test('额外请求末尾system任务只作用于带有本次标记的请求，不重复变量快照或改写其他请求', () => {
-  const marker = '[chengwan-worker:test]';
-  const other = [{ role: 'user', content: '普通正文请求' }];
-  assert.equal(finalizeWorkerPrompt(other, marker), false);
-  assert.deepEqual(other, [{ role: 'user', content: '普通正文请求' }]);
-  const messages = [{ role: 'system', content: '{"世界":{}}' },
-    { role: 'user', content: `更新变量\n${marker}` },
-    { role: 'system', content: '预设要求写正文' }];
-  assert.equal(finalizeWorkerPrompt(messages, marker), true);
-  assert.deepEqual(messages.at(-1), { role: 'system', content: workerTask });
-  assert.equal(messages.filter(m => m.content === '{"世界":{}}').length, 1);
-  assert(!JSON.stringify(messages).includes(marker));
-  assert.equal(finalizeWorkerPrompt(messages, marker), false);
+test('后台事实走原生输入，职责随原生变量条目且预设尾部不被改写',async()=>{
+ await withEnv(async e=>{
+ e.rules.find(entry=>entry.name.includes('变量输出格式')).content=
+  fs.readFileSync(path.join(root,'世界书/变量/变量输出格式.yaml'),'utf8');
+ await e.runtime.send('本轮观察');
+ assert.equal(e.listeners.has('completion_settings'),false);
+ const c=e.calls[1].config;assert(!c.user_input.includes(workerTask));
+ assert.equal(c.finalMessages.filter(m=>m.content.includes(workerTask)).length,1);
+ assert(c.finalMessages.find(m=>m.content.includes(workerTask)).content.includes('变量输出格式:'));
+ assert.equal(c.finalMessages.at(-1).content,'模拟原生预设尾部');
+ assert.equal(c.finalMessages.filter(m=>m.content.includes('<status_current_variable>')).length,1);
+ assert(!JSON.stringify(c).includes('[chengwan-'));});
 });
 
 test('变量交接遵循提示词正则隐藏思考，已保存正文与显示标记保持原样', async () => {
@@ -1520,7 +1491,7 @@ test('P0 任意出站提示词替换不改变存档归属，变量仍交接原�
   await withEnv(async e => {
     e.story = async config => {
       config.user_input = '另一预设的出站占位文本';
-      config.injects.push({ role: 'user', content: '仅请求体中的辅助文本', position: 'in_chat', depth: 0 });
+      config.finalMessages.push({ role: 'user', content: '仅请求体中的辅助文本' });
       return '根据原输入完成的正文';
     };
     e.update = async config => {
@@ -1823,18 +1794,18 @@ test('正文含脚本和协议标签时保留原文，并把完整正文交给�
     assert.equal(e.calls.length, 2);
     assert.equal(stripProtocol(e.messages.at(-1).message), story);
     const config = e.calls[1].config;
-    assert.doesNotMatch(config.user_input, /街角的对话/);
+    assert.match(config.user_input, /街角的对话/);
     const workerPrompts = sentPrompts(config);
-    const storyPrompt = workerPrompts.find(p => p.content?.startsWith('本轮已完成正文'));
-    const playerPrompt = workerPrompts.find(p => p.content?.startsWith('本轮玩家输入'));
+    const storyPrompt = {content:'本轮已完成正文（事实资料）：\n'+taskFact(config,'本轮已完成正文（事实资料）：')};
+    const playerPrompt = {content:taskFact(config,'本轮玩家输入（未在正文实现的行动不算已发生）：')};
     assert(storyPrompt, '变量 API 应收到独立正文资料');
     assert.equal(playerPrompt.content.split('\n').at(-1), '继续交谈');
     assert.equal(storyPrompt.content.split('\n').slice(1).join('\n'), story);
     assert.match(storyPrompt.content, /<UpdateVariable>/);
     const suppliedPrompts = workerPrompts.map(p => p.content);
     assert.equal(suppliedPrompts.filter(content => content.includes('以下是当前存档的完整事实资料')).length, 0);
-    assert.deepEqual(JSON.parse(workerPrompts.find(p => p.content.startsWith('{')).content).角色.remote, publicPerson(e.state().角色.remote));
-    assert.equal(suppliedPrompts.filter(content => content.startsWith('本轮已完成正文')).length, 1);
+    assert.deepEqual(sentState(config).角色.remote, publicPerson(e.state().角色.remote));
+    assert.equal(config.user_input.split('本轮已完成正文（事实资料）：').length - 1, 1);
   });
 });
 
@@ -1918,11 +1889,11 @@ test('携带预设的正文变量 API 同样收到独立正文资料', async () 
       e.story = async () => '雨停后，玩家走进店里。';
       e.update = async () => block([patch('/玩家/当前状态/体力值', 79)]);
       await e.runtime.send('进店');
-      const call = e.calls.find(c => c.kind === 'preset-update');
+      const call = e.calls.find(c => c.kind === 'update');
       assert(call);
-      assert.deepEqual(call.config.injects, []);
-      assert.equal(call.config.overrides.chat_history.with_depth_entries, false);
-      const storyPrompt = sentPrompts(call.config).find(p => p.content?.startsWith('本轮已完成正文'));
+      assert.equal(call.config.injects.length, 2);
+      assert.equal(call.config.overrides.chat_history.with_depth_entries, true);
+      const storyPrompt = {content:taskFact(call.config,'本轮已完成正文（事实资料）：')};
       assert.equal(storyPrompt.content.split('\n').at(-1), '雨停后，玩家走进店里。');
     },
     seed(),
@@ -1961,9 +1932,9 @@ test('手机单次请求同时更新回复、时间、天气、玩家、非参�
     await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '聊天十分钟' });
     assert.equal(e.calls.length, 1);
     assert.equal(e.calls[0].config.custom_api.model, 'phone');
-    assert(!e.calls[0].config.ordered_prompts.includes('chat_history'));
+    assert.equal(e.calls[0].config.overrides.chat_history.with_depth_entries, true);
     assert.match(JSON.stringify(sentPrompts(e.calls[0].config)), /聊天十分钟/);
-    assert.deepEqual(JSON.parse(sentPrompts(e.calls[0].config).find(p => p.content.startsWith('{')).content).角色.remote, publicPerson(seed().角色.remote));
+    assert.deepEqual(sentState(e.calls[0].config).角色.remote, publicPerson(seed().角色.remote));
     assert.equal(e.parses, 1);
     assert.equal(e.state().世界.当前时间.分, 10);
     assert.equal(e.state().世界.天气.天气状况, '阴');
@@ -1984,7 +1955,7 @@ test('手机遗漏世界时钟但生成未来回复时不保存；重试完整�
       会话id: 'chat', 发送账号id: 'npc', 故事时间: time(1), 内容块: [{ 类型: '文字', id: 'reply', 正文: '收到' }],
     } };
     e.update = async config => {
-      assert(sentPrompts(config).some(p => p.role === 'system' && p.content.includes('不能只更新手机记录的故事时间')));
+      assert(sentPrompts(config).some(p => p.content.includes('不能只更新手机记录的故事时间')));
       return block([reply]);
     };
     await assert.rejects(e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '你好' }), /时间晚于世界时间/);
@@ -2032,7 +2003,7 @@ test('手机最终请求只带近期与摘要，旧帖操作带回原帖，结�
     e.update = async () => block([]);
     await e.runtime.phoneAction({ kind: 'like', id: 'oldPost' });
     assert.equal(e.calls.length, 1);
-    const view = JSON.parse(sentPrompts(e.calls[0].config).find(p => p.content.startsWith('{')).content);
+    const view = sentState(e.calls[0].config);
     assert.equal(Object.keys(view.手机.原文.消息).length, 20);
     assert(!JSON.stringify(view).includes('已归档原文标记'));
     assert.equal(view.手机.原文.帖子.oldPost.内容块[0].正文, '旧帖本次操作上下文');
@@ -2169,13 +2140,13 @@ test('Google 映射和携带预设仍使用手机独立端点与同一规则', a
       await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
       assert.equal(e.calls.length, 1);
       const call = e.calls[0];
-      assert.equal(call.kind, 'preset-update');
+      assert.equal(call.kind, 'update');
       assert.equal(call.config.custom_api.source, 'makersuite');
       assert.equal(call.config.custom_api.model, 'phone');
       assert.equal(call.config.should_stream, false);
-      assert.deepEqual(call.config.injects, []);
-      assert.equal(call.config.overrides.chat_history.with_depth_entries, false);
-      assert.deepEqual(JSON.parse(sentPrompts(call.config).find(p => p.content.startsWith('{')).content).角色.remote, publicPerson(e.state().角色.remote));
+      assert.equal(call.config.injects.length, 2);
+      assert.equal(call.config.overrides.chat_history.with_depth_entries, true);
+      assert.deepEqual(sentState(call.config).角色.remote, publicPerson(e.state().角色.remote));
       assert(e.rules.every(r => !r.enabled));
     },
     seed(),
@@ -2195,8 +2166,10 @@ test('手机提交后的变量成为下一次正文和正文变量 API 的共同
       e.calls.map(c => c.config.custom_api?.model ?? 'main'),
       ['phone', 'main', 'variable'],
     );
-    assert.doesNotMatch(JSON.stringify(e.calls[1].config.injects), /以下是当前存档的完整事实资料/);
-    const data = JSON.parse(sentPrompts(e.calls[2].config).find(p => p.content.startsWith('{')).content);
+    assert.equal(e.calls[1].config.injects, undefined);
+    const nativeState = sentPrompts(e.calls[1].config).find(prompt => prompt.content.startsWith('<status_current_variable>')).content;
+    assert.equal(JSON.parse(nativeState.slice('<status_current_variable>'.length, -'</status_current_variable>'.length)).世界.当前时间.分, 12);
+    const data = sentState(e.calls[2].config);
     assert.equal(data.世界.当前时间.分, 12);
     assert.equal(e.state().世界.当前时间.分, 12);
     assert.equal(e.state().玩家.当前状态.体力值, 75);
@@ -2238,16 +2211,16 @@ test('开局调度：建档171人后只发送地点相关和明确联系的3人�
     const captured = [];
     const capture = async config => {
       const injected = config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.overrides?.chat_history?.prompts ?? config.injects ?? [];
-      const messages = [...injected.map(p => ({ role: p.role, content: p.content })),
-        { role: 'system', content: `<status_current_variable>${JSON.stringify(e.state())}</status_current_variable>` },
-        { role: 'user', content: config.user_input }];
-      await e.listeners.get('completion_settings')({ messages });
+      const messages = copy(config.finalMessages);
+      const nativeMessages = copy(messages);
+      await e.listeners.get('completion_settings')?.({ messages });
+      if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
       const text = JSON.stringify(messages), library = LibrarySchema.parse(e.vars.澄湾角色库);
       const revision = library.revisions[e.state()._系统.角色库版本];
       for (const id of Object.keys(revision.disabled)) assert(!text.includes(`PROFILE_ONLY_${id}_END`), id);
       for (const id of Object.keys(e.state().角色)) assert(text.includes(`PROFILE_ONLY_${id}_END`), id);
       assert(!text.includes('snapshots')); assert(!text.includes('queues')); assert(!text.includes('澄湾角色库'));
-      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, config.custom_api ? 0 : 1);
+      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, 1);
       captured.push({ model: config.custom_api?.model ?? 'main', active: Object.keys(e.state().角色), length: text.length });
     };
     e.story = async config => { await capture(config); return '玩家独自观察开场广场。'; };
@@ -3254,17 +3227,17 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
       assert.equal(Object.values(people).filter(p => p.层级 === '次要').length, 3);
       const extra = !!config.custom_api;
       const injected = config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.overrides?.chat_history?.prompts ?? config.injects ?? [];
-      const messages = [...injected.map(p => ({ role: p.role, content: p.content })),
-        { role: 'system', content: `<status_current_variable>${JSON.stringify(e.state())}</status_current_variable>` },
-        { role: 'user', content: config.user_input }];
-      await e.listeners.get('completion_settings')({ messages });
+      const messages = copy(config.finalMessages);
+      const nativeMessages = copy(messages);
+      await e.listeners.get('completion_settings')?.({ messages });
+      if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
       const text = JSON.stringify(messages);
       const revision = e.vars.澄湾角色库.revisions[e.state()._系统.角色库版本];
       for (const id of Object.keys(revision.disabled)) assert(!text.includes('ROSTER_PRIVATE_' + id), id);
       assert(!text.includes('characterRoster')); assert(!text.includes('majorRotation'));
       assert(!text.includes('rotationIds')); assert(!text.includes('snapshots'));
-      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, extra ? 0 : 1);
-      assert.equal(text.split('玩家暂时关闭的人物（只供历史身份识别）').length - 1, 1, '关闭名单在实际最终请求里不重复注入');
+      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, 1);
+      if (extra) assert.equal(text.split('玩家暂时关闭的人物（只供历史身份识别）').length - 1, 1, '后台关闭名单不重复注入');
       if (!extra) rosters.push(Object.keys(people));
     };
     e.story = async config => { await capture(config); return '本轮只是观察环境。'; };
@@ -3285,10 +3258,10 @@ test('自动调度：正文、变量和手机最终请求均为6+3，关闭完�
     const capture = async config => {
       const extra = !!config.custom_api;
       const injected = config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.overrides?.chat_history?.prompts ?? config.injects ?? [];
-      const messages = [...injected.map(p => ({ role: p.role, content: p.content })),
-        { role: 'system', content: `<status_current_variable>${JSON.stringify(e.state())}</status_current_variable>` },
-        { role: 'user', content: config.user_input }];
-      await e.listeners.get('completion_settings')({ messages });
+      const messages = copy(config.finalMessages);
+      const nativeMessages = copy(messages);
+      await e.listeners.get('completion_settings')?.({ messages });
+      if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
       const text = JSON.stringify(messages), people = Object.values(e.state().角色);
       assert.equal(people.filter(p => p.层级 === '主要').length, 6);
       assert.equal(people.filter(p => p.层级 === '次要').length, 3);
@@ -3297,7 +3270,7 @@ test('自动调度：正文、变量和手机最终请求均为6+3，关闭完�
       for (const id of Object.keys(revision.disabled)) assert(!text.includes('ROSTER_PRIVATE_' + id), id);
       for (const id of Object.keys(e.state().角色)) assert(text.includes('ROSTER_PRIVATE_' + id), id);
       assert(!text.includes('manualOff')); assert(!text.includes('snapshots')); assert(!text.includes('澄湾角色库'));
-      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, extra ? 0 : 1);
+      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, 1);
       final.push(extra ? config.custom_api.model : 'story');
     };
     e.story = async config => { await capture(config); return '玩家观察了当前环境，未与远处人物互动。'; };
@@ -3369,7 +3342,7 @@ test('自动调度：手机操作前名单保存失败，重试先恢复名单�
   }, automaticRosterSeed(), automaticSettings());
 });
 
-test('角色库：100人仅10人开启，正文/变量/手机最终构造均无关闭快照及来源载荷', async () => {
+test('角色库：正文保留原生状态，变量与手机仍移除内部字段和关闭资料', async () => {
   const s = seed(); s.角色 = {};
   for (let i = 0; i < 100; i++) {
     s.角色['npc' + i] = Schema.parse({ 角色: { a: { 层级: '主要', 姓名: '测试' + i, 简介: `PROFILE_${i}_SECRET ` + '专属资料'.repeat(100), _管理: { 来源档案id: 'source' + i } } } }).角色.a;
@@ -3388,19 +3361,19 @@ test('角色库：100人仅10人开启，正文/变量/手机最终构造均无�
     const capture = async config => {
       const extra = !!config.custom_api;
       const injected = config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.overrides?.chat_history?.prompts ?? config.injects ?? [];
-      const messages = [...injected.map(p => ({ role: p.role, content: p.content })),
-        { role: 'system', content: `<status_current_variable>${JSON.stringify(e.state())}</status_current_variable>` },
-        { role: 'user', content: config.user_input }];
-      await e.listeners.get('completion_settings')({ messages });
+      const messages = copy(config.finalMessages);
+      const nativeMessages = copy(messages);
+      await e.listeners.get('completion_settings')?.({ messages });
+      if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
       const text = JSON.stringify(messages);
       assert(!text.includes('澄湾角色库'));
-      assert(!text.includes('角色库版本'));
+      assert.equal(text.includes('角色库版本'),false,'正文与后台均只携带按需资料');
       for (let i = 10; i < 100; i++) {
         assert(!text.includes('PROFILE_' + i + '_SECRET'));
         assert(!text.includes('SOURCE_' + i + '_SECRET'));
       }
       for (let i = 0; i < 10; i++) assert(text.includes('PROFILE_' + i + '_SECRET'));
-      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, extra ? 0 : 1);
+      assert.equal((text.match(/<status_current_variable>/g) ?? []).length, 1);
       assert(!text.includes('[chengwan-'));
       final.push({ channel: extra ? config.custom_api.model : 'story', characters: text.length });
     };
@@ -4106,15 +4079,15 @@ test('常驻语义：正文维持原激活，raw及携带预设的正文/手机�
     let workers = 0;
     e.story = async config => {
       for (const rule of e.rules)
-        assert(!config.injects.some(prompt => prompt.content === rule.content), '正文不能额外重复注入常驻或变量规则');
-      assert.equal(config.overrides.chat_history, undefined, '正文保留酒馆原有深度插入');
+        assert(!(config.injects ?? []).some(prompt => prompt.content === rule.content), '正文不能额外重复注入常驻或变量规则');
+      assert.equal(config.overrides, undefined, '正文保留酒馆原有深度插入');
       return '玩家继续日常交流。';
     };
     e.update = async config => {
       workers++;
       const prompts = sentPrompts(config);
-      if (sendPreset) assert.equal(config.overrides.chat_history.with_depth_entries, false);
-      else assert(!config.ordered_prompts.includes('chat_history'));
+      if (sendPreset) assert.equal(config.overrides.chat_history.with_depth_entries, true);
+      else assert.equal(config.overrides.chat_history.with_depth_entries, true);
       const messages = copy(prompts);
       for (const rule of shared)
         assert.equal(messages.filter(message => message.content === rule.content).length, 1, rule.name);
@@ -4128,41 +4101,19 @@ test('常驻语义：正文维持原激活，raw及携带预设的正文/手机�
   }, seed(), { variable: { ...endpoint('variable'), sendPreset }, phone: { ...endpoint('phone'), sendPreset } });
 });
 
-test('常驻语义：仅补已启用蓝灯深度白名单，深度0变量列表和原生前置内容不额外注入', async () => {
-  await withEnv(async e => {
-    const shared = sharedDepthRules();
-    shared[0].enabled = false;
-    shared[1].position.type = 'before_character_definition';
-    shared[2].strategy.type = 'selective';
-    e.rules.push(...shared,
-      { ...copy(shared[3]), uid: 999, name: '变量列表', content: '深度0变量列表不应额外注入',
-        position: { ...shared[3].position, depth: 0 } },
-      { ...copy(shared[3]), uid: 998, name: '无关的深度条目', content: '非白名单内容不应额外注入' });
-    const before = copy(e.rules);
-    const config = await livePromptConfig(e.state(), '本轮结算', 'worker');
-    const bodies = config.injects.map(prompt => prompt.content);
-    for (const rule of shared.slice(0, 3)) assert(!bodies.includes(rule.content), rule.name);
-    for (const rule of shared.slice(3)) assert.equal(bodies.filter(body => body === rule.content).length, 1, rule.name);
-    for (const rule of e.rules.slice(-2)) assert(!bodies.includes(rule.content));
-    assert.deepEqual(e.rules, before, '读取提示词不修改条目开关和位置');
-  });
+test('常驻语义通过原生深度条目进入后台，前端任务不再搬运常驻正文',async()=>{
+ await withEnv(async e=>{const shared=sharedDepthRules();e.rules.push(...shared);
+ const c=await livePromptConfig(e.state(),'更新','worker');for(const r of shared)assert(!JSON.stringify(c.injects).includes(r.content));
+ await e.runtime.phoneAction({kind:'refresh',id:'chat'});
+ for(const r of shared)assert.equal(sentPrompts(e.calls[0].config).filter(m=>m.content===r.content).length,1);
+ });
 });
 
-test('常驻语义：已启用同名重复和空正文拒绝，停用副本与相同正文不重复注入', async () => {
-  await withEnv(async e => {
-    const rule = sharedDepthRules()[0];
-    e.rules.push(rule, { ...copy(rule), uid: 901, name: ' 规则｜叙事与知情 ' });
-    await assert.rejects(livePromptConfig(e.state(), '更新', 'worker'), /已启用常驻规则重复/);
-    e.rules.at(-1).enabled = false;
-    let config = await livePromptConfig(e.state(), '更新', 'worker');
-    assert.equal(config.injects.filter(prompt => prompt.content === rule.content).length, 1);
-    rule.content = '   ';
-    await assert.rejects(livePromptConfig(e.state(), '更新', 'worker'), /已启用常驻规则为空/);
-    rule.content = '相同的共享说明';
-    e.rules.push({ ...copy(rule), uid: 902, name: '规则｜关系生态' });
-    config = await livePromptConfig(e.state(), '更新', 'worker');
-    assert.equal(config.injects.filter(prompt => prompt.content === rule.content).length, 1);
-  });
+test('常驻语义不再由前端按名称去重或排序，原生开关保留',async()=>{
+ await withEnv(async e=>{const shared=sharedDepthRules()[0];e.rules.push(shared,{...copy(shared),uid:999,enabled:false});
+ await e.runtime.phoneAction({kind:'refresh',id:'chat'});
+ assert.equal(sentPrompts(e.calls[0].config).filter(m=>m.content===shared.content).length,1);
+ assert.equal(e.rules.at(-1).enabled,false);});
 });
 
 test('常驻语义：读取世界书期间切换聊天或绑定世界书，迟到内容不返回也不缓存', async () => {
@@ -4174,16 +4125,16 @@ test('常驻语义：读取世界书期间切换聊天或绑定世界书，迟�
     const waiting = deferred();
     try {
       global.getWorldbook = async () => waiting.promise;
-      const pending = livePromptConfig(e.state(), '更新', 'worker');
+      const pending = variableRulePrompts();
       if (change === '聊天') e.chat = '另一个聊天';
       else global.getCharWorldbookNames = () => ({ primary: '另一本世界书' });
       waiting.resolve(copy(e.rules));
       await assert.rejects(pending, /聊天或世界书已切换/);
       rule.content = '新上下文的当前说明';
       global.getWorldbook = oldRead;
-      const next = await livePromptConfig(e.state(), '更新', 'worker');
-      assert(next.injects.some(prompt => prompt.content === rule.content));
-      assert(!next.injects.some(prompt => prompt.content === '旧上下文的私有说明'));
+      const next = await variableRulePrompts();
+      assert(!next.some(prompt => prompt.content === rule.content));
+      assert(!next.some(prompt => prompt.content === '旧上下文的私有说明'));
       assert.equal(e.calls.length, 0, '失效的提示词读取不请求模型');
     } finally {
       global.getCharWorldbookNames = oldBook;

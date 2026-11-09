@@ -6,17 +6,17 @@ import { finalizeWorld, normalizeWorldAnchorPatches, restoreWorldAnchors } from 
 import { reactive } from 'vue';
 import { sha256 } from './browser-crypto';
 import { requestBrowserLock, type BrowserLock } from './browser-lock';
-import { livePromptConfig } from './prompts';
+import { livePromptConfig, nativePromptConfig, variableRulePrompts } from './prompts';
 import { normalizeGeographicNames } from './地理名称';
 import { normalizeWorldInformation } from './世界资料';
 import { normalizeMapLandmarks } from './地图地标';
 import {
-  prepareInformationCommand, informationSelectionPrompt, finalizeInformationPrompt, applyInformationSelection,
+  prepareInformationCommand, informationSelectionPrompt,
   hasAutomaticInformation, assertInformationPatch, type InformationKind, type InformationMode,
   ensureInformationContext, expandInformationForRetry, InformationNotLoadedError,
-  informationPromptRule,
+  parseInformationSelection, applyInformationSelectionValues,
 } from './knowledge-context';
-import { mergeOpeningTasks, planOpeningCharacters, openingMessage, withOpeningStory } from './opening';
+import { mergeOpeningTasks, planOpeningCharacters, openingMessage } from './opening';
 import { taskReceipt, type UpdateReceipt } from './update-receipt';
 import { planTasks } from './tasks';
 import { pendingUpdateTasks, withUpdateTasks, finalizeUpdateTasks } from './update-tasks';
@@ -41,18 +41,19 @@ import {
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type SettingsChannel, type SettingsScope } from './settings';
 import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
-import { workerTask, storyTask, storyEndingTask, appendVariableSystemPrompts, restorePromptSlot, assertFinalPromptBudget } from './worker-task';
-import { withPromptInstructions, promptContextPrompts, promptVariableRules } from './model-history';
+import { withPromptContext, preparePromptWorldbook } from './prompt-context';
+import { variableResponseBlock, variableResponseSchema } from './variable-response';
+import { withPromptInstructions, promptProjections } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
 import { CandidateIdentityError, isCommittedCandidate } from './committed-candidate';
 import { assertMvuCommandResult } from './mvu-schema';
 import { persistChat } from './chat-persistence';
 import { LIBRARY_KEY, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
-import { prepareCharacterRoster, prepareOpeningCharacterRoster } from './character-roster';
+import { prepareCharacterRoster, prepareOpeningCharacterRoster, characterSelectionContext } from './character-roster';
 import { createProfile, initialConnectionIds } from './creation';
-import { assertDisabledUnchanged, finalizeCharacterContext, taskHasActiveTargets, disabledIdentityPrompt } from './character-activity';
+import { assertDisabledUnchanged, taskHasActiveTargets } from './character-activity';
 import { applyNovelAction, refreshNovelSystem, type NovelAction } from './novel-system';
-import { applyNovelRefresh, novelRefreshPrompt, finalizeNovelRefreshPrompt, type NovelRefreshTarget } from './novel-refresh';
+import { applyNovelRefresh, novelRefreshPrompt, type NovelRefreshTarget } from './novel-refresh';
 const normalizeRuntimeWorld = (state: State): State =>
   normalizeWorldInformation(normalizeMapLandmarks(normalizeGeographicNames(state)));
 
@@ -252,12 +253,13 @@ export function createRuntime() {
         await saveChat();
       } catch (error) {
         // Failed acknowledgement must not remove the only local recovery record.
-        // Keep newly created records; restore only this operation's null clears.
+        // 清除日志与原请求基线交接同属一次保存，失败时一起保留原恢复依据。
         if (!disposed && SillyTavern.getCurrentChatId() === boundChat) {
           requireWriter();
           const current = getVariables({ type: 'chat' });
           const restore = Object.fromEntries(Object.keys(saved)
-            .filter(key => saved[key] === null && current[key] === null && previous[key] != null)
+            .filter(key => previous[key] != null && ((saved[key] === null && current[key] === null) ||
+              (key === '澄湾失败请求' && saved.澄湾待确认提交 === null && equal(current[key], saved[key]))))
             .map(key => [key, previous[key]]));
           if (Object.keys(restore).length) await replaceVariables({ ...current, ...restore }, { type: 'chat' });
         }
@@ -314,6 +316,7 @@ export function createRuntime() {
     draft: State;
     action: PhoneAction;
     reply?: string;
+    replyFormat?: 'structured';
     candidate?: State;
     source?: MessageSource;
   } | null = getVariables({ type: 'chat' }).澄湾待更新手机 ?? null;
@@ -352,9 +355,9 @@ export function createRuntime() {
       throw Error('正文保存读回期间已被编辑，保留原请求供检查');
     await setMessages([{ message_id: p.replyFloor!, extra }], { refresh: 'affected' });
   }
-  async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, id: string) {
+  async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, id: string, structured = false) {
     try {
-      return await parseCandidate(text, envelope);
+      return await parseCandidate(structured ? variableResponseBlock(text) : text, envelope);
     } catch (error) {
       // Keep the actual response and stack in the chat, outside stat_data/prompts.
       // A retry may request a new response, but must not erase the failed evidence.
@@ -383,7 +386,13 @@ export function createRuntime() {
     },
     journal: async value => {
       requireWriter();
-      await patchChat({ 澄湾待确认提交: value });
+      const previous = getVariables({ type: 'chat' }).澄湾待确认提交;
+      if (value === null && recoverablePreparationJournal(previous)) {
+        const resumed = { ...failedSend!, context: activeContext() };
+        // 原请求的新基线与清除调度日志同次保存，避免二者之间失败后丢失衔接依据。
+        await patchChat({ 澄湾待确认提交: null, 澄湾失败请求: resumed });
+        failedSend = resumed;
+      } else await patchChat({ 澄湾待确认提交: value });
     },
   });
   function refreshMessages() {
@@ -487,7 +496,6 @@ export function createRuntime() {
     requireWriter();
     // Independent forms may finish in either order; only adopt the saved channel.
     Object.assign(settings, value);
-    if (channel && channel !== 'general' && channel !== 'atmosphere') await settingsController.syncRules(settings);
     view.settingsWarning = warning;
     return warning;
   }
@@ -500,7 +508,6 @@ export function createRuntime() {
     else if (channel === 'information') settings.information = value.information;
     else if (channel) settings[channel] = value[channel];
     else Object.assign(settings, value);
-    if (channel !== 'atmosphere') await settingsController.syncRules(settings);
     view.settingsWarning = warning;
     return warning;
   }
@@ -587,7 +594,7 @@ export function createRuntime() {
       if (!before._系统.提交记录[submissionId]) {
         const created = createProfile(before, payload);
         const prepared = prepareOpeningCharacterRoster(created, getVariables({ type: 'chat' })[LIBRARY_KEY],
-          settings.characterRoster, initialConnectionIds(payload));
+          settings.characterRoster, initialConnectionIds(payload), settings.characterAuto && settings.informationAuto ? [] : undefined);
         if (prepared) await patchChat({ [LIBRARY_KEY]: prepared.library });
         assertContext(expected, activeContext());
         await service.commit(expected, submissionId, () => planTasks(refreshNovelSystem(prepared?.state ?? created)), true);
@@ -638,20 +645,38 @@ export function createRuntime() {
     return failed?.id === id && String(failed.error).includes('请先展开资料')
       ? '\n上一份结算请求需要先展开已有资料：' + String(failed.error).split('：').at(-1) : '';
   }
-  async function selectInformation(before: State, input: string, key: string, retain = false) {
+  async function selectInformation(before: State, input: string, key: string, retain = false, action?: PhoneAction) {
     if (!settings.informationAuto) return before;
-    if (before._系统.资料加载.选择依据 === key || !hasAutomaticInformation(before))
+    const library = getVariables({ type: 'chat' })[LIBRARY_KEY];
+    const characters = settings.characterAuto ? characterSelectionContext(before, library, settings.characterRoster, input, action) : undefined;
+    const chooseCharacters = characters && Object.keys(characters.目录).length > 0;
+    if (before._系统.资料加载.选择依据 === key || (!hasAutomaticInformation(before) && !chooseCharacters))
       return ensureInformationContext(before, input);
     const api = informationApi(settings);
     validateApi(api, '资料选择');
     const expected = activeContext(), source = messageSource();
-    const config = informationSelectionPrompt(before, input, source.filter(item => item.role !== 'system'));
+    const quotas = { 地点: settings.locationRoster, 组织: settings.organizationRoster };
+    const config = informationSelectionPrompt(before, input, source.filter(item => item.role !== 'system'),
+      { quotas, characters: chooseCharacters ? characters : undefined });
     config.custom_api = apiConnection(api);
     const reply = await request(config, before,
-      true, api.retries, api.sendPreset, 'knowledge');
+      true, api.retries, 'knowledge');
     assertContext(expected, activeContext());
     assertMessageSource(source);
-    return ensureInformationContext(applyInformationSelection(before, reply, key, retain), input);
+    const selection = parseInformationSelection(reply, !!chooseCharacters);
+    let selected = applyInformationSelectionValues(before, selection, key, retain, quotas, input);
+    const prepared = chooseCharacters
+      ? characters.开局
+        ? prepareOpeningCharacterRoster(selected, library, settings.characterRoster, undefined, selection.人物!, characters.保留人物id)
+        : prepareCharacterRoster(selected, library, input, action, settings.characterRoster, selection.人物!)
+      : null;
+    if (prepared) {
+      assertContext(expected, activeContext());
+      assertMessageSource(source);
+      await patchChat({ [LIBRARY_KEY]: prepared.library });
+      selected = planTasks(prepared.state);
+    }
+    return ensureInformationContext(selected, input);
   }
   async function scheduleInformation(input: string, key: string) {
     const expected = activeContext(), before = Schema.parse(service.host.read(expected.floor).stat_data);
@@ -661,124 +686,39 @@ export function createRuntime() {
     await service.commit(expected, uid('information_selection'), () => selected);
     refresh();
   }
-  async function requestOnce(config: GenerateConfig, state: State, extra = false, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
+  async function requestOnce(config: GenerateConfig, state: State, extra = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
     generationId = uid('generation');
-    const marker = `[chengwan-${purpose === 'knowledge' ? 'knowledge' : extra ? purpose === 'novel' ? 'novel' : 'worker' : 'story'}:${generationId}]`;
-    // Capture this saved preference once per API call, including a manual retry.
-    // Keep native preset/worldbook/history positions; finalizers place this extra system before the channel task.
-    const atmosphere = atmospherePrompt(settings.atmosphere);
-    const requestConfig = atmosphere ? { ...config, injects: [atmosphere, ...(config.injects ?? [])] } : config;
-    const presetSelection = purpose === 'knowledge' && sendPreset;
-    const taskSlot = `[valoran-information-task:${generationId}]`;
-    const contextSlot = `[valoran-context:${generationId}]`;
-    const contextPrompts = promptContextPrompts.get(config) ?? [];
-    const contextSet = new Set(contextPrompts);
-    const variableRules = extra && purpose === 'variables' ? promptVariableRules.get(config) ?? [] : [];
-    const variableRuleSet = new Set(variableRules);
-    const extraPrompts = (requestConfig.injects ?? []).filter(prompt => !contextSet.has(prompt) && !variableRuleSet.has(prompt));
-    // Use the state that produced this request, including an unpublished phone draft.
-    const requestState = Schema.parse(state);
-    const requestId = generationId;
-    let preparationError: unknown;
-    const taskGuard = listen(tavern_events.CHAT_COMPLETION_SETTINGS_READY, async data => {
-      if (!data.messages.some((m: any) => typeof m.content === 'string' && m.content.includes(marker))) return;
-      try {
-        // Only this request needs native positions plus a trailing system contract.
-        // strict/semi/single would rewrite those roles; leave the global setting intact.
-        data.custom_prompt_post_processing = '';
-        // Background channels return data directly. Honor the preset transport's caller opt-out from story tool wrapping.
-        if (extra) data.tool_choice = 'none';
-        const transport = { chat_completion_source: data.chat_completion_source, use_sysprompt: data.use_sysprompt };
-        if (purpose === 'knowledge') {
-          finalizeInformationPrompt(data.messages, marker, requestConfig, sendPreset, taskSlot, transport);
-          await assertFinalPromptBudget(data);
-          return;
-        }
-        if (purpose === 'novel') {
-          finalizeNovelRefreshPrompt(data.messages, marker, requestConfig, transport);
-          await assertFinalPromptBudget(data);
-          return;
-        }
-        finalizeCharacterContext(data.messages, requestState, extra, { contextSlot, constraints: false });
-        restorePromptSlot(data.messages, contextSlot, contextPrompts.map(({ role, content }) => ({ role, content })));
-        const input = extraPrompts.filter(prompt => prompt.role === 'user').map(({ content }) => ({ role: 'user', content }));
-        if (extra && requestConfig.user_input?.trim()) input.push({ role: 'user', content: requestConfig.user_input });
-        restorePromptSlot(data.messages, marker, input);
-        const disabled = disabledIdentityPrompt(requestState, extra ? [...data.messages, ...extraPrompts] : undefined);
-        const instructions = [
-          { content: informationPromptRule },
-          ...(disabled ? [{ content: disabled }] : []),
-          ...extraPrompts.filter(prompt => prompt.role !== 'user'),
-          { content: extra ? workerTask : storyTask },
-          ...variableRules,
-        ];
-        appendVariableSystemPrompts(data.messages, instructions, transport);
-        // This explicit writing preference follows the preset/history even when a transport flattens their roles.
-        if (!extra) data.messages.push({ role: 'user', content: storyEndingTask });
-        await assertFinalPromptBudget(data);
-      } catch (error) {
-        // Tavern logs listener exceptions and continues. Abort only this request,
-        // then return the original preparation error through the existing retry UI.
-        preparationError = error;
-        stopGenerationById(requestId);
-      }
-    });
-    config = { ...config,
-      injects: extra ? [] : [{ role: 'system', position: 'in_chat', depth: 0, content: contextSlot, should_scan: false }],
-      user_input: extra ? marker : `${config.user_input ?? ''}\n${marker}` };
     const startedEpoch = epoch;
     try {
-      const workerPrompts: RolePrompt[] = presetSelection
-        ? [{ role: 'system', content: taskSlot }]
-        : extra && purpose === 'variables' ? [{ role: 'system', content: contextSlot }] : [];
       requireWriter();
       view.phase = purpose === 'knowledge' ? 'information' : purpose === 'novel' ? 'novel' : extra ? 'variables' : 'story';
-      const result = extra
-        ? sendPreset
-          ? await generate({
-              ...config,
-              injects: [],
-              overrides: {
-                ...config.overrides,
-                chat_history: { with_depth_entries: false, prompts: workerPrompts },
-              },
-              generation_id: generationId,
-              should_stream: false,
-            })
-          : await generateRaw({
-              ...config,
-              injects: [],
-              ordered_prompts: [
-                ...(['novel', 'knowledge'].includes(purpose) ? [] : [
-                  'world_info_before', 'char_description', 'char_personality', 'scenario', 'world_info_after',
-                ] as BuiltinPrompt[]),
-                ...workerPrompts,
-                'user_input',
-              ],
-              generation_id: generationId,
-              should_stream: false,
-            })
-        : await generate({ ...config, generation_id: generationId, should_stream: true });
-      if (preparationError) throw preparationError;
+      const native = extra ? nativePromptConfig(config) : { user_input: config.user_input ?? '' };
+      const injects = extra && purpose === 'variables' ? await variableRulePrompts() : [];
+      const atmosphere = atmospherePrompt(settings.atmosphere);
+      if (atmosphere) injects.push(atmosphere);
+      if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
+      const result = await withPromptContext({ purpose: extra ? purpose : 'story', state,
+        projection: extra ? promptProjections.get(config) : undefined }, () => generate({
+          ...native, ...(injects.length ? { injects } : {}), generation_id: generationId!,
+          should_stream: extra ? false : getPreset('in_use').settings.should_stream,
+        }));
+      if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
       requireWriter();
       view.phase = 'validating';
       if (typeof result !== 'string' || !result.trim()) throw Error('生成未返回有效正文');
       if (!extra && !stripProtocol(result)) throw Error('主模型没有返回剧情正文；请重试正文生成');
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
       return result;
-    } catch (error) {
-      throw preparationError ?? error;
     } finally {
-      taskGuard?.stop();
       generationId = null;
     }
   }
-  async function request(config: GenerateConfig, state: State, extra = false, attempts = 0, sendPreset = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
+  async function request(config: GenerateConfig, state: State, extra = false, attempts = 0, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
     let error: unknown;
     for (let index = 0; index <= attempts; index++) {
       if (cancelled || disposed) throw Error('生成已取消');
       try {
-        return await requestOnce(config, state, extra, sendPreset, purpose);
+        return await requestOnce(config, state, extra, purpose);
       } catch (e) {
         error = e;
         if (cancelled || disposed) throw e;
@@ -789,27 +729,32 @@ export function createRuntime() {
   }
   async function requestUpdate(config: GenerateConfig, api: ApiSettings, name: string, state: State) {
     validateApi(api, name);
-    await settingsController.syncRules(settings);
     console.info('[瓦洛兰变量更新] 开始请求', name);
     config.custom_api = apiConnection(api);
-    return request(config, state, true, api.retries, api.sendPreset);
+    config.json_schema = variableResponseSchema;
+    return request(config, state, true, api.retries);
   }
   async function requestScopedUpdate(
     before: State, envelope: Mvu.MvuData, makeConfig: (state: State) => Promise<GenerateConfig>,
     api: ApiSettings, name: string, id: string, saveContext: (state: State) => Promise<void>, cachedReply?: string,
-    receiveReply?: (text: string) => Promise<void>, rejectReply?: () => void,
+    receiveReply?: (text: string, structured: boolean) => Promise<void>, rejectReply?: () => void,
+    cachedStructured = false,
   ) {
     // Retry the variable handoff once with the missing records. Never regenerate the story or apply the rejected patch.
     for (let attempt = 0; attempt < 2; attempt++) {
-      const text = attempt === 0 && cachedReply !== undefined ? cachedReply : await requestUpdate(await makeConfig(before), api, name, before);
-      await receiveReply?.(text);
+      const cached = attempt === 0 && cachedReply !== undefined;
+      const text = cached ? cachedReply : await requestUpdate(await makeConfig(before), api, name, before);
+      // Old persisted phone replies used tagged MVU text. New responses must
+      // obey the requested structured transport; never silently accept prose.
+      const structured = !cached || cachedStructured;
+      await receiveReply?.(text, structured);
       try {
-        const parsed = await parseUpdate(text, { ...envelope, stat_data: before }, name, id);
+        const parsed = await parseUpdate(text, { ...envelope, stat_data: before }, name, id, structured);
         return { before, text, parsed };
       } catch (error) {
         rejectReply?.();
         if (!(error instanceof InformationNotLoadedError) || !settings.informationAuto || attempt !== 0) throw error;
-        const expanded = expandInformationForRetry(before, updateBlock(text).commands);
+        const expanded = expandInformationForRetry(before, updateBlock(structured ? variableResponseBlock(text) : text).commands);
         if (expanded === before) throw error;
         before = expanded;
         await saveContext(before);
@@ -872,7 +817,7 @@ export function createRuntime() {
     // remains intact; hidden model thinking must not become settlement facts.
     const narrative = stripProtocol(formatAsTavernRegexedString(p.text, 'ai_output', 'prompt', { depth: 0 }));
     if (!narrative) throw Error('主模型回复没有可交接的正文；已保留原始回复，变量 API 未调用');
-    const instruction = `正文已经完整输出。结算已完成正文及本次授权的后台生活、维护任务；未实现的玩家意图不算已发生，不续写面向玩家的正文。\n玩家本轮输入：\n${userText}\n已完成正文：\n${narrative}`;
+    const instruction = `正文已经完整输出。结算已完成正文及本次授权的后台生活、维护任务；未实现的玩家意图不算已发生，不续写面向玩家的正文。\n本轮玩家输入（未在正文实现的行动不算已发生）：\n${userText}\n\n本轮已完成正文（事实资料）：\n${narrative}`;
     const retryHint = informationRetryHint(p.id);
     if (settings.informationAuto) {
       // Completed narrative supplies explicit IDs/names. Expand those existing
@@ -886,24 +831,9 @@ export function createRuntime() {
       }
     }
     const makeUpdateConfig = async (state: State) => {
-      const updateConfig = withUpdateTasks(await livePromptConfig(state, instruction, 'worker'), state, taskIds);
-      updateConfig.user_input = '';
-      updateConfig.injects = [
-        ...(updateConfig.injects ?? []),
-        {
-          role: 'user',
-          position: 'in_chat',
-          depth: 0,
-          content: `本轮玩家输入（未在正文实现的行动不算已发生）：\n${userText}`,
-        },
-        {
-          role: 'user',
-          position: 'in_chat',
-          depth: 0,
-          content: `本轮已完成正文（事实资料）：\n${narrative}`,
-        },
-      ];
-      return updateConfig;
+      // Keep the settlement instruction together with its facts; rebuilding the
+      // input from facts alone loses the boundary between settlement and story.
+      return withUpdateTasks(await livePromptConfig(state, instruction, 'worker'), state, taskIds);
     };
     console.info('[瓦洛兰正文变量] 交接正文', { floor: p.replyFloor, characters: narrative.length });
     const settled = await requestScopedUpdate(before, p.envelope, makeUpdateConfig, settings.variable, '正文变量', p.id,
@@ -1039,8 +969,41 @@ export function createRuntime() {
     let openingTaskId: string | undefined;
     let inputSaved = !append;
     try {
+      assertContext(context, activeContext());
+      requestSource = messageSource();
+      if (append) {
+        const inputFloor = getLastMessageId() + 1;
+        await createMessages([{ role: 'user', message: text, extra: intent ? { cw_use_intent: intent } : {} }], {
+          refresh: 'affected',
+        });
+        requestSource = [...requestSource, { id: inputFloor, role: 'user', swipe: 0,
+          text, archive: text, candidate: text }];
+        assertMessageSource(requestSource);
+        inputSaved = true;
+        // Publish the saved floor before acknowledging input; disk/model work may take longer.
+        refreshMessages();
+        onSent?.();
+        await saveChat();
+      }
+      // The player's saved floor must appear before worldbook I/O and roster commits.
+      // Preparation still finishes before constructing prompts or calling the model.
+      await prepareWorldInformation();
+      context = activeContext();
+      envelope = copy(service.host.read(context.floor));
       if (opening) {
         await scheduleOpeningCharacters();
+        context = activeContext();
+        envelope = copy(service.host.read(context.floor));
+      } else if (!(settings.characterAuto && settings.informationAuto)) {
+        await scheduleCharacters(text);
+        context = activeContext();
+        envelope = copy(service.host.read(context.floor));
+      }
+      assertMessageSource(requestSource);
+      await scheduleInformation(text, 'story:' + submissionId);
+      context = activeContext();
+      envelope = copy(service.host.read(context.floor));
+      if (opening) {
         context = activeContext();
         envelope = copy(service.host.read(context.floor));
         let state = Schema.parse(envelope.stat_data);
@@ -1067,51 +1030,11 @@ export function createRuntime() {
           envelope = copy(service.host.read(context.floor));
         }
       }
-      assertContext(context, activeContext());
-      requestSource = messageSource();
-      if (append) {
-        const inputFloor = getLastMessageId() + 1;
-        await createMessages([{ role: 'user', message: text, extra: intent ? { cw_use_intent: intent } : {} }], {
-          refresh: 'affected',
-        });
-        requestSource = [...requestSource, { id: inputFloor, role: 'user', swipe: 0,
-          text, archive: text, candidate: text }];
-        assertMessageSource(requestSource);
-        inputSaved = true;
-        // Publish the saved floor before acknowledging input; disk/model work may take longer.
-        refreshMessages();
-        onSent?.();
-        await saveChat();
-      }
-      // The player's saved floor must appear before worldbook I/O and roster commits.
-      // Preparation still finishes before constructing prompts or calling the model.
-      await settingsController.syncRules(settings);
-      await prepareWorldInformation();
-      context = activeContext();
-      envelope = copy(service.host.read(context.floor));
-      if (!opening) {
-        await scheduleCharacters(text);
-        context = activeContext();
-        envelope = copy(service.host.read(context.floor));
-      }
-      assertMessageSource(requestSource);
-      await scheduleInformation(text, 'story:' + submissionId);
-      context = activeContext();
-      envelope = copy(service.host.read(context.floor));
       if (cancelled || disposed) throw Error('生成已停止');
       assertMessageSource(requestSource);
       refresh();
       const storyState = Schema.parse(envelope.stat_data);
-      const storyConfig = await livePromptConfig(
-          storyState,
-          text,
-          'story',
-          opening ? Object.keys(envelope.stat_data.角色) : undefined,
-        );
-      const reply = await request({
-        ...(opening ? withOpeningStory(storyConfig, storyState, openingTaskId) : storyConfig),
-        user_input: continuation ? text : '',
-      }, storyState);
+      const reply = await request({ user_input: continuation ? text : '' }, storyState);
       assertContext(context, activeContext());
       assertMessageSource(requestSource);
       pending = {
@@ -1216,16 +1139,14 @@ export function createRuntime() {
       const rosterJournal = getVariables({ type: 'chat' }).澄湾待确认提交;
       if (rosterJournal?.rollbackOnFailure && ['character_roster_', 'opening_roster_'].some(prefix =>
         String(rosterJournal.commitId).startsWith(prefix))) {
-        const resumeStory = failedSend && equal(failedSend.context, rosterJournal.context);
+        const resumeStory = failedSend && recoverablePreparationJournal(rosterJournal);
         if (failedSend && !resumeStory) throw Error('自动名单恢复与原请求上下文不一致，请检查当前候选');
+        if (resumeStory) assertMessageSource(failedSend!.source);
         libraryView(Schema.parse(rosterJournal.candidate), getVariables({ type: 'chat' })[LIBRARY_KEY]);
         await service.commit(rosterJournal.context, rosterJournal.commitId, () => Schema.parse(rosterJournal.candidate), true);
         await service.host.journal(null);
         refresh();
-        if (resumeStory) {
-          failedSend!.context = activeContext();
-          await saveFailed();
-        } else {
+        if (!resumeStory) {
           const original = intents.find(item => item.kind === 'phone' && item.action);
           if (original?.action) {
             assertMessageSource(original.source, undefined, true);
@@ -1236,13 +1157,12 @@ export function createRuntime() {
       const informationJournal = getVariables({ type: 'chat' }).澄湾待确认提交;
       if (failedSend?.id && String(informationJournal?.commitId).startsWith('information_selection_') &&
           informationJournal.candidate?._系统?.资料加载?.选择依据 === 'story:' + failedSend.id) {
-        assertContext(failedSend.context, informationJournal.context);
+        if (!recoverablePreparationJournal(informationJournal))
+          throw Error('资料调度恢复与原请求上下文不一致，请检查当前候选');
         assertMessageSource(failedSend.source);
         await service.commit(informationJournal.context, informationJournal.commitId,
           () => Schema.parse(informationJournal.candidate));
         await service.host.journal(null);
-        failedSend.context = activeContext();
-        await saveFailed();
         refresh();
       }
       if (pending?.replyFloor !== undefined) await discardStaleRecovery();
@@ -1282,9 +1202,12 @@ export function createRuntime() {
           await service.host.journal(null);
           setError('');
         } else {
-          const item = intents.find(intent => intent.kind === 'novel');
-          if (!item?.target) throw Error('没有待恢复提交，请重新执行原操作');
+          const item = intents.find(intent => intent.kind === 'novel' || intent.kind === 'phone');
+          if (!item) throw Error('没有待恢复提交，请重新执行原操作');
           assertMessageSource(item.source, undefined, true);
+          // 名单快照保存可能早于 phone pending/journal，原排队操作仍保留身份。
+          if (item.kind === 'phone' && item.action) return await phoneAction(item.action, item.id);
+          if (!item.target) throw Error('待恢复操作缺少请求内容');
           await refreshNovelContent(item.target, item.id);
         }
       }
@@ -1297,11 +1220,16 @@ export function createRuntime() {
       refresh();
     }
   }
-  function stop() {
+  function cancelCurrentGeneration() {
+    if (cancelled) return;
     cancelled = true;
     epoch++;
+    view.streaming = '';
     if (view.phoneRequest && view.busy) view.phoneRequest.status = 'stopping';
     scheduler.cancelWaiting('已停止；尚未发送的操作保留供手动恢复');
+  }
+  function stop() {
+    cancelCurrentGeneration();
     if (generationId) stopGenerationById(generationId);
   }
   async function discardPending() {
@@ -1441,6 +1369,7 @@ export function createRuntime() {
         if (!alreadyCommitted) {
           validateApi(settings.phone, '手机');
           await prepareWorldInformation();
+          // Dispatch validates active recipients before the combined selector sees the candidate action.
           await scheduleCharacters('', action);
         }
         assertPhoneWritable();
@@ -1479,7 +1408,7 @@ export function createRuntime() {
       if (!p.candidate && !p.reply) {
         const selected = await selectInformation(p.draft,
           '玩家手机操作与待结算状态：' + JSON.stringify(action) + informationRetryHint(p.id),
-          'phone:' + p.id + informationRetryHint(p.id), !!informationRetryHint(p.id));
+          'phone:' + p.id + informationRetryHint(p.id), !!informationRetryHint(p.id), action);
         assertPhoneWritable();
         if (selected !== p.draft) {
           p.draft = selected;
@@ -1519,19 +1448,22 @@ export function createRuntime() {
             assertPhoneWritable();
             p.draft = state;
             delete p.reply;
+            delete p.replyFormat;
             await savePhone();
           },
           p.reply,
-          async text => {
+          async (text, structured) => {
             assertPhoneWritable();
             rejectedReply = false;
             p.reply = text;
+            p.replyFormat = structured ? 'structured' : undefined;
             setPhoneRequest(p, 'settling');
             await savePhone();
           },
           () => {
             rejectedReply = true;
           },
+          p.replyFormat === 'structured',
         );
         assertPhoneWritable();
         draft = settled.before;
@@ -1570,7 +1502,10 @@ export function createRuntime() {
       return confirmedPhoneResult(p, startedEpoch);
     } catch (e) {
       const invalidated = cancelled || startedEpoch !== epoch;
-      if (pendingPhone && rejectedReply && !pendingPhone.candidate) delete pendingPhone.reply;
+      if (pendingPhone && rejectedReply && !pendingPhone.candidate) {
+        delete pendingPhone.reply;
+        delete pendingPhone.replyFormat;
+      }
       if (invalidated) view.phoneRequest = null;
       else if (pendingPhone) setPhoneRequest(pendingPhone, 'failed');
       setError(invalidated ? '' : e);
@@ -1623,7 +1558,7 @@ export function createRuntime() {
         const config = novelRefreshPrompt(state, target);
         console.info('[瓦洛兰奇遇] 开始刷新', target);
         config.custom_api = apiConnection(settings.phone);
-        const text = await request(config, state, true, settings.phone.retries, false, 'novel');
+        const text = await request(config, state, true, settings.phone.retries, 'novel');
         assertNovelWritable();
         view.updating = true;
         view.phase = 'saving';
@@ -1827,6 +1762,20 @@ export function createRuntime() {
     await persistIntents([id]);
   }
   const listeners: EventOnReturn[] = [];
+  function recoverablePreparationJournal(journal: any, current?: Context) {
+    if (!failedSend?.id || !journal) return false;
+    const roster = journal.rollbackOnFailure && ['character_roster_', 'opening_roster_'].some(prefix =>
+      String(journal.commitId).startsWith(prefix));
+    const information = String(journal.commitId).startsWith('information_selection_') &&
+      journal.candidate?._系统?.资料加载?.选择依据 === 'story:' + failedSend.id;
+    if (!roster && !information) return false;
+    const actual = current ?? activeContext();
+    const original = equal(failedSend.context, journal.context);
+    if (original && equal(actual, journal.context)) return true;
+    return (original || equal(failedSend.context, actual)) &&
+      ['chat', 'floor', 'swipe', 'branch'].every(key => actual[key as keyof Context] === journal.context[key]) &&
+      equal(service.host.read(actual.floor).stat_data, journal.candidate);
+  }
   async function discardStaleRecovery() {
     const previous = pending;
     const current = activeContext();
@@ -1854,7 +1803,10 @@ export function createRuntime() {
     const stalePhone = pendingPhone && !(phoneCommitted
       ? sourceMatches(pendingPhone.source)
       : valid(pendingPhone.context, pendingPhone.source));
-    const staleFailed = failedSend && !valid(failedSend.context, failedSend.source);
+    const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
+    // 调度可能已写入而保存未确认。原日志证明这次版本变化，retry 会先确认它。
+    const prepared = recoverablePreparationJournal(journal, current) && sourceMatches(failedSend!.source);
+    const staleFailed = failedSend && !valid(failedSend.context, failedSend.source) && !prepared;
     if (!stalePending && !stalePhone && !staleFailed) return;
     if (stalePending) pending = null;
     if (stalePhone) pendingPhone = null;
@@ -1978,25 +1930,26 @@ export function createRuntime() {
     view.settingsWarning = loadedSettings.warning;
     refresh();
     if (view.managementPending) setError('角色管理保存尚未确认，请点击重试；恢复快照已独立保留');
-    if (!view.readOnly) await settingsController.recoverLegacyRules();
-    if (!view.readOnly) await settingsController.syncRules(settings);
-    if (
-      !view.readOnly &&
-      Object.values(view.data?._系统.任务 ?? {}).some(t => ['生成中', '待校验', '待提交'].includes(t.状态))
-    ) {
-      await service.commit(activeContext(), uid('task_recovery'), s => {
-        for (const t of Object.values(s._系统.任务))
-          if (['生成中', '待校验', '待提交'].includes(t.状态)) {
-            t.状态 = '失败';
-            t.错误 = '上次任务已中断，等待手动重试';
-          }
-      });
-      refresh();
+    if (!view.readOnly) {
+      await settingsController.recoverLegacyRules();
+      await preparePromptWorldbook();
     }
-    // Task recovery can change the committed version. Rebuild pending contexts
-    // afterwards so a fresh recovery is not stale before the first retry.
+    if (!view.readOnly) await settingsController.removeLegacyAtmosphere();
     if (!view.readOnly) {
       try {
+        // 未完成请求拥有原版本；中断任务整理不能先提交新版本，使原正文失去恢复依据。
+        if (!pending && !pendingPhone && !failedSend && !getVariables({ type: 'chat' }).澄湾待确认提交 &&
+            Object.values(view.data?._系统.任务 ?? {}).some(t => ['生成中', '待校验', '待提交'].includes(t.状态)) &&
+            !firstUnsettledNarrative()) {
+          await service.commit(activeContext(), uid('task_recovery'), s => {
+            for (const t of Object.values(s._系统.任务))
+              if (['生成中', '待校验', '待提交'].includes(t.状态)) {
+                t.状态 = '失败';
+                t.错误 = '上次任务已中断，等待手动重试';
+              }
+          });
+          refresh();
+        }
         await discardStaleRecovery();
         await restoreOrphanedNarrative();
       } catch (error) {
@@ -2009,9 +1962,13 @@ export function createRuntime() {
     if (pending || failedSend || pendingPhone) setError('上次请求尚未完成，请点击重试');
     listeners.push(
       listen(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, id) => {
-        if (id === generationId && view.operation === 'story' && !view.updating) view.streaming = text;
+        if (!cancelled && !disposed && id === generationId && view.operation === 'story' && !view.updating) view.streaming = text;
       }),
     );
+    listeners.push(listen(tavern_events.GENERATION_STOPPED, (id?: string) => {
+      // Helper includes its generation id; native Tavern's global stop has none.
+      if (generationId && (id === undefined || id === generationId)) cancelCurrentGeneration();
+    }));
     listeners.push(listen(Mvu.events.VARIABLE_UPDATE_ENDED, (next, old) => {
       if (!old?.stat_data || !next?.stat_data) return;
       try { assertDisabledUnchanged(Schema.parse(old.stat_data), Schema.parse(next.stat_data)); }

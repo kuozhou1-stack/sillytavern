@@ -4,13 +4,36 @@ import { copy, uid, type State } from './core';
 import { validateOpeningResult } from './opening';
 import { taskHasActiveTargets } from './character-activity';
 export const isCharacterLifeTask = (task: { 类别: string }) => ['生活更新', '自然融入', '升格'].includes(task.类别);
+export function hasCurrentCharacterTargets(state: State, task: State['_系统']['任务'][string]) {
+  return taskHasActiveTargets(state, task) && task.目标id.every(
+    id => state.角色[id]._管理.版本 === task.目标版本[id],
+  );
+}
+
+export function characterLifeWork(state: State, id: string) {
+  const person = state.角色[id], source = state._系统.来源档案[person._管理.来源档案id ?? ''];
+  const loop = person.层级 === '主要' ? person._更新循环 : null;
+  const date = (t: State['世界']['当前时间']) => t ? `${t.年}-${t.月}-${t.日}` : null;
+  const stale = loop?.上次更新变量时间 && state.世界.当前时间 && date(loop.上次更新变量时间) !== date(state.世界.当前时间);
+  const due = loop && (loop.当前计数 >= (loop.使用统一阈值 ? state._系统.默认更新阈值 : loop.更新阈值) || stale);
+  return person._管理.升格 ? '升格' : source && source.当前融入状态 !== '已融入' ? '自然融入' : due ? '生活更新' : null;
+}
+
+/** 摘要不承担生活工作；建档承担首次融入，普通生活检查不能替代专门意图。 */
+export function coversCharacterLifeWork(
+  state: State, task: State['_系统']['任务'][string] | undefined, id: string,
+  work: NonNullable<ReturnType<typeof characterLifeWork>> = '生活更新',
+) {
+  if (!task) return false;
+  const covers = work === '生活更新' ? isCharacterLifeTask(task)
+    : task.类别 === work || (work === '自然融入' && task.类别 === '建档');
+  return covers && hasCurrentCharacterTargets(state, task) && task.目标id.includes(id);
+}
+
 export function planTasks(state: State): State {
   const s: any = copy(state);
-  const busyTargets = new Set(
-    Object.values(state._系统.任务)
-      .filter(t => ['排队', '生成中', '待校验', '待提交', '失败'].includes(t.状态))
-      .flatMap(t => t.目标id),
-  );
+  const busyTasks = Object.values(state._系统.任务)
+    .filter(t => ['排队', '生成中', '待校验', '待提交', '失败'].includes(t.状态));
   for (const [id, person] of Object.entries(s.角色) as any) {
     // A management action can change the major/minor discriminator before scheduling.
     if (person.层级 === '主要' && (!person.经历 || !person._更新循环)) {
@@ -23,20 +46,10 @@ export function planTasks(state: State): State {
   }
   for (const [id, person] of Object.entries(s.角色) as any) {
     if (s._系统.角色停用标识[id]) continue;
-    if (busyTargets.has(id)) continue;
-    const source = s._系统.来源档案[person._管理.来源档案id];
     const loop = person._更新循环;
-    const date = (t: any) => (t ? `${t.年}-${t.月}-${t.日}` : null);
-    const stale = loop?.上次更新变量时间 && s.世界.当前时间 && date(loop.上次更新变量时间) !== date(s.世界.当前时间);
-    const due = loop && (loop.当前计数 >= (loop.使用统一阈值 ? s._系统.默认更新阈值 : loop.更新阈值) || stale);
-    const category = person._管理.升格
-      ? '升格'
-      : source && source.当前融入状态 !== '已融入'
-        ? '自然融入'
-        : due
-          ? '生活更新'
-          : null;
+    const category = characterLifeWork(s, id);
     if (!category) continue;
+    if (busyTasks.some(task => coversCharacterLifeWork(s, task, id, category))) continue;
     const tid = uid('task');
     s._系统.任务[tid] = {
       类别: category,
@@ -80,7 +93,7 @@ export function validateTaskResult(
       old = before.角色[id];
     if (!person || !old || old._管理.版本 !== task.目标版本[id]) throw Error('目标已替换或删除');
     if (task.类别 === '升格' && person.层级 !== '主要') throw Error('升格候选缺少主要角色结构');
-    person._管理.升格 = false;
+    if (task.类别 === '升格') person._管理.升格 = false;
     if (person.层级 === '主要') {
       person._更新循环.当前计数 = Math.max(
         0,

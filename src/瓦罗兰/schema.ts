@@ -3395,6 +3395,10 @@ export const Schema = z
           组织: z.array(z.string()).prefault([]),
           地点覆盖: z.record(z.string(), z.enum(['展开', '仅名称'])).prefault({}),
           组织覆盖: z.record(z.string(), z.enum(['展开', '仅名称'])).prefault({}),
+          轮候: z.object({
+            地点: z.array(z.string()).prefault([]),
+            组织: z.array(z.string()).prefault([]),
+          }).prefault({}),
           选择依据: z.string().nullable().prefault(null),
           资料版本: z.string().nullable().prefault(null),
         }).prefault({}),

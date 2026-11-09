@@ -1,3 +1,4 @@
+# {{valoran_variables}}
 ---
 变量输出格式:
   rule:
@@ -25,3 +26,4 @@
     ]
     </JSONPatch>
     </UpdateVariable>
+# {{valoran_variables_end}}

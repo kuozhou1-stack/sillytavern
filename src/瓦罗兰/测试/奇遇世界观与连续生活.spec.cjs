@@ -7,7 +7,7 @@ h.require = name => name === 'node:test' ? { test() {} } : originalRequire(name)
 h._compile(fs.readFileSync(file, 'utf8').split('const novelGoodReply =')[0] + '\nmodule.exports={withEnv,seed,Schema};', file);
 const { withEnv, seed, Schema } = h.exports;
 const { novelCreationContext, novelPublicSetting } = require('../运行/novel-context.ts');
-const { novelRefreshPrompt, finalizeNovelRefreshPrompt } = require('../运行/novel-refresh.ts');
+const { novelRefreshPrompt } = require('../运行/novel-refresh.ts');
 const { withUpdateTasks } = require('../运行/update-tasks.ts');
 const { copy } = require('../运行/core.ts');
 const geography = require('../运行/world-geography.json');
@@ -55,16 +55,16 @@ for (const target of ['initial','tasks','shop']) test(`奇遇${target}：世界�
   assert(text.includes('异常入侵度0–9为潜伏')); assert(text.includes('未知不默认平静或灾变'));
   assert(text.includes('任务可提供待发现的线索')); assert(!text.includes('没有提供玩家存档'));
   assert.doesNotThrow(() => JSON.parse(text.split('  format: |-\n')[1].trim())); assert(!text.includes('稀有最多'));
+  const native=require('../运行/prompts.ts').nativePromptConfig(config);assert.equal(native.injects,undefined);
   const marker='[isolated-novel-source]';
-  const messages=[{role:'system',content:'PRIVATE_FULL_STATE'},{role:'user',content:marker}];
-  assert(finalizeNovelRefreshPrompt(messages,marker,config)); assert.equal(messages.length,2); assert.equal(messages.at(-1).role,'system');
-  assert.deepEqual(JSON.parse(messages[0].content).创作参考,novelCreationContext(contextState()));
-  assert(!JSON.stringify(messages).includes('PRIVATE_FULL_STATE'));
+  assert(native.user_input.includes(novelPublicSetting));
+  assert(!native.user_input.includes('PRIVATE_FULL_STATE'));
+  assert.deepEqual(JSON.parse(native.user_input.slice(native.user_input.lastIndexOf('\n\n')+2)).创作参考,novelCreationContext(contextState()));
 });
 test('实际Runtime刷新仍只发一次手机通道请求，保存重试复用原提交和内容', async () => {
   await withEnv(async e => {
     e.update = async config => {
-      const messages=config.finalMessages,data=JSON.parse(messages.find(m=>m.role==='user').content);
+      const messages=config.finalMessages,data=JSON.parse(config.user_input.slice(config.user_input.lastIndexOf('\n\n')+2));
       assert.equal(data.创作参考.当前地区id,'piltover_zaun');assert.equal(data.创作参考.异常入侵度,40);
       assert(!JSON.stringify(messages).includes('PRIVATE_PLAYER_NAME'));
       return JSON.stringify({任务:[{名称:'双城工艺委托',类型:'探索',难度:'稀有',目标:'选择一次公开工艺交流并记录发现'}]});

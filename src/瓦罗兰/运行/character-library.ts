@@ -149,7 +149,8 @@ function enable(state: State, library: CharacterLibrary, revision: LibraryRevisi
   for (const key of ['种族', '当前形态']) if (!Object.hasOwn(expected, key)) expected[key] = null;
   if (!equal(person, expected)) throw Error('恢复资料结构已变化，请保留快照并迁移后重试');
   person._管理.版本 = snapshot.version + 1;
-  person._管理.升格 = false;
+  // 自动待机保留快照中的用户意图，旧任务仍失效；恢复后按新人物版本重新排队。
+  if (!resumeLife) person._管理.升格 = false;
   // Same-save continuity: no import/naturalization, no recreated contacts or relationships.
   person._管理.来源档案id = null;
   person._管理.恢复说明 = `于${JSON.stringify(state.世界.当前时间)}重新开启。当前状态、地点及穿搭为${JSON.stringify(snapshot.pack.来源.导出故事时间)}停用时最后记录；${resumeLife ? '本次轮换须在同次变量结算中接续最后记录至当前时点的自主生活，检查地点、状态、与玩家关系及经历；合理接续已有作息、目标和约定，不强造重大事件或无依据的关系变化，不把后台经历赋予玩家知情' : '仅按恢复后的实际互动确认现状，不补造关闭期间经历'}，不自动加入当前场景。未完成约定保留原事实，按实际发生情况衔接。`;

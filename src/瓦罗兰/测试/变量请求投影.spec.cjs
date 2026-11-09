@@ -39,7 +39,7 @@ test('变量通道不携带卡描述中的开场职责，正文通道仍走原�
   const story = await livePromptConfig(state, '继续剧情', 'story');
   assert.equal(worker.overrides.char_description, '');
   assert.equal(worker.overrides.persona_description, '');
-  assert(!Object.hasOwn(story.overrides, 'char_description'));
+  assert.equal(story.overrides, undefined);
 });
 
 test('生活说明精简后每个任务身份与不同覆盖起点仍完整保留', () => {
@@ -101,7 +101,7 @@ test('建档简表退出，裸角色与变量投影相同的资料不再附加�
     assert(!openingCharacterPrompt(state, 'source', withStory).includes('初始角色关联简表'));
   assert(!promptText(result).includes('初始角色关联简表'));
   assert(!promptText(result).includes('只读来源资料'));
-  assert.equal(promptText(result).split('SOURCE_CHARACTER_SENTINEL').length - 1, 1);
+  assert.equal(JSON.stringify(promptProjections.get(result)).split('SOURCE_CHARACTER_SENTINEL').length - 1, 1);
   assert.deepEqual(state, original);
   assert.deepEqual(exportCharacter(state, 'npc'), exported);
 });

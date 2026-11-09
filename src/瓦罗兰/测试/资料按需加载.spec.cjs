@@ -11,15 +11,15 @@ const harnessText = fs.readFileSync(harnessFile, 'utf8').split('const novelGoodR
 const harness = new Module(harnessFile, module);
 harness.filename = harnessFile;
 harness.paths = Module._nodeModulePaths(__dirname);
-harness._compile(harnessText + '\nmodule.exports = { environment, block, endpoint };', harnessFile);
-const { environment, block, endpoint } = harness.exports;
+harness._compile(harnessText + '\nmodule.exports = { environment, block, endpoint, structuredFixtureReply };', harnessFile);
+const { environment, block, endpoint, structuredFixtureReply } = harness.exports;
 const { Schema } = require(root + '/schema.ts');
 const { SettingsSchema } = require(root + '/运行/settings.ts');
-const { modelState, finalizeCharacterContext } = require(root + '/运行/character-activity.ts');
+const { modelState } = require(root + '/运行/character-activity.ts');
 const { validateModel } = require(root + '/运行/core.ts');
 const {
   effectiveInformationIds, projectWorldInformation, prepareInformationCommand,
-  informationSelectionPrompt, finalizeInformationPrompt, applyInformationSelection,
+  informationSelectionPrompt, applyInformationSelection,
   assertInformationPatch, assertInformationUnchanged, needsInformationSelection,
 } = require(root + '/运行/knowledge-context.ts');
 const version = require(root + '/运行/world-information.json').版本;
@@ -45,31 +45,25 @@ async function withEnv(fn, initial = seed(), config = settings(), beforeStart) {
   e.payloads = [];
   e.select = async () => selectorReply();
   async function finalPayload(config) {
-    const data = { messages: [
-      { role: 'system', content: '<status_current_variable>' + JSON.stringify(e.state()) + '</status_current_variable>' },
-      { role: 'system', content: '模拟酒馆预设/世界书内容' },
-      ...[...(config.injects || []), ...(config.ordered_prompts || []), ...(config.overrides?.chat_history?.prompts || [])]
-        .filter(value => typeof value === 'object').map(value => ({ role: value.role, content: value.content })),
-      { role: 'user', content: config.user_input || '' },
-    ] };
+    const {promptContextText,variableRuleText}=require('../运行/prompt-context.ts');
+    const state=config.overrides?.chat_history?.with_depth_entries===false?'':promptContextText(()=>e.state());
+    const data={messages:[{role:'system',content:'模拟酒馆预设/世界书内容'},
+      ...(state?[{role:'system',content:state}]:[]),
+      ...e.rules.filter(r=>r.enabled).map(r=>({role:'system',content:variableRuleText(r.content)})).filter(r=>r.content),
+      {role:'user',content:config.user_input||''},{role:'system',content:'原生预设尾部'}]};
+    const nativeMessages=structuredClone(data.messages);
     await e.listeners.get('completion_settings')?.(data);
-    e.payloads.push({ selection: config.user_input?.includes('[chengwan-knowledge:'), messages: structuredClone(data.messages) });
+    assert.deepEqual(data.messages,nativeMessages,'所有通道保持原生装配结果');
+    e.payloads.push({stage:e.runtime.view.phase,selection:e.runtime.view.phase==='information',messages:structuredClone(data.messages)});
     return data;
   }
-  global.generate = async config => {
-    await finalPayload(config);
-    e.calls.push({ kind: config.custom_api ? 'preset-update' : 'story', config: structuredClone(config) });
-    return config.custom_api ? e.update(config) : e.story(config);
+  global.generate=async config=>{
+    const data=await finalPayload(config);const final={...config,finalMessages:data.messages};
+    if(e.runtime.view.phase==='information'){e.selected.push(structuredClone(final));return e.select(final);}
+    e.calls.push({kind:e.runtime.view.phase==='story'?'story':'update',config:structuredClone(final)});
+    return structuredFixtureReply(config,await (e.runtime.view.phase==='story'?e.story(final):e.update(final)));
   };
-  global.generateRaw = async config => {
-    await finalPayload(config);
-    if (config.user_input?.includes('[chengwan-knowledge:')) {
-      e.selected.push(structuredClone(config));
-      return e.select(config);
-    }
-    e.calls.push({ kind: 'update', config: structuredClone(config) });
-    return e.update(config);
-  };
+  global.generateRaw=async()=>{throw Error('必须携带预设');};
   beforeStart?.(e);
   await e.runtime.start();
   try { await fn(e); } finally { await e.runtime.dispose(); }
@@ -95,41 +89,22 @@ test('旧存档默认名称目录，手动覆盖与每个候选选择独立，�
   assert.throws(() => prepareInformationCommand(selected, '地点', 'missing', '展开'), /不存在/);
 });
 
-test('资料选择只看名称与本轮输入，最终hook移除酒馆宏和预设全量数据', () => {
-  const state = seed();
-  const config = informationSelectionPrompt(state, '去测试咖啡馆', [
-    { role: 'assistant', text: '<status_current_variable>HIDDEN_RAW</status_current_variable>刚才在街口。<thinking>HIDDEN_THINK</thinking>' },
-  ]);
-  const text = JSON.stringify(config);
-  for (const secret of ['CAFÉ_DETAIL', 'HOME_DETAIL', 'PRIVATE_ACCESS', 'GUILD_DETAIL', 'GUILD_RULE', 'HIDDEN_RAW', 'HIDDEN_THINK'])
-    assert(!text.includes(secret), secret);
-  const marker = '[information-test]';
-  config.user_input += marker;
-  const messages = [{ role: 'system', content: JSON.stringify(state) }, { role: 'user', content: marker }];
-  assert.equal(finalizeInformationPrompt(messages, marker, config), true);
-  assert.equal(messages.length, 2);
-  assert(!JSON.stringify(messages).includes('HOME_DETAIL'));
-  assert(!JSON.stringify(messages).includes(marker));
-  assert(messages[0].content.includes('测试居所'));
-  assert.equal(messages.at(-1).role, 'system');
+test("资料选择只看名称与本轮输入，最终hook移除酒馆宏和预设全量数据（原生输入）",()=>{
+ const c=informationSelectionPrompt(seed(),'本轮输入');const before=structuredClone(c);
+ const result=require('../运行/prompts.ts').nativePromptConfig(c);
+ assert.deepEqual(c,before);assert.equal(result.injects,undefined);
+ assert(result.user_input.includes('本轮输入'));assert(result.user_input.includes('InformationSelection'));
+ assert.equal(result.overrides.chat_history.with_depth_entries,false);
 });
 
-test('正文最终状态与变量状态均裁剪，重复原始状态块不会残留全量资料', () => {
-  const state = applyInformationSelection(seed(), selectorReply(['cafe'], ['guild']), 'turn');
-  const worker = modelState(state);
-  assert.deepEqual(worker.地点.home, { 名称: '测试居所' });
-  assert.equal(worker.地点.cafe.简介, 'CAFÉ_DETAIL');
-  const messages = [
-    { role: 'system', content: '<status_current_variable>' + JSON.stringify(state) + '</status_current_variable>' },
-    { role: 'system', content: '<status_current_variable>' + JSON.stringify(state) + '</status_current_variable>' },
-  ];
-  finalizeCharacterContext(messages, state, false);
-  const final = JSON.stringify(messages);
-  assert(final.includes('CAFÉ_DETAIL'));
-  assert(!final.includes('HOME_DETAIL'));
-  assert.equal(final.match(/<status_current_variable>/g).length, 1);
-  finalizeCharacterContext(messages, state, true);
-  assert(!JSON.stringify(messages).includes('<status_current_variable>'));
+test("正文最终状态与变量状态均裁剪，重复原始状态块不会残留全量资料（内容展开）",async()=>{
+ const state=applyInformationSelection(seed(),selectorReply(['cafe'],['guild']),'turn');const before=structuredClone(state);
+ const {withPromptContext,promptContextText}=require('../运行/prompt-context.ts');
+ for(const purpose of ['story','variables'])await withPromptContext({purpose,state},async()=>{
+  const body=promptContextText(()=>state);assert(body.includes('CAFÉ_DETAIL'));assert(body.includes('GUILD_DETAIL'));
+  assert(!body.includes('HOME_DETAIL'));assert(!body.includes('LIBRARY_DETAIL'));
+  assert.equal((body.match(/<status_current_variable>/g)||[]).length,1);
+ });assert.deepEqual(state,before);
 });
 
 test('选择输出严格校验，错误结果不能改原选择；后续展开保留本轮内容', () => {
@@ -258,18 +233,20 @@ test('正文变量结算可以整项替换地点和删除组织并保存', async
   });
 });
 
-test('实际host正文前完成选择，正文和结算仅拿选中细节，保存仍保留全部资料', async () => {
+test('实际host正文与后台均携带选择结果，原生位置保留且完整存档不裁剪', async () => {
   await withEnv(async e => {
     e.story = async () => '你在测试咖啡馆喝茶。';
     await e.runtime.send('去测试咖啡馆');
     assert.equal(e.selected.length, 1);
     assert.equal(e.calls.filter(call => call.kind === 'story').length, 1);
-    const payload = e.payloads.filter(item => !item.selection).map(item => JSON.stringify(item.messages)).join('\n');
+    const story = JSON.stringify(e.payloads.find(item => item.stage === 'story').messages);
+    assert(story.includes('CAFÉ_DETAIL') && !story.includes('HOME_DETAIL') && !story.includes('GUILD_DETAIL'),'正文仅展开选中的资料');
+    const payload = e.payloads.filter(item => item.stage === 'variables').map(item => JSON.stringify(item.messages)).join('\n');
     assert(payload.includes('CAFÉ_DETAIL'));
     assert(!payload.includes('HOME_DETAIL'));
     assert(!payload.includes('GUILD_DETAIL'));
     const selectorPayload = JSON.stringify(e.payloads.find(item => item.selection).messages);
-    assert(!selectorPayload.includes('模拟酒馆预设'));
+    assert(selectorPayload.includes('模拟酒馆预设'));
     assert(!selectorPayload.includes('CAFÉ_DETAIL'));
     assert.equal(e.state().地点.home.简介, 'HOME_DETAIL');
     assert.deepEqual(e.state().玩家.已知信息.已知地点, {});
@@ -374,7 +351,9 @@ test('手机与正文共用资料选择，手动模式没有选择API且保留�
     assert.equal(e.selected.length, 0);
     const story = e.payloads.find(item => !item.selection);
     assert(JSON.stringify(story.messages).includes('HOME_DETAIL'));
-    assert(!JSON.stringify(story.messages).includes('CAFÉ_DETAIL'));
+    assert(!JSON.stringify(story.messages).includes('CAFÉ_DETAIL'),'正文内容展开遵循仅名称覆盖，消息位置不变');
+    const worker = e.payloads.find(item => item.stage === 'variables');
+    assert(!JSON.stringify(worker.messages).includes('CAFÉ_DETAIL'),'后台仍遵循仅名称覆盖');
     assert.equal(e.state()._系统.资料加载.地点覆盖.home, '展开');
   }, seed(), { ...settings(), informationAuto: false });
 });
@@ -488,8 +467,8 @@ test('选择器漏选当前自建住处时，正文和首次结算均获得完�
     for (const payload of e.payloads.filter(item => !item.selection)) {
       const text = JSON.stringify(payload.messages);
       assert(text.includes('HOME_DETAIL'), text);
-      assert(!text.includes('CAFÉ_DETAIL'));
-      assert(!text.includes('LIBRARY_DETAIL'));
+      assert.equal(text.includes('CAFÉ_DETAIL'),false);
+      assert.equal(text.includes('LIBRARY_DETAIL'),false);
     }
     assert.equal(e.state().地点[id].简介, '整理过客厅的住处');
     assert.equal(e.state().地点[id].进入条件, 'PRIVATE_ACCESS');
@@ -529,7 +508,7 @@ test('手动仅名称覆盖仍禁止当前住处和精确提及资料自动展�
     assert.equal(e.calls.filter(call => call.kind === 'update').length, 1);
     assert.equal(e.state().地点.home.简介, 'HOME_DETAIL');
     for (const payload of e.payloads.filter(item => !item.selection))
-      assert(!JSON.stringify(payload.messages).includes('HOME_DETAIL'));
+      assert.equal(JSON.stringify(payload.messages).includes('HOME_DETAIL'),false,'正文保留原文；后台只接收授权资料');
     assert.equal(e.state()._系统.资料加载.地点覆盖.home, '仅名称');
   }, state);
 });

@@ -144,14 +144,11 @@
           <span class="cw-card-title">请求策略与重试</span>
         </div>
         <div class="cw-form-row">
-          <label class="cw-api-toggle">
-            <input v-model="draft.sendPreset" type="checkbox" />
-            <span>{{ channel === 'information' ? '资料选择携带当前酒馆预设' : channel === 'phone' ? '手机变量结算携带酒馆角色卡预设' : '携带酒馆角色卡预设 (系统提示词等)' }}</span>
-          </label>
+          <span>资料选择、变量结算和奇遇均携带当前酒馆预设。</span>
           <div class="cw-api-tip-box">
             <SvgIcon name="info" :size="13" />
             <span>
-              {{ channel === 'information' ? '此开关独立保存，复用连接时也不跟随正文变量。专用资料选择任务始终保留。' : channel === 'phone' ? '奇遇刷新始终使用独立内容提示词；此选项只影响手机变量结算。' : '两种模式均会依据角色卡变量更新规则结算变量。' }}
+              当前通道的任务说明与资料会通过酒馆原生入口发送。
               保存设置不触发生成。
             </span>
           </div>

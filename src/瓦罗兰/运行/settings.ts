@@ -1,5 +1,6 @@
-import { requestBrowserLock, type BrowserLock } from './browser-lock';
+import { requestBrowserLock } from './browser-lock';
 import { browserPreferenceScope, readSharedPreference, saveSharedPreference } from './shared-preferences';
+import { removeLegacyAtmosphereWorldbook } from './atmosphere';
 
 export const ApiSettingsSchema = z.object({
   mode: z.enum(['main', 'extra']).prefault('extra'),
@@ -7,7 +8,6 @@ export const ApiSettingsSchema = z.object({
   key: z.string().prefault(''),
   model: z.string().trim().prefault(''),
   source: z.enum(['openai_compatible', 'google']).prefault('openai_compatible'),
-  sendPreset: z.boolean().prefault(false),
   retries: z.number().int().nonnegative().prefault(0),
 });
 export type ApiSettings = z.infer<typeof ApiSettingsSchema>;
@@ -60,6 +60,15 @@ export const CharacterRosterSettingsSchema = z.object({
 });
 export type CharacterRosterSettings = z.infer<typeof CharacterRosterSettingsSchema>;
 
+export const InformationRosterSettingsSchema = z.object({
+  limit: z.number().int().nonnegative(),
+  rotation: z.number().int().nonnegative(),
+}).superRefine((value, ctx) => {
+  if (value.rotation > value.limit)
+    ctx.addIssue({ code: 'custom', path: ['rotation'], message: '轮换名额不能超过资料开启上限' });
+});
+export type InformationRosterSettings = z.infer<typeof InformationRosterSettingsSchema>;
+
 export const SettingsSchema = z
   .object({
     theme: z.string().prefault('warm'),
@@ -73,6 +82,8 @@ export const SettingsSchema = z
     informationAuto: z.boolean().prefault(true),
     characterAuto: z.boolean().prefault(true),
     characterRoster: CharacterRosterSettingsSchema.prefault({}),
+    locationRoster: InformationRosterSettingsSchema.prefault({ limit: 6, rotation: 2 }),
+    organizationRoster: InformationRosterSettingsSchema.prefault({ limit: 3, rotation: 1 }),
     variable: ApiSettingsSchema.prefault({}),
     phone: ApiSettingsSchema.prefault({}),
     information: InformationApiSettingsSchema.prefault({}),
@@ -84,71 +95,6 @@ const GeneralSettingsSchema = SettingsSchema.unwrap().omit({ variable: true, pho
 export const variableRuleNames = ['[mvu_update]变量更新规则', '[mvu_update]变量输出格式'];
 export const normalizeRuleName = (name: string) => name.replace(/\s+/g, '');
 export type Settings = z.infer<typeof SettingsSchema>;
-const ruleBackupKey = '澄湾额外API规则原状态';
-type RuleBackup = { uid: number; name: string; enabled: boolean };
-
-function hasExtraApi(value: Settings) {
-  return [value.variable, value.phone].some(isApiConfigured);
-}
-
-async function syncExtraApiRules(value: Settings, lock: BrowserLock, assertActive: () => void) {
-  const chat = SillyTavern.getCurrentChatId();
-  const book = getCharWorldbookNames('current').primary;
-  const active = hasExtraApi(value);
-  if (!book) {
-    if (active) throw Error('角色卡未绑定世界书，无法启用额外 API');
-    return;
-  }
-  const check = () => {
-    assertActive();
-    lock.assertHeld();
-    if (chat !== SillyTavern.getCurrentChatId() || book !== getCharWorldbookNames('current').primary)
-      throw Error('聊天或世界书已切换，规则开关操作失效');
-  };
-  const variables = getVariables({ type: 'character' });
-  const backups = (variables[ruleBackupKey] ?? {}) as Record<string, RuleBackup[]>;
-  const backup = backups[book];
-  if (!active && !backup) return;
-  const entries = await getWorldbook(book);
-  check();
-  const rules = variableRuleNames.map(name => entries.filter(entry => normalizeRuleName(entry.name) === name));
-  if (active && rules.some(found => found.length !== 1 || !found[0].content.trim()))
-    throw Error('额外 API 所需世界书规则缺失、重复或为空');
-  if (active && !backup) {
-    const original = rules.map(([entry]) => ({ uid: entry.uid, name: normalizeRuleName(entry.name), enabled: entry.enabled }));
-    await replaceVariables({ ...variables, [ruleBackupKey]: { ...backups, [book]: original } }, { type: 'character' });
-    check();
-  }
-  const targets = active
-    ? rules.map(([entry]) => ({ uid: entry.uid, name: normalizeRuleName(entry.name), enabled: false }))
-    : backup;
-  if (targets.some(target => entries.some(entry =>
-    entry.uid === target.uid && normalizeRuleName(entry.name) === target.name && entry.enabled !== target.enabled
-  ))) {
-    await updateWorldbookWith(book, current => {
-      check();
-      return current.map(entry => {
-        const target = targets.find(rule => rule.uid === entry.uid && rule.name === normalizeRuleName(entry.name));
-        return target ? { ...entry, enabled: target.enabled } : entry;
-      });
-    }, { render: 'immediate' });
-    check();
-    const updated = await getWorldbook(book);
-    check();
-    for (const target of targets) {
-      const actual = updated.find(entry => entry.uid === target.uid && normalizeRuleName(entry.name) === target.name);
-      if (!actual || actual.enabled !== target.enabled) throw Error('额外 API 世界书规则开关读回不一致：' + target.name);
-    }
-  }
-  if (!active && backup) {
-    const latest = getVariables({ type: 'character' });
-    const remaining = { ...(latest[ruleBackupKey] ?? {}) };
-    delete remaining[book];
-    await replaceVariables({ ...latest, [ruleBackupKey]: remaining }, { type: 'character' });
-    check();
-  }
-}
-
 export function validateSettings(input: unknown): Settings {
   const value = SettingsSchema.parse(input);
   for (const [name, api] of [
@@ -161,7 +107,7 @@ export function validateSettings(input: unknown): Settings {
 
 export function informationApi(value: Settings): ApiSettings {
   return value.information.reuseVariable
-    ? { ...value.variable, sendPreset: value.information.sendPreset }
+    ? value.variable
     : value.information;
 }
 
@@ -202,21 +148,21 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       }));
       return { value, warning: [scopeWarning, ...warnings.values()].filter(Boolean).join('\n') };
     },
-    async syncRules(value: Settings) {
+    async removeLegacyAtmosphere() {
       const chat = SillyTavern.getCurrentChatId();
       const book = getCharWorldbookNames('current').primary;
-      return requestBrowserLock('澄湾设置:' + chat, {}, lock => {
+      return requestBrowserLock('澄湾设置:' + chat, {}, lock => removeLegacyAtmosphereWorldbook(() => {
         assertActive();
         lock!.assertHeld();
         if (chat !== SillyTavern.getCurrentChatId() || book !== getCharWorldbookNames('current').primary)
-          throw Error('聊天或世界书已切换，规则开关操作失效');
-        return syncExtraApiRules(value, lock!, assertActive);
-      });
+          throw Error('聊天或世界书已切换，氛围设计操作失效');
+      }));
     },
     async recoverLegacyRules() {
       const book = getCharWorldbookNames('current').primary;
       if (!book) return;
-      const backup = getVariables({ type: 'character' }).澄湾世界书开关?.[book];
+      const variablesBefore = getVariables({ type: 'character' });
+      const backup = variablesBefore.澄湾额外API规则原状态?.[book] ?? variablesBefore.澄湾世界书开关?.[book];
       if (!Array.isArray(backup)) return;
       const chat = SillyTavern.getCurrentChatId();
       return requestBrowserLock('澄湾设置:' + chat, {}, async lock => {
@@ -243,8 +189,10 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       }
       const variables = getVariables({ type: 'character' });
       const remaining = { ...(variables.澄湾世界书开关 ?? {}) };
+      const extraRemaining = { ...(variables.澄湾额外API规则原状态 ?? {}) };
       delete remaining[book];
-      await replaceVariables({ ...variables, 澄湾世界书开关: remaining }, { type: 'character' });
+      delete extraRemaining[book];
+      await replaceVariables({ ...variables, 澄湾世界书开关: remaining, 澄湾额外API规则原状态: extraRemaining }, { type: 'character' });
       check();
       });
     },
@@ -291,7 +239,6 @@ export function createSettingsController(assertActive: () => void = () => {}) {
           warnings.set(channel, warning);
           return { value, warning };
         }
-        if (!channel) await syncExtraApiRules(value as Settings, lock!, assertActive);
         lock!.assertHeld();
         check();
         const variables = getVariables({ type: 'character' });

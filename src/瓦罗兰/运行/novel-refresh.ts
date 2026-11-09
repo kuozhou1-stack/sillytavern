@@ -2,7 +2,7 @@ import { Schema } from '../schema';
 import { copy, uid, type State } from './core';
 import { storyDay, SYSTEM_GOODS } from './novel-system';
 import { novelCreationContext, novelPublicSetting } from './novel-context';
-import { appendVariableSystemPrompts } from './worker-task';
+
 
 export type NovelRefreshTarget = 'tasks' | 'shop' | 'initial';
 const TaskDefinition = z.object({
@@ -65,23 +65,14 @@ export function novelRefreshPrompt(state: State, target: NovelRefreshTarget): Ge
     {${target === 'tasks' ? taskExample : target === 'shop' ? goodExample : taskExample + ',' + goodExample}}
 `;
   return {
-    overrides: { persona_description: '' },
+    overrides: { persona_description: '', char_description: '', char_personality: '', scenario: '',
+      world_info_before: '', world_info_after: '',
+      chat_history: { prompts: [], with_depth_entries: false } },
     injects: [{ role: 'system', position: 'in_chat', depth: 0, content: instruction }],
     user_input: JSON.stringify({ 创作种子: uid('inspiration'), 创作参考: novelCreationContext(state) }),
   };
 }
 
-/** Keep final requests free of unrelated presets/worldbooks and private saved material. */
-export function finalizeNovelRefreshPrompt(
-  messages: { role: string; content?: unknown }[], marker: string, config: GenerateConfig,
-  transport: { chat_completion_source?: string; use_sysprompt?: boolean } = {},
-) {
-  if (!messages.some(message => typeof message.content === 'string' && message.content.includes(marker))) return false;
-  messages.splice(0, messages.length,
-    { role: 'user', content: (config.user_input ?? '').replaceAll(marker, '').trim() });
-  appendVariableSystemPrompts(messages, config.injects ?? [], transport);
-  return true;
-}
 
 /** Narrow payloads add content without clearing existing tasks, goods or bookkeeping. */
 export function applyNovelRefresh(before: State, target: NovelRefreshTarget, text: string, operationId: string): State {

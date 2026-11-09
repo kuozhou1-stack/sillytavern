@@ -2,8 +2,8 @@ const fs=require('node:fs'),path=require('node:path'),Module=require('node:modul
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const file=path.join(__dirname,'双API流程.spec.cjs'),h=new Module(file,module);h.filename=file;h.paths=Module._nodeModulePaths(__dirname);
 const req=h.require.bind(h);h.require=name=>name==='node:test'?{test(){}}:req(name);
-h._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={environment,seed,block,endpoint,Schema,copy,deferred};',file);
-const {environment,seed,block,endpoint,Schema,copy,deferred}=h.exports;
+h._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={environment,seed,block,endpoint,Schema,copy,deferred,structuredFixtureReply};',file);
+const {environment,seed,block,endpoint,Schema,copy,deferred,structuredFixtureReply}=h.exports;
 const {SettingsSchema,createSettingsController,atmosphereBrowserKey}=require('../运行/settings.ts');
 const {atmospherePrompt}=require('../运行/atmosphere.ts');
 const {createRuntime}=require('../运行/host.ts');
@@ -14,15 +14,15 @@ async function fixture(run,{mode='extra',preset=false,atmosphere=mood,initial=se
  const e=environment(initial,{atmosphere,characterAuto:false,informationAuto,variable:api(mode,preset,'variable'),phone:api(mode,preset,'phone'),information:{...api(mode,preset,'information'),reuseVariable:false}});
  e.requests=[];
  const invoke=async(method,config)=>{
-  const stage=config.user_input?.match(/\[chengwan-(knowledge|worker|novel|story):/)?.[1];assert(stage);
+  const stage=({information:'knowledge',variables:'worker'})[e.runtime.view.phase]??e.runtime.view.phase;assert(stage);
   const native=method==='generate'?[{role:'system',content:'NATIVE_PRESET'},{role:'system',content:'NATIVE_WORLD_BEFORE'},{role:'system',content:'NATIVE_CHARACTER'},{role:'system',content:'NATIVE_WORLD_AFTER'},{role:'assistant',content:'NATIVE_HISTORY'}]:[];
-  const messages=[...native,...[...(config.ordered_prompts??[]),...(config.overrides?.chat_history?.prompts??[])].filter(p=>p&&typeof p==='object').map(({role,content})=>({role,content})),{role:'user',content:config.user_input??''},...(config.injects??[]).map(({role,content})=>({role,content})),...(method==='generate'?[{role:'system',content:'NATIVE_PRESET_TAIL'}]:[])];
-  const data={messages,custom_prompt_post_processing:'strict'};await e.listeners.get('completion_settings')?.(data);
+  const messages=[...native,...(['story','worker'].includes(stage)?e.atmosphereEntries.filter(entry=>entry.enabled).map(({position,content})=>({role:position.role,content})):[]),...[...(config.ordered_prompts??[]),...(config.overrides?.chat_history?.prompts??[])].filter(p=>p&&typeof p==='object').map(({role,content})=>({role,content})),{role:'user',content:config.user_input??''},...(config.injects??[]).map(({role,content})=>({role,content})),...(method==='generate'?[{role:'system',content:'NATIVE_PRESET_TAIL'}]:[])];
+  const nativeMessages=copy(messages);const data={messages,custom_prompt_post_processing:'strict'};await e.listeners.get('completion_settings')?.(data);
   const final={...config,finalMessages:copy(messages)};
-  e.requests.push({stage,method,config:copy(config),messages:copy(messages),postProcessing:data.custom_prompt_post_processing});
+  e.requests.push({nativeMessages,stage,method,config:copy(config),messages:copy(messages),postProcessing:data.custom_prompt_post_processing});
   if(stage==='knowledge')return JSON.stringify({地点:[],组织:[]});
   if(stage==='novel')return JSON.stringify({商品:[{名称:'合成修复手记',价格:2,类别:'资料',描述:'记录街区修复过程',稀有:false}]});
-  return stage==='story'?e.story(final):e.update(final);
+  return structuredFixtureReply(config,await (stage==='story'?e.story(final):e.update(final)));
  };
  global.generate=config=>invoke('generate',config);global.generateRaw=config=>invoke('generateRaw',config);
  await e.runtime.start();try{await run(e);}finally{await e.runtime.dispose();}
@@ -84,12 +84,14 @@ for(const mode of ['main','extra'])for(const preset of [false,true])test(`正文
   assert.deepEqual(e.requests.map(r=>r.stage),['knowledge','story','worker','knowledge','worker','novel']);
   for(const request of e.requests){
    const moods=request.messages.filter(m=>String(m.content).includes('<atmosphere_design>'));assert.equal(moods.length,1);assert.equal(moods[0].role,'system');assert(moods[0].content.includes(mood));
-   assert.equal(request.postProcessing,'');assert.equal(request.messages.at(-1).role,request.stage==='story'?'user':'system');assert.notEqual(request.messages.at(-1),moods[0]);
+   const moodInput=request.config.injects.filter(p=>p.content.includes('<atmosphere_design>'));assert.equal(moodInput.length,1);assert.equal(moodInput[0].depth,4);
+   assert.equal(request.postProcessing,'strict');assert.equal(request.messages.at(-1).role,'system');assert.notEqual(request.messages.at(-1),moods[0]);
    assert(!JSON.stringify(request.messages).includes('[chengwan-'));
    if(request.method==='generate'){
     const names=['NATIVE_PRESET','NATIVE_WORLD_BEFORE','NATIVE_CHARACTER','NATIVE_WORLD_AFTER','NATIVE_HISTORY','NATIVE_PRESET_TAIL'];
     const indexes=names.map(x=>request.messages.findIndex(m=>m.content===x));assert(indexes.every(x=>x>=0));assert.deepEqual(indexes,[...indexes].sort((a,b)=>a-b));
-    assert(request.messages.indexOf(moods[0])>indexes.at(-1),'氛围作为额外说明位于原生预设之后、最终职责之前');
+    if(request.stage==='story'){assert.deepEqual(request.messages,request.nativeMessages);assert(request.messages.indexOf(moods[0])<indexes.at(-1),'正文氛围由原生深度注入');}
+    else assert(request.messages.indexOf(moods[0])<indexes.at(-1),'后台仍保留原生预设尾部');
    }else if(['novel','knowledge'].includes(request.stage)){
     assert.equal(request.messages.length,3);assert.equal(request.messages[0].role,'user');assert.equal(request.messages[1],moods[0]);
    }
@@ -97,8 +99,8 @@ for(const mode of ['main','extra'])for(const preset of [false,true])test(`正文
   assert.equal(e.requests.filter(x=>x.stage==='story').length,1);assert.equal(e.state().世界.异常入侵度,null);
  },{mode,preset});
 });
-test('留空不改变原请求形状；资料选择与奇遇仍是user资料加末尾system职责',async()=>{
- await fixture(async e=>{await e.runtime.send('观察');await e.runtime.novelRefresh('shop');for(const x of e.requests){assert(!JSON.stringify(x.messages).includes('atmosphere_design'));if(['knowledge','novel'].includes(x.stage))assert.equal(x.messages.length,2);}}, {atmosphere:''});
+test('留空不改变原请求形状；资料选择与奇遇仍是原生任务输入与预设尾部',async()=>{
+ await fixture(async e=>{await e.runtime.send('观察');await e.runtime.novelRefresh('shop');for(const x of e.requests){assert(!JSON.stringify(x.messages).includes('atmosphere_design'));assert.equal(x.messages.at(-1).content,'NATIVE_PRESET_TAIL');}}, {atmosphere:''});
 });
 test('请求中保存新氛围不改已发正文；后续变量用新值且不写入无关API草稿',async()=>{
  await fixture(async e=>{
@@ -128,4 +130,34 @@ test('首次建档开场与独立结算均携带氛围，不把偏好写成聊�
   for(const r of e.requests)assert.equal(r.messages.filter(m=>String(m.content).includes('<atmosphere_design>')).length,1);
   assert(!e.messages.some(m=>m.message?.includes('<atmosphere_design>')));
  },{initial:Schema.parse({}),informationAuto:false});
+});
+
+test('氛围只保存共用偏好，不创建或更新世界书，下一请求原生深度4生效',async()=>{
+ await fixture(async e=>{
+  const rules=copy(e.rules),writes=e.atmosphereWrites;
+  assert.equal(e.atmosphereEntries.length,0);
+  await e.runtime.saveSettings({atmosphere:'新方向'},'atmosphere');
+  assert.equal(e.atmosphereEntries.length,0);assert.equal(e.atmosphereWrites,writes);
+  await e.runtime.send('观察街区');
+  for(const req of e.requests){
+   const inputs=req.config.injects.filter(p=>p.content.includes('<atmosphere_design>'));
+   assert.equal(inputs.length,1);assert.equal(inputs[0].depth,4);assert(inputs[0].content.includes('新方向'));
+  }
+  await e.runtime.saveSettings({atmosphere:''},'atmosphere');
+  assert.equal(e.atmosphereWrites,writes);assert.deepEqual(e.rules,rules);
+  e.requests.length=0;await e.runtime.send('继续观察');
+  assert(e.requests.every(req=>!(req.config.injects??[]).some(p=>p.content.includes('<atmosphere_design>'))));
+ });
+});
+
+test('旧氛围世界书仅启动时移除，保留偏好、其他条目和未完成操作',async()=>{
+ const e=environment(seed(),{characterAuto:false,informationAuto:false,atmosphere:mood});
+ e.atmosphereEntries.push({uid:52,name:'规则｜氛围设计',enabled:true,content:'旧氛围',position:{type:'at_depth',role:'system',depth:4,order:340}});
+ await e.runtime.start();
+ try{
+  assert.equal(e.atmosphereEntries.length,0);assert.equal(e.runtime.settings.atmosphere,mood);
+  assert(e.rules.every(entry=>!entry.enabled));assert.equal(e.requests?.length??0,0);
+  const writes=e.atmosphereWrites;await e.runtime.saveSettings({atmosphere:'新偏好'},'atmosphere');
+  assert.equal(e.atmosphereWrites,writes);
+ }finally{await e.runtime.dispose();}
 });

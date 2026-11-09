@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia, disposePinia } from 'pinia';
 import { waitUntil } from 'async-wait-until';
-import { mountStreamingMessages } from '@util/streaming';
+import { mountDesktop } from './desktop-mount';
 import App from '../../界面/桌面端/App.vue';
 import { useChengwanStore } from '../../界面/store';
 import { RuntimeKey } from '../../运行/host';
@@ -20,7 +20,7 @@ $(() => {
   const token = randomUUID();
   const chat = SillyTavern.getCurrentChatId();
   let stopped = false;
-  let mount: ReturnType<typeof mountStreamingMessages> | undefined;
+  let mount: ReturnType<typeof mountDesktop> | undefined;
   let recovering = false;
   let lastRenderCheck = 0;
   let lastFrame: HTMLIFrameElement | null = null;
@@ -62,6 +62,7 @@ $(() => {
     body.cw-layer-ready #chat > .mes[mesid="0"] .mes_text:not(:has(textarea)) { display:none !important; }
     #chat .mes_streaming:has(#cw-streaming-floor-0) {padding:0 !important;width:100%;}
     #cw-streaming-floor-0 {display:block;width:100%;border:0;}
+    #chat > .mes[mesid="0"]:has(.mes_text textarea) #cw-streaming-floor-0 {display:none;}
   `,
     )
     .appendTo(doc.head);
@@ -75,7 +76,7 @@ $(() => {
         doc.querySelector('#chat > .mes[mesid="0"]') &&
         (!doc.getElementById('cw-streaming-floor-0') || now - lastRenderCheck >= 3000)
       ) {
-        await mount.renderMessage(0);
+        mount.render();
         lastRenderCheck = now;
       }
       const frame = doc.getElementById('cw-streaming-floor-0') as HTMLIFrameElement | null;
@@ -115,7 +116,8 @@ $(() => {
     }
     if (stopped) return;
     host.__chengwanScriptFrontendActive = token;
-    mount = mountStreamingMessages(
+    mount = mountDesktop(
+      doc,
       () => {
         const connection = connectRuntime(host.__chengwanService.runtime);
         const pinia = createPinia();
@@ -148,15 +150,6 @@ $(() => {
           disposePinia(pinia);
         };
         return app;
-      },
-      {
-        host: 'iframe',
-        prefix: 'cw-streaming-floor',
-        filter: id => id === 0,
-        hide_original_message: false,
-        emit_rerender_event: false,
-        listen_stream_tokens: false,
-        preserve_on_same_chat_load: true,
       },
     );
     await sync();

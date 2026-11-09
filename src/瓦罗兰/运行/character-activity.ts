@@ -1,7 +1,7 @@
 import type { State } from './core';
-import { projectWorldInformation, informationPromptRule } from './knowledge-context';
+import { projectWorldInformation } from './knowledge-context';
 import { modelPhoneHistory, publicModelData, type HistoryScope } from './model-history';
-import { appendSystemPrompts, restorePromptSlot } from './worker-task';
+
 
 export function disabledAccount(state: State, accountId: string | null | undefined) {
   const person = accountId && state.手机.账号[accountId]?.人物id;
@@ -99,37 +99,4 @@ export function modelState(state: State, scope?: HistoryScope) {
       account.公开资料 = {};
     }
   return projectWorldInformation(state, result);
-}
-
-/** Scoped to a request marker by the caller. Preserve the status protocol, replace only automatic state. */
-export function finalizeCharacterContext(
-  messages: { role: string; content?: unknown }[],
-  state: State,
-  worker: boolean,
-  options: { contextSlot?: string; constraints?: boolean } = {},
-) {
-  let found = false;
-  for (const message of messages) {
-    if (typeof message.content !== 'string') continue;
-    message.content = message.content.replace(/<status_current_variable>[\s\S]*?<\/status_current_variable>/gi, () => {
-      if (worker || found) return '';
-      found = true;
-      return `<status_current_variable>\n${JSON.stringify(modelState(state))}\n</status_current_variable>`;
-    });
-  }
-  if (!worker && !found) {
-    const prompt = {
-      role: 'system',
-      content: `<status_current_variable>\n${JSON.stringify(modelState(state))}\n</status_current_variable>`,
-    };
-    if (options.contextSlot) restorePromptSlot(messages, options.contextSlot, [prompt]);
-    else messages.push(prompt);
-  }
-  if (options.constraints === false) return;
-  if (!messages.some(message => message.role === 'system' && message.content === informationPromptRule))
-    appendSystemPrompts(messages, [{ content: informationPromptRule }]);
-  const constraint = disabledIdentityPrompt(state);
-  if (constraint && !messages.some(message => message.role === 'system' &&
-    typeof message.content === 'string' && message.content.includes(constraint)))
-    appendSystemPrompts(messages, [{ content: constraint }]);
 }

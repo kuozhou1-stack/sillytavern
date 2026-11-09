@@ -15,8 +15,8 @@
             <SvgIcon name="sliders" :size="16" />
           </div>
           <div class="cw-title-texts">
-            <h4 class="cw-card-title">角色在场配额与轮换步长</h4>
-            <span class="cw-card-subtitle">控制不同层级角色同时活跃的最大席位及单次轮换规模</span>
+            <h4 class="cw-card-title">角色资料配额与轮换名额</h4>
+            <span class="cw-card-subtitle">限制本轮开启资料的数量；开启资料不代表角色已经在场</span>
           </div>
         </div>
 
@@ -29,6 +29,8 @@
             <div class="cw-help-item">
               <span class="cw-help-bullet">·</span>
               <p><strong>轮换机制</strong>：轮换人数为 0 时停止主动轮换。配置将在下一次正文或手机互动前自动执行；单轮重试不重复换人。</p>
+              <p>同时开启自动角色调度与自动资料选择时，同一轮资料选择会结合场景、玩家背景、当前行动和最近剧情挑选人物，再向正文展开完整资料。轮候名单提供待机人物的候选机会，不强制人物出场。</p>
+              <p>开局先保存完整档案和相识关系，再按本轮选择准备人物，不按目录前几名补位。关闭自动资料选择时沿用本地关系、地理和队列调度。</p>
             </div>
             <div class="cw-help-item">
               <span class="cw-help-bullet">·</span>
@@ -60,7 +62,7 @@
 
               <div class="cw-quota-inputs-row">
                 <div class="cw-quota-field">
-                  <label class="cw-field-label">在场上限人数</label>
+                  <label class="cw-field-label">资料开启上限人数</label>
                   <div class="cw-number-input-wrap">
                     <input
                       v-model.number="draft[group.limit]"
@@ -139,8 +141,8 @@
             <SvgIcon name="users" :size="16" />
           </div>
           <div class="cw-title-texts">
-            <h4 class="cw-card-title">当前在场角色席位</h4>
-            <span class="cw-card-subtitle">显示当前已实际载入交互上下文的活跃角色名单</span>
+            <h4 class="cw-card-title">当前开启的人物资料</h4>
+            <span class="cw-card-subtitle">显示当前载入交互上下文的人物；是否在场以实际剧情为准</span>
           </div>
         </div>
 
@@ -157,7 +159,7 @@
         </span>
       </div>
 
-      <!-- 两个独立的在场席位舱 -->
+      <!-- 按人物层级展示已开启的资料 -->
       <div class="cw-active-cabins-list">
         <div
           v-for="group in controls"
@@ -171,7 +173,7 @@
               <span class="cw-cabin-heading">{{ group.tier }}角色席位</span>
             </div>
             <span class="cw-cabin-count-tag">
-              在场 {{ active[group.tier].length }} 人 / 上限 {{ saved[group.limit] }} 席
+              已开启 {{ active[group.tier].length }} 人 / 上限 {{ saved[group.limit] }} 席
             </span>
           </div>
 
@@ -201,7 +203,7 @@
 
           <div v-else class="cw-empty-cabin-placeholder">
             <SvgIcon name="users" :size="20" class="cw-empty-cabin-icon" />
-            <span>当前没有在场的{{ group.tier }}角色</span>
+            <span>当前没有开启资料的{{ group.tier }}角色</span>
           </div>
         </div>
       </div>

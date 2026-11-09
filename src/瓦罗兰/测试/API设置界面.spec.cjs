@@ -44,10 +44,10 @@ test('API表单：资料三种连接均显示独立预设，复用连接不覆�
   for(const mode of ['reuse','main','extra']){
     e.view.connectionMode.value=mode;e.view.draft.sendPreset=true;
     if(mode==='extra'){e.view.draft.apiurl='https://selection.invalid';e.view.draft.model='selector';}
-    const markup=await html(e.fixture);assert(markup.includes('资料选择携带当前酒馆预设'));
-    await e.view.save();assert.equal(e.runtime.settings.information.sendPreset,true);
+    const markup=await html(e.fixture);assert(markup.includes('资料选择、变量结算和奇遇均携带当前酒馆预设'));
+    await e.view.save();assert.equal(Object.hasOwn(e.runtime.settings.information,'sendPreset'),false);
     assert.equal(e.runtime.settings.information.reuseVariable,mode==='reuse');
-    assert.equal(e.runtime.settings.variable.sendPreset,false);
+    assert.equal(Object.hasOwn(e.runtime.settings.variable,'sendPreset'),false);
   }
 });
 test('API表单：读取共用配置只指定当前通道，失败提示不清未保存草稿',async()=>{

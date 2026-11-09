@@ -4370,6 +4370,26 @@
                 ]
               }
             },
+            "轮候": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "地点": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "组织": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
             "选择依据": {
               "default": null,
               "type": [

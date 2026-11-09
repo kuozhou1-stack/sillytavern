@@ -18,7 +18,7 @@ const nativeSave = ['saveChat', 'saveChatConditional'].map(name => {
 
 // Actual installed save functions, synthetic transport and a separate disk image.
 // A swallowed save error never updates that disk image.
-function useInstalledSave(e, fail) {
+function useInstalledSave(e, fail, waitUntilCondition = async () => {}) {
   const stats = { saves: 0, failed: 0, notifications: 0 };
   const context = vm.createContext({
     selected_group: null, characters: [{ chat: e.chat, name: 'fixture', avatar: 'fixture.png' }],
@@ -37,7 +37,7 @@ function useInstalledSave(e, fail) {
     },
     toastr: { error() { stats.notifications++; } }, console: { error() {}, warn() {}, trace() {} },
     t: (parts, ...args) => parts.map((p, i) => p + (args[i] ?? '')).join(''),
-    waitUntilCondition: async () => {}, DEFAULT_SAVE_EDIT_TIMEOUT: 1000, isChatSaving: false,
+    waitUntilCondition, DEFAULT_SAVE_EDIT_TIMEOUT: 1000, isChatSaving: false,
     cancelDebouncedChatSave() {}, saveTokenCache() {}, saveItemizedPrompts() {}, getCurrentChatId: () => e.chat,
   });
   Object.defineProperties(context, {
@@ -151,7 +151,7 @@ test('资料选择写入后保存失败，恢复原选择提交再更新failedSe
     }
     return false;
   });
-  e.update = async config => config.user_input.includes('knowledge') ? JSON.stringify({ 地点: [], 组织: [] }) : block([]);
+  e.update = async config => e.runtime.view.phase === 'information' ? JSON.stringify({ 地点: [], 组织: [] }) : block([]);
   try {
     await assert.rejects(e.runtime.send('资料保存合成输入'), /保存未确认/);
     assert(e.vars.澄湾待确认提交); assert(e.vars.澄湾失败请求);
@@ -163,7 +163,7 @@ test('资料选择写入后保存失败，恢复原选择提交再更新failedSe
     e.messages[1].message = input;
     await e.runtime.retry();
     assert(e.state()._系统.提交记录[id]); assert.equal(e.vars.澄湾失败请求, null);
-    assert.equal(e.calls.filter(c => c.config.user_input.includes('knowledge')).length, 1);
+    assert.equal(e.calls.filter(c => c.stage === 'information').length, 1);
     assert.equal(e.messages.filter(m => m.role === 'user' && m.message === '资料保存合成输入').length, 1);
   } finally { await e.runtime.dispose(); }
 });

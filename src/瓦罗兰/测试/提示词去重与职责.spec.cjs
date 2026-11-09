@@ -14,11 +14,11 @@ harness._compile(fs.readFileSync(fixture, 'utf8').split('const novelGoodReply ='
 const { environment, Schema, copy } = harness.exports;
 const { livePromptConfig } = require('../运行/prompts.ts');
 const { withUpdateTasks, finalizeUpdateTasks } = require('../运行/update-tasks.ts');
-const { finalizeCharacterContext } = require('../运行/character-activity.ts');
+const { withPromptContext,promptContextText } = require('../运行/prompt-context.ts');
 const { promptProjections } = require('../运行/model-history.ts');
 const { archiveSourceRecords } = require('../运行/archive.ts');
-const { restorePromptSlot } = require('../运行/worker-task.ts');
-const text = config => (config.injects ?? []).map(x => x.content).join('\n');
+const { nativePromptConfig } = require('../运行/prompts.ts');
+const text = config => [(config.injects ?? []).map(x => x.content).join('\n'),JSON.stringify(promptProjections.get(config)??{})].join('\n');
 const count = (body, value) => body.split(value).length - 1;
 const marker = 'ARCHIVE_FULL_TEXT_SENTINEL';
 function seed() {
@@ -54,16 +54,10 @@ function archiveSeed(kind, key = 'old') {
   return Schema.parse(data);
 }
 
-test('停用名单只有最终来源，早期配置不再携带供二次改写的副本', async () => {
-  const state = seed(); environment(state);
-  for (const mode of ['story', 'worker']) {
-    const cfg = await livePromptConfig(state, '输入', mode);
-    assert.equal(count(text(cfg), '玩家暂时关闭的人物'), 0);
-    const messages = cfg.injects.map(({ content }) => ({ role: 'system', content }));
-    finalizeCharacterContext(messages, state, mode === 'worker');
-    assert.equal(count(messages.map(x => x.content).join('\n'), '玩家暂时关闭的人物'), 1);
-    assert(messages.some(m => m.content.includes('"id":"kassadin"')));
-  }
+test('停用名单在原生任务输入中保留一份，不再通过发送后钩子追加',async()=>{const state=seed();environment(state);
+ const story=await livePromptConfig(state,'输入','story');assert.deepEqual(story,{user_input:'输入'});
+ const worker=await livePromptConfig(state,'输入','worker');assert.equal(count(text(worker),'玩家暂时关闭的人物'),1);
+ const native=nativePromptConfig(worker);assert.equal(native.injects,undefined);assert.equal(count(native.user_input,'玩家暂时关闭的人物'),1);
 });
 
 test('九个生活任务共同说明一份，逐项身份保留且不要求LifeCheck', () => {
@@ -137,45 +131,13 @@ test('归档保存仍校验覆盖、迁移原文并提交原任务，不需要�
   assert.equal(before.角色.npc.经历.最近经历.old.经历, marker);
 });
 
-test('合并消息中的本卡槽位原位恢复，保留原生前后文及消息元数据', () => {
-  const messages=[{role:'system',content:'世界书之前'},
-    {role:'assistant',name:'preset',content:'原生前文[owned-slot]原生后文'},
-    {role:'system',content:'世界书之后'}];
-  assert(restorePromptSlot(messages,'[owned-slot]',[{role:'user',content:'独立事实'}]));
-  assert.deepEqual(messages,[{role:'system',content:'世界书之前'},
-    {role:'assistant',name:'preset',content:'原生前文'},
-    {role:'user',content:'独立事实'},
-    {role:'assistant',name:'preset',content:'原生后文'},
-    {role:'system',content:'世界书之后'}]);
-  const original=copy(messages);
-  assert.equal(restorePromptSlot(messages,'[other-request]',[]),false);
-  assert.deepEqual(messages,original);
-});
+test('任务准备不操作已经组装的消息或预设元数据',()=>{const messages=[{role:'assistant',name:'preset',content:'原生尾部'}],before=copy(messages);
+ const c=nativePromptConfig({user_input:'原始事实',injects:[{role:'system',content:'任务说明'}]});
+ assert.deepEqual(messages,before);assert.equal(c.user_input,'任务说明\n\n原始事实');assert.equal(c.injects,undefined);});
 
-test('重复搬运槽位只恢复一份事实，不清洗其中的业务标签', () => {
-  const fact='<status_current_variable>事实中的字面标签</status_current_variable>';
-  const messages=[{role:'user',content:'前[owned]中[owned]后'},{role:'system',content:'尾[owned]'}];
-  assert(restorePromptSlot(messages,'[owned]',[{role:'user',content:fact}]));
-  assert.equal(messages.filter(m=>m.content===fact).length,1);
-  assert.equal(messages.map(m=>m.content).join('').split('[owned]').length-1,0);
-  assert(messages.some(m=>m.content==='中后'));
-  assert(messages.some(m=>m.content==='尾'));
-});
+test('原生输入保留业务标签，不做状态区块或归属标记清洗',()=>{const fact='<status_current_variable>事实中的字面标签</status_current_variable>';
+ assert.equal(nativePromptConfig({user_input:fact}).user_input,fact);});
 
-test('正文状态仍在原世界书位置替换；缺少原块时使用depth0槽位', () => {
-  const state=seed();
-  const messages=[{role:'system',content:'角色定义前'},
-    {role:'system',content:'前<status_current_variable>OLD</status_current_variable>后'},
-    {role:'user',content:'玩家输入'},{role:'system',content:'[state-slot]'},
-    {role:'system',content:'预设尾部'}];
-  finalizeCharacterContext(messages,state,false,{contextSlot:'[state-slot]',constraints:false});
-  restorePromptSlot(messages,'[state-slot]',[]);
-  assert(messages[1].content.startsWith('前<status_current_variable>'));
-  assert(messages[1].content.endsWith('</status_current_variable>后'));
-  assert.equal(messages.at(-1).content,'预设尾部');
-  const missing=[{role:'user',content:'玩家输入'},{role:'system',content:'[state-slot]'},
-    {role:'system',content:'预设尾部'}];
-  finalizeCharacterContext(missing,state,false,{contextSlot:'[state-slot]',constraints:false});
-  assert(missing[1].content.startsWith('<status_current_variable>'));
-  assert.equal(missing[2].content,'预设尾部');
-});
+test('正文资料由原生世界书内容宏返回，完整状态不被写回投影',async()=>{const state=seed(),before=copy(state);
+ await withPromptContext({purpose:'story',state},async()=>{const result=promptContextText(()=>state);assert(result.startsWith('<status_current_variable>'));
+ assert.equal(Object.hasOwn(JSON.parse(result.match(/<status_current_variable>\s*([\s\S]*?)\s*<\/status_current_variable>/)[1]),'_系统'),false);});assert.deepEqual(state,before);});

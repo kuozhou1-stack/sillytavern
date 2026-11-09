@@ -1,15 +1,13 @@
 import { copy, type State } from './core';
 import { archivePrompt, archiveSourceRecords, finalizeArchive } from './archive';
 import { openingCharacterPrompt } from './opening';
-import { validateTaskResult, isCharacterLifeTask } from './tasks';
+import { validateTaskResult, isCharacterLifeTask, hasCurrentCharacterTargets } from './tasks';
 import { taskHasActiveTargets } from './character-activity';
 import { publicModelData, promptProjections, withPromptInstructions } from './model-history';
 import { createSourceContextProjector } from './source-context';
 
 function currentTaskTargets(state: State, task: State['_系统']['任务'][string]) {
-  return taskHasActiveTargets(state, task) && (!isCharacterLifeTask(task) || task.目标id.every(
-    id => state.角色[id]._管理.版本 === task.目标版本[id],
-  ));
+  return isCharacterLifeTask(task) ? hasCurrentCharacterTargets(state, task) : taskHasActiveTargets(state, task);
 }
 
 /** Maintenance is folded into an authorized story/phone request, never sent on its own. */

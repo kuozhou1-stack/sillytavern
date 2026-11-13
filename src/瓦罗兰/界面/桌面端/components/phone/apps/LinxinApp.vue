@@ -162,7 +162,8 @@
       </div>
 
       <!-- 对话底部输入条 (解决 M06：重排输入与发送按钮，自适应多行，右侧永不裁切) -->
-      <div class="cw-chat-bottom-input">
+      <div v-if="groupReadOnly" class="cw-im-status-strip">当前不在群中，可以查看历史消息。</div>
+      <div v-else class="cw-chat-bottom-input">
         <button type="button" class="cw-btn cw-btn-ghost cw-btn-xs cw-im-more-btn" title="编辑多类型内容" @click="compose = 'send'">内容</button>
         <textarea
           v-model="draftReply"
@@ -893,6 +894,10 @@ function openGroupDirectory(groupId = '') {
   currentTab.value = 'groups';
 }
 const activeChatId = ref<string | null>(null);
+const groupReadOnly = computed(() => projection.value.sessions.find(session => session.id === activeChatId.value)?.groupReadOnly);
+watch(groupReadOnly, readOnly => {
+  if (readOnly && compose.value === 'send') compose.value = null;
+});
 const drafts = useLinxinDrafts(runtime);
 const draftSession = computed(() => drafts.session());
 const draftReply = computed({

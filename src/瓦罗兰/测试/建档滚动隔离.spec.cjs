@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const vue = require('vue');
 const sfc = require('vue/compiler-sfc');
+const { Schema } = require('./修复宿主.cjs');
 
 function fixture(t, { width = 1000, scrollWidth = width, scale = 1, step = 1 } = {}) {
   const filename = path.resolve(__dirname, '../界面/桌面端/components/creation/CreationView.vue');
@@ -27,7 +28,7 @@ function fixture(t, { width = 1000, scrollWidth = width, scale = 1, step = 1 } =
     window: { parent: host, addEventListener() {}, removeEventListener() {} },
     defineProps: () => ({ initialProfile: { 姓名: '测试玩家', 性别: '女' } }),
     defineEmits: () => () => {},
-    useWorldState: () => vue.ref({}),
+    useWorldState: () => vue.ref(Schema.parse({})),
     copy: structuredClone,
     uid: () => 'isolated-creation',
     readCreationPreset: () => null,

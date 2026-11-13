@@ -267,15 +267,30 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     e.mutations.push({ kind: 'set', refresh: options?.refresh });
     for (const row of rows) {
       const { message_id, ...fields } = row;
-      Object.assign(e.messages[message_id], copy(fields));
-      const selected = e.messages[message_id].swipe_id;
-      if (selected !== undefined && e.messages[message_id].swipes_data && fields.data)
-        e.messages[message_id].swipes_data[selected] = copy(fields.data);
-      if (selected !== undefined && e.messages[message_id].swipes && fields.message !== undefined)
-        e.messages[message_id].swipes[selected] = fields.message;
-      if (fields.extra) {
-        e.messages[message_id].swipe_info ??= [];
-        e.messages[message_id].swipe_info[selected ?? 0] = copy(fields.extra);
+      const message = e.messages[message_id], selected = message.swipe_id ?? 0;
+      // 酒馆助手 4.12.1 通过 message/data 区分普通写入；只传 extra 不会写入。
+      if ('message' in fields || 'data' in fields) {
+        if ('message' in fields) {
+          message.message = fields.message;
+          if (message.swipes) message.swipes[selected] = fields.message;
+        }
+        if (fields.data) {
+          message.data = copy(fields.data);
+          if (message.swipes_data) message.swipes_data[selected] = message.data;
+        }
+        if (fields.extra) {
+          message.extra = copy(fields.extra);
+          message.swipe_info = Array.from({ length: message.swipes?.length ?? 1 }, () => ({}));
+          message.swipe_info[selected] = message.extra;
+        }
+      } else if (fields.swipes || fields.swipes_data || fields.swipes_info || 'swipe_id' in fields) {
+        message.swipe_id = fields.swipe_id ?? selected;
+        message.swipes = copy(fields.swipes ?? message.swipes ?? [message.message]);
+        message.swipes_data = copy(fields.swipes_data ?? message.swipes_data ?? [message.data]);
+        message.swipe_info = copy(fields.swipes_info ?? message.swipe_info ?? [message.extra]);
+        message.message = message.swipes[message.swipe_id];
+        message.data = message.swipes_data[message.swipe_id];
+        message.extra = message.swipe_info[message.swipe_id];
       }
       e.writes++;
     }
@@ -1934,6 +1949,9 @@ test('手机单次请求同时更新回复、时间、天气、玩家、非参�
     assert.equal(e.calls[0].config.custom_api.model, 'phone');
     assert.equal(e.calls[0].config.overrides.chat_history.with_depth_entries, true);
     assert.match(JSON.stringify(sentPrompts(e.calls[0].config)), /聊天十分钟/);
+    const phoneInput = e.calls[0].config.user_input;
+    assert.match(phoneInput, /数量参考仅用于手机新内容/);
+    assert.doesNotMatch(phoneInput, /UpdateVariable\/JSONPatch/);
     assert.deepEqual(sentState(e.calls[0].config).角色.remote, publicPerson(seed().角色.remote));
     assert.equal(e.parses, 1);
     assert.equal(e.state().世界.当前时间.分, 10);
@@ -3817,7 +3835,7 @@ test('20261003接口隔离：完成恢复记录清理后上下文变化也不能
     global.replaceVariables = async (value, options) => {
       await original(value, options);
       if (!changed && options.type === 'chat' && value.澄湾排队操作?.length === 0 &&
-          Object.keys(e.state()._系统.已计轮事件).length === 1) {
+          Object.keys(e.messages[0].data.stat_data._系统.已计轮事件).length === 1) {
         changed = true;
         e.chat = 'another-isolated-chat';
       }
@@ -3865,39 +3883,35 @@ test('20261003 F10：队列恢复已写入手机提交，持续保存失败不�
   });
 });
 
-test('20261003 F10：只有已提交队列记录时也须确认保存，不重新准备或发送操作', async () => {
+test('20261003 F10：冷启动确认清理已提交队列，失败保留且不重发', async () => {
   await withEnv(async e => {
     let savedIntent;
     e.update = async () => {
       savedIntent = copy(e.vars.澄湾排队操作[0]);
       return block([patch('/世界/当前时间', time(1))]);
     };
-    const result = await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '已完成提交的遗留队列' });
+    await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '已完成提交的遗留队列' });
     const committed = copy(e.state());
-    // 模拟旧存档保留了队列，但对应手机恢复记录已经清理。
     e.vars.澄湾排队操作 = [savedIntent];
     await e.runtime.dispose();
+    let fail = true;
+    SillyTavern.saveChat = async () => { if (fail) throw Error('遗留队列保存未确认'); e.saveDisk(); };
     e.runtime = createRuntime();
     await e.runtime.start();
-    assert.equal(e.vars.澄湾待更新手机, null);
-    const originalPersist = e.runtime.service.host.persist;
-    let fail = true, persistCalls = 0;
-    e.runtime.service.host.persist = async () => {
-      persistCalls++;
-      if (fail) throw Error('遗留队列保存未确认');
-      return originalPersist();
-    };
-    e.runtime.settings.phone.apiurl = '';
-    e.update = async () => { throw Error('已提交队列不能重新请求模型'); };
-    await assert.rejects(e.runtime.resumeQueued(savedIntent.id), /保存未确认/);
-    assert.equal(e.runtime.view.phoneRequest.id, result.id);
+    assert.match(e.runtime.view.loadError, /保存未确认/);
+    assert.equal(e.runtime.view.loadPhase, 'recovery');
+    assert.equal(e.vars.澄湾排队操作[0].id, savedIntent.id);
+    assert.equal(e.calls.length, 1);
     fail = false;
-    assert.deepEqual(await e.runtime.resumeQueued(savedIntent.id), result);
-    assert.equal(persistCalls, 2);
+    await e.runtime.reload();
+    assert.equal(e.runtime.view.loadError, '');
+    assert.deepEqual(e.vars.澄湾排队操作, []);
+    assert.deepEqual(e.diskChat[0].chat_metadata.variables.澄湾排队操作, []);
     assert.equal(e.calls.length, 1);
     assert.equal(e.writes, 1);
     assert.deepEqual(e.state(), committed);
     assert.equal(e.vars.澄湾待更新手机, null);
+    assert.equal(e.vars.澄湾待确认提交, null);
     assert.equal(e.runtime.view.recoverable.length, 0);
   });
 });

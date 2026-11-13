@@ -13,7 +13,7 @@ import '../../界面/桌面端/styles/theme.scss';
 import '../../界面/桌面端/styles/typography.scss';
 import '../../界面/桌面端/styles/common.scss';
 
-/** Floor 0 hosts the desktop; other floors remain saved and render inside that desktop. */
+/** Keep one desktop in the active chat, including when the native history is paginated. */
 $(() => {
   const host = window.parent as any,
     doc = host.document as Document;
@@ -67,15 +67,13 @@ $(() => {
     )
     .appendTo(doc.head);
   const sync = async () => {
-    if (stopped || recovering) return;
+    if (stopped || chat !== SillyTavern.getCurrentChatId() ||
+        (mount && host.__chengwanScriptFrontendActive !== token) || recovering) return;
     recovering = true;
     try {
       const now = Date.now();
       if (!mount) return;
-      if (
-        doc.querySelector('#chat > .mes[mesid="0"]') &&
-        (!doc.getElementById('cw-streaming-floor-0') || now - lastRenderCheck >= 3000)
-      ) {
+      if (!doc.getElementById('cw-streaming-floor-0') || now - lastRenderCheck >= 3000) {
         mount.render();
         lastRenderCheck = now;
       }
@@ -114,7 +112,7 @@ $(() => {
     ) {
       await SillyTavern.reloadCurrentChat();
     }
-    if (stopped) return;
+    if (stopped || chat !== SillyTavern.getCurrentChatId()) return;
     host.__chengwanScriptFrontendActive = token;
     mount = mountDesktop(
       doc,
@@ -151,6 +149,9 @@ $(() => {
         };
         return app;
       },
+      () => !stopped && chat === SillyTavern.getCurrentChatId() &&
+        host.__chengwanScriptFrontendActive === token && host.__chengwanService?.ready &&
+        host.__chengwanService.chat === chat,
     );
     await sync();
     console.info('[瓦洛兰-流式同层] 桌面挂载完成，保留原布局，尺寸由容器宽度确定');
@@ -159,14 +160,14 @@ $(() => {
     toastr.error('瓦洛兰前端挂载失败：' + String(e));
   });
   const onChatChanged = () => {
-    if (SillyTavern.getCurrentChatId() !== chat) {
-      host.__chengwanFrontendReady = false;
-      removeNativeControls();
+    if (!stopped && SillyTavern.getCurrentChatId() !== chat) {
+      dispose();
       window.location.reload();
     }
   };
   eventOn(tavern_events.CHAT_CHANGED, onChatChanged);
-  $(window).one('pagehide.cwLayer', () => {
+  const dispose = () => {
+    if (stopped) return;
     stopped = true;
     clearInterval(timer);
     eventRemoveListener(tavern_events.CHAT_CHANGED, onChatChanged);
@@ -178,9 +179,10 @@ $(() => {
     if (host.__chengwanScriptFrontendActive === token) {
       delete host.__chengwanScriptFrontendActive;
       host.__chengwanFrontendReady = false;
+      $(doc.body).removeClass('cw-layer-ready');
     }
     removeNativeControls();
     style.remove();
-    $(doc.body).removeClass('cw-layer-ready');
-  });
+  };
+  $(window).one('pagehide.cwLayer', dispose);
 });

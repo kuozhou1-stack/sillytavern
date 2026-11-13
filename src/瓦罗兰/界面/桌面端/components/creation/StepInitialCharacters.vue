@@ -431,7 +431,7 @@ function getRelation(id: string, importedCharacter?: any) {
 function updateRelField(id: string, field: 'basis' | 'relation' | 'contact', value: any) {
   if (!id) return;
   const current = { ...getRelation(id), [field]: value };
-  if (field === 'basis' || field === 'relation') current[field + 'Edited'] = true;
+  current[field + 'Edited'] = true;
   emit('update:relations', { ...props.relations, [id]: current });
 }
 

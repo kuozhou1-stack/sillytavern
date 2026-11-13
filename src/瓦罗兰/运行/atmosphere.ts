@@ -5,6 +5,17 @@ export const atmosphereRule = '以下是玩家当前的氛围设计，作为持�
 
 export const atmosphereEntryName = '规则｜氛围设计';
 
+/** 旧同步器写入的完整来源包装；同名不足以证明条目属于迁移。 */
+export function isLegacyAtmosphereEntry(entry: Pick<WorldbookEntry, 'uid' | 'name' | 'content' | 'position' | 'strategy'>) {
+  if (entry.name !== atmosphereEntryName) return false;
+  const generated = entry.content.startsWith(`${atmosphereRule}\n<atmosphere_design>\n`) &&
+    entry.content.endsWith('\n</atmosphere_design>');
+  const originalSlot = entry.uid === 52 && entry.content.replace(/\r/g, '').trim() === '<atmosphere_design>\n</atmosphere_design>' &&
+    entry.position.type === 'at_depth' && entry.position.role === 'system' && entry.position.depth === 4 &&
+    entry.position.order === 340 && entry.strategy.type === 'constant';
+  return generated || originalSlot;
+}
+
 /** Per-request input; Tavern places it inside the preset's native chat-history region. */
 export function atmospherePrompt(value: string): Omit<InjectionPrompt, 'id'> | null {
   return value.trim() ? { role: 'system', position: 'in_chat', depth: 4,
@@ -17,13 +28,13 @@ export async function removeLegacyAtmosphereWorldbook(check: () => void) {
   if (!book) return;
   const entries = await getWorldbook(book);
   check();
-  if (!entries.some(entry => entry.name === atmosphereEntryName)) return;
+  if (!entries.some(isLegacyAtmosphereEntry)) return;
   await updateWorldbookWith(book, current => {
     check();
-    return current.filter(entry => entry.name !== atmosphereEntryName);
+    return current.filter(entry => !isLegacyAtmosphereEntry(entry));
   }, { render: 'immediate' });
   check();
-  const updated = (await getWorldbook(book)).filter(entry => entry.name === atmosphereEntryName);
+  const updated = (await getWorldbook(book)).filter(isLegacyAtmosphereEntry);
   check();
   if (updated.length) throw Error('旧氛围设计世界书条目移除读回不一致');
 }

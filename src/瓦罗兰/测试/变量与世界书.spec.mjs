@@ -583,24 +583,14 @@ test('清空可重建对象仍是完整结构，不用optional丢失玩家分组
   assert.deepEqual(Schema.parse(parsed), parsed);
 });
 
-test('变量列表沿用模板，输出格式保留MVU协议，schema.json与当前输入结构一致', () => {
-  const template = path.resolve(root, '../../初始模板/角色卡/新建为src文件夹中的文件夹');
-  assert.equal(read('世界书/变量/变量列表.txt'), fs.readFileSync(path.join(template, '世界书/变量/变量列表.txt'), 'utf8'));
+test('变量列表使用卡内上下文宏，更新规则说明MVU操作，schema.json与当前输入结构一致', () => {
+  assert.equal(read('世界书/变量/变量列表.txt').trim(), '{{valoran_context}}');
   const output = readYaml('世界书/变量/变量输出格式.yaml').变量输出格式;
-  const example = output.format.match(/^\s*<UpdateVariable>\s*<JSONPatch>([\s\S]*?)<\/JSONPatch>\s*<\/UpdateVariable>\s*$/);
-  assert(example, '变量通道只要求完整JSONPatch，不强制额外分析段');
-  const patches = JSON.parse(example[1]);
-  assert.equal(patches.length, 7);
   const operations = ['replace', 'insert', 'delta', 'remove', 'move'];
-  for (const patch of patches) {
-    assert(operations.includes(patch.op));
-    assert((patch.path ?? patch.from).startsWith('/'));
-  }
   const instructions = YAML.stringify(output.rule, { lineWidth: 0 });
   for (const operation of operations) assert(instructions.includes(operation), `缺少操作说明：${operation}`);
   assert.match(instructions, /move.*from.*to/);
   assert.match(instructions, /_.*readonly/);
-  assert.match(instructions, /empty JSONPatch array \[\]/);
   assert(!instructions.includes('LifeCheck'), '已删除的独立回执不重新加入变量格式');
   assert(!/80 words|IN ENGLISH|<Analysis>/.test(output.format));
   assert.deepEqual(JSON.parse(read('schema.json')), createInputJsonSchema());

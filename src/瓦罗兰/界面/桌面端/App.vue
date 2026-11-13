@@ -11,9 +11,18 @@
         '--cw-paragraph-margin': `${paragraphSpacing}em`,
       }"
     >
+      <section v-if="loadFailure" class="cw-load-failure" role="alert">
+        <h2>{{ loadFailureTitle }}</h2>
+        <p>{{ loadFailure }}</p>
+        <p>{{ loadRecoveryHint }}</p>
+        <button class="cw-btn cw-btn-primary" type="button" :disabled="runtime?.view.loading" @click="execute(() => runtime!.reload())">
+          {{ runtime?.view.loadPhase === 'worldbook' || runtime?.view.loadPhase === 'recovery' ? '重新尝试加载' : '重新读取存档' }}
+        </button>
+      </section>
+
       <!-- A. 独立建档全屏页面 (仅未建档时显示；展示入口可显式预览) -->
       <CreationView
-        v-if="showCreation"
+        v-else-if="showCreation"
         :initial-profile="creationProfileDraft"
         :initial-characters-list="creationCharactersDraft"
         :can-cancel="isCreationCompleted"
@@ -269,6 +278,7 @@ import { RuntimeKey, type Runtime } from '../../运行/host';
 import { copy, lowStatus, uid } from '../../运行/core';
 import { createProfile } from '../../运行/creation';
 import { importCharacter, deleteCharacter } from '../../运行/characters';
+import { libraryRevision, LibrarySchema, LIBRARY_KEY } from '../../运行/character-library';
 import { StateKey } from './utils/context';
 import { installModalFocus } from './utils/modal-focus';
 import { taskPresentation } from './utils/task-presentation';
@@ -366,9 +376,21 @@ const isUpdatingVariables = computed(() =>
   taskState.value ? taskState.value.updating : props.previewState === 'waiting',
 );
 const updateFailed = computed(() => !!runtime?.view.error || props.previewState === 'failed');
+const loadFailure = computed(() => runtime?.view.loading ? '正在重新读取存档并恢复上次操作…'
+  : runtime && (runtime.view.loadError || !runtime.view.data)
+    ? runtime.view.loadError || runtime.view.error || '尚未读取到有效的存档状态。' : '');
+const loadFailureTitle = computed(() => runtime?.view.loading ? '正在恢复存档'
+  : runtime?.view.loadPhase === 'worldbook' ? '世界书准备未完成'
+  : runtime?.view.loadPhase === 'recovery' ? '上次操作恢复未完成' : '存档读取失败');
+const loadRecoveryHint = computed(() => runtime?.view.loading ? '请等待读取和恢复完成。'
+  : runtime?.view.loadPhase === 'worldbook'
+  ? '存档已读取。请检查当前角色卡绑定的世界书和酒馆保存状态，处理上述原因后重试。'
+  : runtime?.view.loadPhase === 'recovery'
+    ? '存档已读取，但上次操作尚未恢复完成。请处理上述原因后重试，待处理记录不会被自动重置。'
+    : '请在酒馆切回已结算的候选；若存档内容损坏，可从聊天备份恢复后重新读取。');
 const isCreationCompleted = computed(() => Boolean(state.value._系统?.建档完成));
 const isReviewingCreation = ref(props.previewModal === 'wizard');
-const showCreation = computed(() => !isCreationCompleted.value || isReviewingCreation.value);
+const showCreation = computed(() => !loadFailure.value && (!isCreationCompleted.value || isReviewingCreation.value));
 const notificationOverlay = computed(
   () => showCreation.value || activeModal.value !== null || showSystemDrawer.value || showLowStatusAlert.value || !!itemToUse.value,
 );
@@ -421,8 +443,8 @@ const creationProfileDraft = computed(() => ({
   家庭背景: state.value.玩家?.背景?.家庭背景 || '',
   重要过往: state.value.玩家?.背景?.重要过往 || '',
   当前生活背景: state.value.玩家?.背景?.当前生活背景 || '',
-  片区id: '',
-  住处描述: state.value.玩家?.生活?.日常活动 || '',
+  片区id: state.value.地点[state.value.玩家.生活.住处id]?.片区id ?? '',
+  住处描述: state.value.地点[state.value.玩家.生活.住处id]?.名称 ?? '',
   饱食度: state.value.玩家?.当前状态?.饱食度 ?? 100,
   水分值: state.value.玩家?.当前状态?.水分值 ?? 100,
   体力值: state.value.玩家?.当前状态?.体力值 ?? 100,
@@ -539,9 +561,10 @@ function confirmUseItem(item: any, amountStr: string) {
 async function handleImportChars(values: any[], submissionId: string) {
   if (!runtime) throw Error('离线展示不写入存档');
   await runtime.commit(s => {
+    const library = libraryRevision(s, LibrarySchema.parse(getVariables({ type: 'chat' })[LIBRARY_KEY]));
     for (const value of values) {
       const { id, __package, __imported, ...record } = value;
-      importCharacter(s, id, record, __package);
+      importCharacter(s, id, record, __package, Object.hasOwn(library.disabled, id));
     }
   }, submissionId);
   showToast('本批角色资料已保存，等待自然融入');
@@ -824,6 +847,17 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   z-index: 15000;
   width: min(640px, calc(100% - 16px));
+}
+
+.cw-load-failure {
+  max-width: 640px;
+  margin: 32px auto;
+  padding: 24px;
+  line-height: 1.7;
+  color: var(--cw-text-primary);
+  background: var(--cw-bg-card);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
 }
 
 .cw-item-use-modal {

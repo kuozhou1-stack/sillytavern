@@ -1,8 +1,8 @@
 import { createScriptIdIframe, teleportStyle } from '@util/script';
 import type { App } from 'vue';
 
-/** 本卡只有零楼桌面：正文流来自 Runtime，不订阅或重发酒馆的消息渲染事件。 */
-export function mountDesktop(doc: Document, creator: () => App) {
+/** 正文流来自 Runtime；宿主分页时桌面也可以挂在聊天容器内。 */
+export function mountDesktop(doc: Document, creator: () => App, active: () => boolean = () => true) {
   let stopped = false;
   let frame: HTMLIFrameElement | undefined;
   let wrapper: HTMLDivElement | undefined;
@@ -25,26 +25,27 @@ export function mountDesktop(doc: Document, creator: () => App) {
 
   return {
     render() {
-      if (stopped) return;
-      const floor = doc.querySelector('#chat > .mes[mesid="0"]');
-      // 同聊天重绘但宿主仍在时保留桌面；原生零楼被替换时才重新挂载。
-      if (frame?.isConnected && floor?.contains(frame)) return;
+      if (stopped || !active()) return;
+      const chat = doc.getElementById('chat');
+      const floor = chat?.querySelector(':scope > .mes[mesid="0"]');
+      if (frame?.isConnected && (floor?.contains(frame) || wrapper?.parentElement === chat)) return;
       dispose();
       const text = floor?.querySelector('.mes_text');
-      if (!text) return;
+      if (!chat || (!text && !chat.querySelector(':scope > .mes'))) return;
       wrapper = doc.createElement('div');
       wrapper.className = 'mes_streaming';
       const $frame = createScriptIdIframe().attr('id', 'cw-streaming-floor-0');
       const current = $frame[0];
       frame = current;
       $frame.one('load.cwDesktop', errorCatched(() => {
-        if (stopped || frame !== current) return;
+        if (stopped || frame !== current || !active()) return;
         styles = teleportStyle(current.contentDocument!.head);
         app = creator();
         app.mount(current.contentDocument!.body);
       }));
       wrapper.append(current);
-      text.after(wrapper);
+      if (text) text.after(wrapper);
+      else chat.prepend(wrapper);
     },
     unmount() {
       stopped = true;

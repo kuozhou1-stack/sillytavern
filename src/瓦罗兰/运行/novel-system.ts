@@ -108,6 +108,13 @@ export function storyDay(state: State): string | null {
     : null;
 }
 
+export const MAX_AVAILABLE_QUESTS = 8;
+export function availableNovelTasks(state: State, day = storyDay(state)) {
+  const system = state.奇遇系统;
+  return Object.entries(system.任务).filter(([id, task]) =>
+    !system._任务记录[id] && (!task.有效日 || !day || task.有效日 === day));
+}
+
 function definition(task: Quest) {
   const { 进度, 进展说明, 完成依据事件id, ...fixed } = task;
   return JSON.stringify(fixed);
@@ -188,7 +195,7 @@ export function refreshNovelSystem(state: State): State {
   if (!system._启用) return state;
   const day = storyDay(state);
   const key = day ?? '未定日';
-  if (system._刷新日期 === key) return state;
+  let remaining: number | undefined;
   const templates = [
     {
       key: 'meal',
@@ -211,8 +218,18 @@ export function refreshNovelSystem(state: State): State {
   ] as const;
   for (const template of templates) {
     const id = `cw_daily_${key}_${template.key}`;
+    const opening = system.任务[`cw_daily_未定日_${template.key}`];
+    if (day && opening && (opening.有效日 === null || opening.有效日 === day)) {
+      // 未定日首批沿用原 ID；首次确定日期只衔接有效日，不重置进度、接取或领奖。
+      opening.有效日 = day;
+      const accepted = system._任务记录[`cw_daily_未定日_${template.key}`];
+      if (accepted) accepted.定义快照 = definition(opening);
+      continue;
+    }
     // Returning to a date or reloading cannot reset an already recorded task.
     if (system.任务[id] || system._任务记录[id]) continue;
+    remaining ??= MAX_AVAILABLE_QUESTS - availableNovelTasks(state, day).length;
+    if (remaining <= 0) break;
     system.任务[id] = {
       名称: template.name,
       类型: template.type,
@@ -223,6 +240,7 @@ export function refreshNovelSystem(state: State): State {
       进展说明: null,
       完成依据事件id: [],
     };
+    remaining--;
   }
   system._刷新日期 = key;
   return state;
@@ -317,7 +335,6 @@ export function assertNovelModel(before: State, after: State) {
     if (record.状态 !== '进行中' && !_.isEqual(old.任务[id], next.任务[id]))
       throw Error('已结束任务不可重新结算：' + id);
   }
-  let available = 0;
   for (const [id, task] of Object.entries(next.任务)) {
     if (old._任务记录[id]) continue;
     if (task.进度 || task.完成依据事件id.length) throw Error('未接取任务不能提前完成：' + id);
@@ -327,11 +344,12 @@ export function assertNovelModel(before: State, after: State) {
     // Still validate any edit to it, and keep it in the existing availability count.
     if ((!task.名称.trim() || !task.目标.trim()) && !_.isEqual(old.任务[id], task))
       throw Error('任务名称与目标不能为空');
-    if (!task.有效日 || !storyDay(after) || task.有效日 === storyDay(after)) {
-      available++;
-    }
   }
-  if (available > 8) throw Error('可接取任务最多 8 项');
+  const day = storyDay(after), available = availableNovelTasks(after, day);
+  if (available.length > MAX_AVAILABLE_QUESTS) {
+    const previous = new Set(availableNovelTasks(before, day).map(([id]) => id));
+    if (available.some(([id]) => !previous.has(id))) throw Error('可接取任务最多 8 项');
+  }
   for (const [id, item] of Object.entries(after.玩家.物品栏)) {
     if (!id.startsWith('cw_system_item_')) continue;
     const previous = before.玩家.物品栏[id];

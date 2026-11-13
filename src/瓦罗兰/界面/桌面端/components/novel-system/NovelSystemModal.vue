@@ -185,6 +185,7 @@ import { uid } from '../../../../运行/core';
 import type { NovelAction } from '../../../../运行/novel-system';
 import type { NovelRefreshTarget } from '../../../../运行/novel-refresh';
 import { RuntimeKey, type Runtime } from '../../../../运行/host';
+import { novelRefreshCapacity } from '../../../../运行/novel-refresh';
 import { isApiConfigured } from '../../../../运行/settings';
 import { taskPresentation } from '../../utils/task-presentation';
 import { gameplayModalSize } from '../../utils/gameplay-modal-size';
@@ -280,10 +281,11 @@ async function handleAction(action: Omit<NovelAction, 'operationId'>) {
         } else if (!isApiConfigured(runtime.settings.phone)) {
           emit('feedback', '奇遇已开启；请在“设置 → 手机与奇遇 API”选择正文连接或配置独立接口，再刷新任务和商店');
         } else {
-          pendingTargetId.value = 'refresh:initial';
+          const target = novelRefreshCapacity(props.state, 'tasks') ? 'initial' : 'shop';
+          pendingTargetId.value = 'refresh:' + target;
           try {
-            await runtime.novelRefresh('initial');
-            emit('feedback', '初始随机任务与商店新品已生成');
+            await runtime.novelRefresh(target);
+            emit('feedback', target === 'shop' ? '待接取任务已满，商店新品已生成' : '初始随机任务与商店新品已生成');
           } catch (error: unknown) {
             const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
             emit('feedback', '奇遇已开启，初始内容未生成：' + message);

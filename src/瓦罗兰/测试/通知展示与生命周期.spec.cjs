@@ -176,13 +176,13 @@ test('F01: 触碰暂停与展开全文不销毁通知，也不注册自动关闭
 
 const appNames = [
   'activeModal', 'showSystemDrawer', 'showLowStatusAlert', 'itemToUse', 'toastMessage',
-  'toastIsGenerationProgress', 'isCreationCompleted', 'isReviewingCreation', 'showCreation',
+  'toastIsGenerationProgress', 'isCreationCompleted', 'isReviewingCreation', 'loadFailure', 'showCreation',
   'notificationOverlay', 'showToast', 'dismissToast',
 ];
 function appNotification(t) {
   const state = vue.ref({ _系统: { 建档完成: true }, 世界: {}, 玩家: {}, 地点: {}, 手机: {} });
   const isGenerating = vue.ref(false);
-  const fixture = setup('App.vue', {}, { props: {}, state, isGenerating }, appNames);
+  const fixture = setup('App.vue', {}, { props: {}, state, isGenerating, runtime: null }, appNames);
   t.after(() => fixture.scope.stop());
   return { ...fixture, state, isGenerating };
 }

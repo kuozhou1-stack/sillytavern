@@ -2,28 +2,16 @@
 ---
 变量输出格式:
   rule:
-    - return the JSONPatch update in an UpdateVariable block; preset wrapper tags may surround it. No additional analysis or receipt is required.
-    - the update commands works like the **JSON Patch (RFC 6902)** standard, must be a valid JSON array containing operation objects, but supports the following operations instead:
-      - replace: change an existing field; use null to clear a nullable field. For a small composite value such as time or map coordinates, provide its complete value.
-      - delta: add a numeric difference to an existing non-null number; use replace when assigning an absolute value
-      - insert: add a new object key or array item (using `-` as array index appends to the end); do not insert at an existing record's path
-      - remove: delete an item or key only when its removal is intended and allowed by the variable rules
-      - move: relocate an existing value using from and to, preserving valid references
-    - for existing characters, update only changed child fields; do not resend the whole record or erase omitted relationships, history or script-managed fields
-    - unchanged values need no command; when this update requires no changes, output an empty JSONPatch array []
-    - don't update field names starts with `_` as they are readonly, such as `_变量`
+    - '回复只写一个 JSON 对象，唯一字段 JSONPatch 是补丁数组序列化后的字符串。对象前后不写计划、解释、正文或代码围栏。'
+    - 只写本轮已发生的变化和变量规则授权的任务结果（含本轮生活任务）。记下计划只更新计划记录，购买、收款等到实际发生时才结算。
+    - 新建记录写必填项及已有事实。只有 Schema 有默认值且本轮没有对应事实的字段才省略。已有记录只改变化的叶子字段，保留其他资料、关系、历史和程序管理字段。
+    - 路径使用 JSON Pointer，以 / 分隔层级。Schema 中以 _ 开头的固定字段只读（readonly）。下例的人物 id、称呼与来源均按实际所知替换。
+    - replace 用 path 和 value 更新已有字段，明确清空可空字段时写 null。时间点须给出完整的年、月、日、时、分，地图坐标须给出完整的 x、y。
+    - delta 用 path 和数值 value 写已有非空数值的增减量；已知绝对值用 replace。
+    - insert 用 path 和 value 新增字典键或数组项，数组末尾用 /-；已有记录按变化字段更新。
+    - remove 用 path 删除变量规则允许且确已移除的键或数组项。
+    - move 用 from 和 to 移动已有值，保持引用有效。
+    - '没有变化时直接返回 {"JSONPatch":"[]"}。'
   format: |-
-    <UpdateVariable>
-    <JSONPatch>
-    [
-      { "op": "replace", "path": "/path/to/variable", "value": "new_value" },
-      { "op": "delta", "path": "/path/to/number/variable", "value": 1 },
-      { "op": "insert", "path": "/path/to/object/new_key", "value": "new_value" },
-      { "op": "insert", "path": "/path/to/array/-", "value": "new_value" },
-      { "op": "remove", "path": "/path/to/object/key" },
-      { "op": "remove", "path": "/path/to/array/0" },
-      { "op": "move", "from": "/path/to/variable", "to": "/path/to/another/path" }
-    ]
-    </JSONPatch>
-    </UpdateVariable>
+    {"JSONPatch":"[{\"op\":\"insert\",\"path\":\"/玩家/已知信息/已认识人物/example_person\",\"value\":{\"称呼\":\"向导\",\"来源\":{\"方式\":\"观察\"}}}]"}
 # {{valoran_variables_end}}

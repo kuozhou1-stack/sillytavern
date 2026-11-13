@@ -1,6 +1,6 @@
 import { Schema } from '../schema';
 import { copy, uid, type State } from './core';
-import { storyDay, SYSTEM_GOODS } from './novel-system';
+import { availableNovelTasks, MAX_AVAILABLE_QUESTS, storyDay, SYSTEM_GOODS } from './novel-system';
 import { novelCreationContext, novelPublicSetting } from './novel-context';
 
 
@@ -22,14 +22,9 @@ const GoodDefinition = z.object({
 const nameKey = (name: string) => name.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, '');
 const countFor = (state: State) => state._系统.生成密度 === '少量' ? 2 : state._系统.生成密度 === '丰富' ? 6 : 4;
 
-function availableTasks(state: State) {
-  const day = storyDay(state), system = state.奇遇系统;
-  return Object.entries(system.任务).filter(([id, task]) =>
-    !system._任务记录[id] && (!task.有效日 || !day || task.有效日 === day));
-}
 export function novelRefreshCapacity(state: State, target: NovelRefreshTarget) {
   if (target === 'shop') return countFor(state);
-  return Math.min(countFor(state), Math.max(0, 8 - availableTasks(state).length));
+  return Math.min(countFor(state), Math.max(0, MAX_AVAILABLE_QUESTS - availableNovelTasks(state).length));
 }
 
 /** Public setting and minimal region/situation context, never a full player/NPC/history projection. */

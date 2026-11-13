@@ -4,6 +4,7 @@ import { assertNovelModel } from './novel-system';
 import { assertInformationUnchanged } from './knowledge-context';
 import { randomUUID } from './browser-crypto';
 import { isPrivateModelPath, modelPathParts, privateModelPaths, publicModelFields } from './model-fields';
+import { committedChanges } from './commit-replay';
 
 export type State = z.infer<typeof Schema>;
 export type Context = {
@@ -144,6 +145,7 @@ export class CommitService {
         数据版本: candidate._系统.数据版本,
         状态: '已写入',
         恢复候选JSON: null,
+        变更JSON: JSON.stringify(committedChanges(before, candidate)),
       };
       const validated = Schema.parse(candidate);
       const recovery = { context: expected, commitId: id, candidate: validated, rollbackOnFailure };

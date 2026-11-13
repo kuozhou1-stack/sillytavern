@@ -417,7 +417,7 @@ test('选择时源消息被编辑后不发送正文，不将旧输入保留成�
     };
     await assert.rejects(e.runtime.send('旧输入'), /源消息已变化/);
     assert.equal(e.calls.length, 0);
-    assert.equal(e.vars.澄湾失败请求, null);
+    assert.equal(e.vars.澄湾失败请求 ?? null, null);
     assert.equal(e.state()._系统.资料加载.选择依据, null);
   });
 });

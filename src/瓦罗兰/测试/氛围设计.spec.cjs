@@ -5,7 +5,7 @@ const req=h.require.bind(h);h.require=name=>name==='node:test'?{test(){}}:req(na
 h._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={environment,seed,block,endpoint,Schema,copy,deferred,structuredFixtureReply};',file);
 const {environment,seed,block,endpoint,Schema,copy,deferred,structuredFixtureReply}=h.exports;
 const {SettingsSchema,createSettingsController,atmosphereBrowserKey}=require('../运行/settings.ts');
-const {atmospherePrompt}=require('../运行/atmosphere.ts');
+const {atmospherePrompt,atmosphereRule}=require('../运行/atmosphere.ts');
 const {createRuntime}=require('../运行/host.ts');
 const mood='  魔法与科技融入日常。\r\n人物主动交流，城市修复持续变化。  ';
 const api=(mode,preset,name)=>({mode,sendPreset:preset,...(mode==='extra'?endpoint(name):{})});
@@ -152,7 +152,7 @@ test('氛围只保存共用偏好，不创建或更新世界书，下一请求�
 
 test('旧氛围世界书仅启动时移除，保留偏好、其他条目和未完成操作',async()=>{
  const e=environment(seed(),{characterAuto:false,informationAuto:false,atmosphere:mood});
- e.atmosphereEntries.push({uid:52,name:'规则｜氛围设计',enabled:true,content:'旧氛围',position:{type:'at_depth',role:'system',depth:4,order:340}});
+ e.atmosphereEntries.push({uid:52,name:'规则｜氛围设计',enabled:true,content:atmosphereRule+'\n<atmosphere_design>\n旧氛围\n</atmosphere_design>',position:{type:'at_depth',role:'system',depth:4,order:340}});
  await e.runtime.start();
  try{
   assert.equal(e.atmosphereEntries.length,0);assert.equal(e.runtime.settings.atmosphere,mood);

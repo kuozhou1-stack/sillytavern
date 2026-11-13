@@ -4320,6 +4320,9 @@
                   "string",
                   "null"
                 ]
+              },
+              "变更JSON": {
+                "type": "string"
               }
             }
           }

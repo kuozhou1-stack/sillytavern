@@ -26,6 +26,7 @@ const Snapshot = z.object({
   version: z.number(),
   // Business snapshot is separate from runtime tasks/commit records. Validate it again at restore.
   pack: z.any(),
+  replays: z.record(z.string(), z.object({ version: z.number().int(), changes: z.string() })).optional(),
 });
 export const LibrarySchema = z
   .object({
@@ -117,6 +118,22 @@ function disable(state: State, library: CharacterLibrary, revision: LibraryRevis
     snapshotId = uid('character_snapshot');
   const version = Math.max(person._管理.版本, state._系统.角色停用标识[id]?.版本 ?? 0) + 1;
   library.snapshots[snapshotId] = { id, saveId: state._系统.存档id, version, pack };
+  const accounts = new Set(Object.keys(pack.手机.账号));
+  const sources = new Set(Object.keys(pack.来源档案));
+  const tasks = new Set(Object.entries(state._系统.任务).filter(([, task]) => task.目标id.includes(id)).map(([key]) => key));
+  for (const [commitId, receipt] of Object.entries(state._系统.提交记录)) {
+    if (!receipt.变更JSON) continue;
+    const changes = JSON.parse(receipt.变更JSON) as { path: string[] }[];
+    if (changes.some(({ path }) =>
+      (path[0] === '角色' && path[1] === id) ||
+      (path[0] === '手机' && path[1] === '账号' && accounts.has(path[2])) ||
+      (path[0] === '_系统' && path[1] === '来源档案' && sources.has(path[2])) ||
+      (path[0] === '_系统' && path[1] === '任务' && tasks.has(path[2])))) {
+      // 停用后不在活动变量残留旧全文；重放所需的值随原有独立快照保存。
+      (library.snapshots[snapshotId].replays ??= {})[commitId] = { version: receipt.数据版本, changes: receipt.变更JSON };
+      delete receipt.变更JSON;
+    }
+  }
   revision.disabled[id] = snapshotId;
   state._系统.角色停用标识[id] = { 姓名: person.姓名, 版本: version };
   delete state.角色[id];

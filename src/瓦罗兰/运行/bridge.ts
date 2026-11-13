@@ -102,6 +102,9 @@ export function connectRuntime(remote: Runtime) {
   if (remote.retry) {
     runtime.retry = () => invoke(() => remote.retry());
   }
+  if (remote.reload) {
+    runtime.reload = () => invoke(() => remote.reload());
+  }
   if (remote.discardPending) {
     runtime.discardPending = () => invoke(() => remote.discardPending());
   }

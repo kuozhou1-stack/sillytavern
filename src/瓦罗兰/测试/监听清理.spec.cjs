@@ -214,7 +214,7 @@ test('两个桌面连接分别注销，保留连接仍接收状态事件', async
 for (const kind of ['desktop', 'streaming'])
 test(`${kind}入口pagehide按原回调清理，不再响应后续事件`, async () => {
   const { events } = setup();
-  const names = kind === 'desktop' ? ['recover', 'recovery'] : ['onChatChanged', 'listener'];
+  const names = kind === 'desktop' ? ['recover', 'recovery'] : ['onChatChanged', 'listener', 'dispose'];
   const file = path.join(__dirname, kind === 'desktop' ? '../界面/桌面端/index.ts' : '../脚本/流式同层/index.ts');
   const ast = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const ready = ast.statements.find(node => ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)

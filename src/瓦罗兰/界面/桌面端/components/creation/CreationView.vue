@@ -79,6 +79,7 @@
           :account-name="accountName"
           :balance="balance"
           :phone-name="phoneName"
+          :has-player-account="!!initialAccountId"
           :starting-items="startingItems"
           :locations="state.地点"
           @update:start-time="startTime = $event"
@@ -115,6 +116,7 @@
           :account-name="accountName"
           :balance="balance"
           :phone-name="phoneName"
+          :has-player-account="!!initialAccountId"
           :starting-items="startingItems"
           :locations="state.地点"
           :submit-error="submitError"
@@ -196,6 +198,8 @@
 <script setup lang="ts">
 import { ref, reactive, watch, nextTick, shallowRef, markRaw, onMounted, onScopeDispose } from 'vue';
 import { copy, uid } from '../../../../运行/core';
+import { ownAccount } from '../../../../运行/phone';
+import type { State } from '../../../../运行/core';
 import { useWorldState } from '../../utils/context';
 import { readCreationPreset, saveCreationPreset, type CreationPreset } from '../../utils/creation-preset';
 const state = useWorldState();
@@ -227,12 +231,18 @@ const isSubmitting = ref(false);
 const submitError = ref('');
 const stepError = ref('');
 
-const startTime = ref('');
-const weather = ref('');
-const startLocation = ref('');
+const initial: State = state.value;
+const time = initial.世界.当前时间;
+const twoDigits = (value: number) => String(value).padStart(2, '0');
+const startTime = ref(time
+  ? `${String(time.年).padStart(4, '0')}-${twoDigits(time.月)}-${twoDigits(time.日)}T${twoDigits(time.时)}:${twoDigits(time.分)}`
+  : '');
+const weather = ref(initial.世界.天气.天气状况 ?? '');
+const startLocation = ref(initial.玩家.当前状态.当前地点id ?? '');
 const accountName = ref('');
-const balance = ref<string | number>('');
-const phoneName = ref('');
+const balance = ref<string | number>(initial.玩家.资金.余额分 == null ? '' : initial.玩家.资金.余额分 / 100);
+const initialAccountId = initial.玩家.id ? ownAccount(initial) : undefined;
+const phoneName = ref(initialAccountId ? initial.手机.账号[initialAccountId].账号名 ?? '' : '');
 
 interface StartingItem {
   id: string;
@@ -242,12 +252,25 @@ interface StartingItem {
   单位: string;
 }
 
-const startingItems = ref<StartingItem[]>([
+const authorItems = Object.entries(initial.玩家.物品栏);
+const startingItems = ref<StartingItem[]>(authorItems.length ? authorItems.map(([id, item]) => ({
+  id, 名称: item.名称 ?? '', 类别: item.类别 ?? '', 数量: item.数量, 单位: item.单位 ?? '',
+})) : [
   { id: 'item_1', 名称: '智能手机', 类别: '日常数码', 数量: 1, 单位: '部' },
   { id: 'item_2', 名称: '随身钥匙串', 类别: '生活随身', 数量: 1, 单位: '串' },
 ]);
 
 const relations = reactive<Record<string, any>>({});
+for (const [id, character] of Object.entries(initial.角色)) {
+  const relation = character.关系网[initial.玩家.id ?? 'player'] ?? character.关系网.player;
+  const contact = !!initialAccountId && Object.values(initial.手机.联系人).some(row =>
+    row.本人账号id === initialAccountId && row.状态 === '正常' &&
+    row.对方账号id && initial.手机.账号[row.对方账号id]?.人物id === id);
+  if (relation || contact) relations[id] = {
+    basis: relation?.关系备注 ?? '', relation: relation?.关系 ?? '', contact,
+    basisEdited: false, relationEdited: false, contactEdited: false,
+  };
+}
 
 const steps = [
   { step: 1, title: '基本信息' },
@@ -284,7 +307,7 @@ const player = ref({
   体力值: 100,
 });
 
-// 导入档案是只读原文；替换名单时更新，避免每次编辑玩家表单遍历 171 份深层档案。
+// 导入档案是只读原文；替换名单时更新，避免每次编辑玩家表单遍历 多份深层档案。
 const initialCharacters = shallowRef<any[]>(markRaw([]));
 
 // Prefill once; reactive host snapshots must not overwrite unsaved input.
@@ -319,14 +342,44 @@ try {
   const raw = props.draftKey && window.parent.sessionStorage.getItem(props.draftKey);
   if (raw) {
     const saved = JSON.parse(raw);
-    if (saved.version !== 1 || !saved.player || !saved.fields) throw Error('草稿格式不兼容');
+    if (![1, 2].includes(saved.version) || !saved.player || !saved.fields) throw Error('草稿格式不兼容');
+    // 旧向导把未展示的作者资产写成空串，并把日常活动误当住所；沿用新表单的对应初值。
+    if (saved.version === 1) {
+      for (const field of ['startTime', 'weather', 'startLocation', 'balance', 'phoneName'])
+        if (saved.fields[field] === '' || saved.fields[field] == null) delete saved.fields[field];
+      if (saved.player.住处描述 === (initial.玩家.生活.日常活动 ?? '')) delete saved.player.住处描述;
+      if (!saved.player.片区id) delete saved.player.片区id;
+      if (Array.isArray(saved.fields.startingItems)) {
+        const legacyDefaults = [
+          { id: 'item_1', 名称: '智能手机', 类别: '日常数码', 数量: 1, 单位: '部' },
+          { id: 'item_2', 名称: '随身钥匙串', 类别: '生活随身', 数量: 1, 单位: '串' },
+        ];
+        const items = new Map(startingItems.value.map(item => [item.id, item]));
+        for (const item of saved.fields.startingItems) {
+          if (!legacyDefaults.some(defaultItem => _.isEqual(item, defaultItem))) items.set(item.id, item);
+        }
+        saved.fields.startingItems = [...items.values()];
+      }
+    }
     // 只恢复当前表单字段；旧草稿身份值迁移后不再保留废弃键。
     if (!Object.hasOwn(saved.player, '身份') && Object.hasOwn(saved.player, '当前职业'))
       player.value.身份 = saved.player.当前职业;
     Object.assign(player.value, Object.fromEntries(
       Object.entries(saved.player).filter(([key]) => Object.hasOwn(player.value, key)),
     ));
-    Object.assign(relations, saved.relations ?? {});
+    for (const [id, stored] of Object.entries(saved.relations ?? {})) {
+      const row = stored as typeof relations[string];
+      const author = relations[id];
+      if (saved.version === 1 && author) {
+        relations[id] = {
+          ...row,
+          basis: row.basisEdited || (row.basisEdited == null && row.basis) ? row.basis : author.basis,
+          relation: row.relationEdited || (row.relationEdited == null && row.relation) ? row.relation : author.relation,
+          contact: row.contact || author.contact,
+          contactEdited: row.contact === true && !author.contact,
+        };
+      } else relations[id] = row;
+    }
     for (const [key, target] of Object.entries(draftRefs)) {
       if (Object.hasOwn(saved.fields, key)) target.value = saved.fields[key];
     }
@@ -363,7 +416,7 @@ function saveDraft() {
       creationWindow.parent.sessionStorage.setItem(
         props.draftKey,
         JSON.stringify({
-          version: 1,
+          version: 2,
           player: player.value,
           relations,
           fields: Object.fromEntries(Object.entries(draftRefs).map(([key, value]) => [key, value.value])),
@@ -540,7 +593,7 @@ async function handleFinalSubmit() {
 
   try {
     const details: any = {
-      世界: { 天气: { 天气状况: weather.value || null } },
+      世界: { 当前时间: null, 天气: { 天气状况: weather.value || null } },
       玩家: { 当前状态: { 当前地点id: startLocation.value || null } },
     };
     if (startTime.value) {
@@ -556,22 +609,25 @@ async function handleFinalSubmit() {
       余额分: balance.value === '' || balance.value == null ? null : Math.round(Number(balance.value) * 100),
     };
 
-    // 结构化物品转为字典 (解决 F27)
     details.玩家.物品栏 = Object.fromEntries(
       startingItems.value
-        .filter(it => it && it.名称 && it.名称.trim())
-        .map((it, i) => [
-          'initial_' + i,
+        .filter(it => it.名称.trim() || Object.hasOwn(initial.玩家.物品栏, it.id))
+        .map(it => [
+          it.id,
           {
-            名称: it.名称.trim(),
+            ...initial.玩家.物品栏[it.id],
+            名称: it.名称.trim() || null,
             类别: it.类别 ? it.类别.trim() : null,
-            数量: it.数量 != null ? Number(it.数量) : null,
+            数量: it.数量 == null || String(it.数量) === '' ? null : Number(it.数量),
             单位: it.单位 ? it.单位.trim() : null,
           },
         ]),
     );
 
+    details.移除初始物品 = Object.keys(initial.玩家.物品栏).filter(id => !Object.hasOwn(details.玩家.物品栏, id));
     details.初始关系 = relations;
+    const staged = new Set(initialCharacters.value.map(character => character.id));
+    details.移除初始角色 = Object.keys(initial.角色).filter(id => !staged.has(id));
     details.邻信账号名 = phoneName.value.trim();
 
     const reusablePreset: CreationPreset = {
@@ -602,7 +658,7 @@ async function handleFinalSubmit() {
         saveCreationPreset(reusablePreset);
         hasLastPreset.value = true;
       } catch (e) {
-        console.warn('[瓦洛兰] 建档成功，但上次建档记录未能保存', e);
+        console.warn('[瓦罗兰] 建档成功，但上次建档记录未能保存', e);
       }
     }
     if (props.draftKey) {

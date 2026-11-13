@@ -53,6 +53,14 @@ export function phoneNotificationPlatform(
   return platforms.size === 1 ? [...platforms][0] : null;
 }
 export const storyMinute = (t: any): number => (t ? (((t.年 * 13 + t.月) * 32 + t.日) * 24 + t.时) * 60 + t.分 : -1);
+function groupMemberAt(group: State['手机']['群'][string] | undefined, account: string, time: State['世界']['当前时间']) {
+  return Object.values(group?.成员[account]?.成员区间 ?? {}).some(interval =>
+    time
+      ? (interval.加入时间 === null || storyMinute(interval.加入时间) <= storyMinute(time)) &&
+        (interval.离开时间 === null || storyMinute(time) < storyMinute(interval.离开时间))
+      : interval.离开时间 === null,
+  );
+}
 export const byNewest = (a: any, b: any) =>
   storyMinute(b.故事时间) - storyMinute(a.故事时间) ||
   (b._顺序 ?? 0) - (a._顺序 ?? 0) ||
@@ -74,14 +82,8 @@ export function recipientsFor(state: State, sessionId: string, sender: string, t
   if (disabledAccount(state, sender)) throw Error('角色已停用，不能发送新消息');
   if (session.类型 === '群聊') {
     const group = phone.群[session.群id!];
-    const active = (id: string) =>
-      Object.values(group?.成员[id]?.成员区间 ?? {}).some(i =>
-        time
-          ? (i.加入时间 === null || storyMinute(i.加入时间) <= storyMinute(time)) &&
-            (i.离开时间 === null || storyMinute(time) < storyMinute(i.离开时间))
-          : i.离开时间 === null,
-      );
-    return session.参与账号id.filter(id => id !== sender && active(id) && !disabledAccount(state, id));
+    if (!groupMemberAt(group, sender, time)) throw Error('发送者在消息发生时不在群中');
+    return session.参与账号id.filter(id => id !== sender && groupMemberAt(group, id, time) && !disabledAccount(state, id));
   }
   const recipients = session.参与账号id.filter(id => id !== sender);
   if (recipients.some(id => disabledAccount(state, id))) throw Error('对方角色已停用，历史聊天可查看；请先在角色库开启');
@@ -256,6 +258,7 @@ export function phoneProjection(state: any, platform = '邻信', archive = false
     .map(([id, c]: any) => ({
       id,
       isGroup: c.类型 === '群聊',
+      groupReadOnly: c.类型 === '群聊' && !groupMemberAt(phone.群[c.群id], account!, state.世界.当前时间),
       name: c.群id
         ? (phone.群[c.群id]?.名称 ?? '群资料未知')
         : c.参与账号id
@@ -340,12 +343,12 @@ export type PhoneAction = {
   groupName?: string;
 };
 
-function recordPhoneMessage(state: State, account: string, sessionId: string, content: any[], recipients: string[], id = uid('phone'), order = ++state._系统.稳定序号) {
+function recordPhoneMessage(state: State, account: string, sessionId: string, content: any[], recipients: string[], id = uid('phone')) {
   const phone = state.手机, time = state.世界.当前时间;
   const name = phone.账号[account].昵称 ?? phone.账号[account].账号名;
   phone.原文.消息[id] = {
     会话id: sessionId, 发送账号id: account, 发送者称呼: name, 故事时间: time,
-    _顺序: order, 内容块: content, 回复目标消息id: null, _已投递账号id: recipients, _发送状态: '已投递', 撤回时间: null,
+    _顺序: ++state._系统.稳定序号, 内容块: content, 回复目标消息id: null, _已投递账号id: recipients, _发送状态: '已投递', 撤回时间: null,
   };
   phone.会话[sessionId]._窗口._近期id.unshift(id);
   for (const target of recipients) phone._接收侧记录[uid('delivery')] = {
@@ -415,15 +418,15 @@ export function applyPhoneAction(state: State, action: PhoneAction) {
     (!Array.isArray(content) || !content.length || (!action.blocks && !action.text?.trim()))
   )
     throw Error('内容不能为空');
+  if (action.kind === 'send') {
+    const recipients = recipientsFor(state, action.id!, account, time);
+    recordPhoneMessage(state, account, action.id!, content, recipients, id);
+    return Schema.parse(s);
+  }
   const order = ++s._系统.稳定序号;
   const name = phone.账号[account].昵称 ?? phone.账号[account].账号名;
   const raw = phone.原文;
-  if (action.kind === 'send') {
-    const session = phone.会话[action.id!];
-    if (!session) throw Error('会话不存在');
-    const recipients = recipientsFor(state, action.id!, account, time);
-    recordPhoneMessage(state, account, action.id!, content, recipients, id, order);
-  } else if (action.kind === 'post') {
+  if (action.kind === 'post') {
     raw.帖子[id] = {
       平台: platform === '邻信' ? '朋友圈' : '微澜',
       发布账号id: account,

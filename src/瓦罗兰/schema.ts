@@ -3386,6 +3386,7 @@ export const Schema = z
                   .prefault(0),
                 状态: z.enum(['待确认', '已写入', '已持久保存']).prefault('待确认'),
                 恢复候选JSON: z.string().nullable().prefault(null),
+                变更JSON: z.string().optional(),
               })
               .prefault({}),
           )

@@ -82,6 +82,11 @@ test('生活待办引用连续事件规则，字段与原记录身份沿现有�
   const state=contextState();state._系统.任务.auto=Schema.parse({_系统:{任务:{auto:{类别:'生活更新',状态:'排队',触发来源:'自动角色调度：当前生活检查',目标id:['npc'],目标版本:{npc:state.角色.npc._管理.版本}}}}})._系统.任务.auto;
   const before=copy(state),text=withUpdateTasks({},state,['auto']).injects[0].content;
   assert(text.includes('沿现有个人目标和正在发展的事件链连续接续'));assert(text.includes('复用记录与事件身份'));
+  assert.match(text, /普通动作只写在最能承接下一轮的一处/);
+  assert.match(text, /主要和次要人物此刻正在做的事都写当前状态/);
+  assert.match(text, /已有目标取得进展就写该目标的进展/);
+  assert.match(text, /次要人物的持续近况或较长安排写在重要记录中的 npc_current_state/);
+  assert.match(text, /其他字段有独立变化时照常更新，有意义的个人经历按常驻规则续记/);
   const worldbook=fs.readFileSync(path.join(__dirname,'../世界书/常驻/自主生活与记忆.md'),'utf8');
   assert(worldbook.includes('不每次重开一件无关小事'));assert(worldbook.includes('沿用原经历或重要记录id'));
   assert(worldbook.includes('不另建平行事件链变量'));assert.deepEqual(state,before);

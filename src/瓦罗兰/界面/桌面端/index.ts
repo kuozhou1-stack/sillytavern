@@ -59,7 +59,6 @@ $(() => {
     if (stopped) return;
     connection = connectRuntime((window.parent as any).__chengwanService.runtime);
     const runtime = connection.runtime;
-    if (!runtime.view.data) throw Error(runtime.view.error || '活动状态读取失败');
     document.documentElement.lang = 'zh-CN';
     const pinia = createPinia();
     useChengwanStore(pinia).bind(runtime);

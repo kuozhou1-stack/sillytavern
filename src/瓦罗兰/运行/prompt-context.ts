@@ -53,10 +53,12 @@ export function registerPromptMacros(readState: () => State) {
 }
 
 /** Keep edited rule text and placement; rules stay disabled outside per-request inputs. */
-export async function preparePromptWorldbook() {
+export async function preparePromptWorldbook(assertActive?: () => void) {
+  assertActive?.();
   const book = getCharWorldbookNames('current').primary;
   if (!book) throw Error('角色卡未绑定世界书');
   const entries = await getWorldbook(book);
+  assertActive?.();
   const changed = entries.flatMap(entry => {
     let content = entry.content;
     if (entry.name === '变量列表')
@@ -73,11 +75,15 @@ export async function preparePromptWorldbook() {
   });
   if (!changed.length) return;
   if (book !== getCharWorldbookNames('current').primary) throw Error('准备资料时世界书已切换');
-  await updateWorldbookWith(book, currentEntries => currentEntries.map(entry => {
-    const replacement = changed.find(item => item.uid === entry.uid);
-    return replacement ? { ...entry, content: replacement.content, enabled: replacement.enabled } : entry;
-  }), { render: 'immediate' });
+  await updateWorldbookWith(book, currentEntries => {
+    assertActive?.();
+    return currentEntries.map(entry => {
+      const replacement = changed.find(item => item.uid === entry.uid);
+      return replacement ? { ...entry, content: replacement.content, enabled: replacement.enabled } : entry;
+    });
+  }, { render: 'immediate' });
   const saved = await getWorldbook(book);
+  assertActive?.();
   if (book !== getCharWorldbookNames('current').primary || changed.some(item =>
     saved.find(entry => entry.uid === item.uid)?.content !== item.content ||
     saved.find(entry => entry.uid === item.uid)?.enabled !== item.enabled))

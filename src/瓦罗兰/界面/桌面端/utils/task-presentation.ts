@@ -5,6 +5,7 @@ export function taskPresentation(view: {
   busy: boolean;
   updating: boolean;
   error: string;
+  canResend?: boolean;
   recoverable: { kind: string }[];
   messages: { isUpdatePending?: boolean }[];
   queued?: { kind: string }[];
@@ -24,7 +25,7 @@ export function taskPresentation(view: {
   const acting =
     ['local', 'recovery', 'novel'].includes(view.operation) ||
     !!view.queued?.some(item => ['local', 'recovery', 'novel'].includes(item.kind));
-  const locked = view.busy || view.updating || acting || !!view.error;
+  const locked = view.busy || view.updating || acting || (!!view.error && !view.canResend);
   const stoppable =
     view.busy ||
     view.operation === 'background' ||

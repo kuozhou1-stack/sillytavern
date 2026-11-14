@@ -21,6 +21,69 @@ async function reload(e) {
   await e.runtime.start();
 }
 
+for (const restart of [false, true]) {
+  test(`失效出队保存失败${restart ? '后冷启动' : '后原地恢复'}，已落玩家楼不会再发送一次`, async () => {
+    await withEnv(async e => {
+      const nativeSave = SillyTavern.saveChat;
+      let failCleanup = false;
+      SillyTavern.saveChat = async () => {
+        if (failCleanup && e.vars[queue].length === 0) throw Error('模拟出队保存断开');
+        return nativeSave();
+      };
+      let id;
+      e.story = async () => {
+        id = e.vars[queue][0].id;
+        e.messages[1].message = '改过的输入';
+        await nativeSave();
+        failCleanup = true;
+        return '已失效的回复';
+      };
+      await assert.rejects(e.runtime.send('旧输入'), /第1楼的原文已变化.*出队保存断开/);
+      assert.match(e.runtime.view.error, /旧请求清理未确认/);
+      assert.equal(disk(e)[queue][0].inputSaved, true);
+      assert.equal(disk(e)[queue][0].source.at(-1).text, '旧输入');
+      failCleanup = false;
+      if (restart) await reload(e);
+      await assert.rejects(e.runtime.resumeQueued(id), /第1楼的原文已变化.*旧请求已清理/);
+      assert.deepEqual(ids(disk(e)[queue]), []);
+      assert.deepEqual(e.messages.map(row => row.message), ['初始楼层', '改过的输入']);
+      assert.equal(e.calls.length, 1);
+      assert.equal(e.runtime.view.canResend, true);
+    });
+  });
+}
+
+test('只保存了玩家输入和队列时冷启动沿用该输入', async () => {
+  await withEnv(async e => {
+    let interrupted;
+    e.story = async () => { interrupted = copy(e.diskChat); throw Error('模拟进程在保存失败重试记录前退出'); };
+    await assert.rejects(e.runtime.send('已落的输入'), /模拟进程/);
+    e.diskChat = interrupted;
+    await reload(e);
+    const [item] = e.vars[queue];
+    assert.equal(e.vars[failed], undefined);
+    e.story = async () => '恢复的回复';
+    await e.runtime.resumeQueued(item.id);
+    assert.deepEqual(e.messages.map(row => row.message), ['初始楼层', '已落的输入', '恢复的回复']);
+    assert.ok(e.state()._系统.提交记录[item.id]);
+    assert.deepEqual(ids(disk(e)[queue]), []);
+  });
+});
+
+test('玩家楼落下后再次提交相同输入，共用在途操作', async () => {
+  await withEnv(async e => {
+    const gate = deferred();
+    e.story = () => gate.promise;
+    const first = e.runtime.send('同一输入');
+    await until(() => e.calls.length === 1);
+    const second = e.runtime.send('同一输入');
+    gate.resolve('完成正文');
+    await Promise.all([first, second]);
+    assert.deepEqual(e.messages.map(row => row.message), ['初始楼层', '同一输入', '完成正文']);
+    assert.equal(e.calls.length, 2);
+  });
+});
+
 test('正常正文最后一次确认已出队，冷启动后无需手工取消', async () => {
   await withEnv(async e => {
     e.messages[0].data.stat_data.地点.office = { 名称: '办公室' };

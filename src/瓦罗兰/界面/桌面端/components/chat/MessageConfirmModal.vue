@@ -79,7 +79,8 @@ const emit = defineEmits<{
 
 const originalContent = computed(() => props.message.role === 'user'
   ? props.message.content : stripProtocol(props.message.content));
-const editDraft = ref(originalContent.value);
+const initialDraft = originalContent.value;
+const editDraft = ref(initialDraft);
 
 const actionTitle = computed(() => {
   switch (props.actionType) {
@@ -147,7 +148,7 @@ function handleConfirm() {
   emit('confirm', {
     actionType: props.actionType,
     messageId: props.message.id,
-    newContent: props.actionType === 'edit' ? editDraft.value : undefined,
+    newContent: props.actionType === 'edit' && editDraft.value !== initialDraft ? editDraft.value : undefined,
   });
 }
 </script>

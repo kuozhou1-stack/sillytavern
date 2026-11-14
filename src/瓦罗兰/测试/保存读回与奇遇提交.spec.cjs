@@ -124,6 +124,65 @@ test('第三方元数据不影响保存确认；本卡正文、候选、变量�
   }
 });
 
+test('保存等候期间助手编号已写入原文与各候选，服务端逐项读回后可确认', async () => {
+  const e = environment(seed());
+  const row = e.messages[0];
+  const planning = '<konatan_planning>候选计划</konatan_planning>\r\n';
+  row.swipes = [row.message, planning + '另外一个候选'];
+  useInstalledSave(e, undefined, async () => {
+    row.message = '（第0楼）\n' + row.message;
+    row.swipes = [row.message, planning + '（第0楼）\r\n另外一个候选'];
+  });
+  await persistChat();
+  assert.equal(e.diskChat[1].mes, row.message);
+  assert.deepEqual(e.diskChat[1].swipes, row.swipes);
+});
+
+test('保存回复和候选同时编号时，磁盘只写入其中一个字段不能确认', async () => {
+  for (const reverted of ['mes', 'swipes[0]']) {
+    const e = environment(seed());
+    const row = e.messages[0], original = row.message;
+    row.swipes = [original];
+    useInstalledSave(e, undefined, async () => {
+      row.message = '（第0楼）\n' + original;
+      row.swipes[0] = row.message;
+    });
+    e.readDisk = () => {
+      const rows = copy(e.diskChat);
+      if (reverted === 'mes') rows[1].mes = original;
+      else rows[1].swipes[0] = original;
+      return Response.json(rows);
+    };
+    await assert.rejects(persistChat(), /服务端的正文、变量或恢复记录/);
+    assert.equal(row.message, row.swipes[0]);
+    assert.equal(e.diskReads, 1);
+  }
+});
+
+test('保存读回仅磁盘多编号、用户或旁白被编号，以及编号夹带改文均拒绝', async () => {
+  const e = environment(seed());
+  const row = e.messages[0];
+  for (const role of ['assistant', 'user', 'system']) {
+    row.message = '未修改正文';
+    row.role = role;
+    row.swipes = [row.message];
+    e.readDisk = () => {
+      const rows = copy(e.diskChat);
+      rows[1].mes = '（第0楼）\n' + rows[1].mes;
+      if (role !== 'assistant') row.message = rows[1].mes;
+      return Response.json(rows);
+    };
+    await assert.rejects(persistChat(), /本次保存不一致/);
+  }
+  row.role = 'assistant';
+  e.readDisk = () => {
+    const rows = copy(e.diskChat);
+    row.swipes[0] = rows[1].swipes[0] = '（第0楼）\n真正编辑的候选内容';
+    return Response.json(rows);
+  };
+  await assert.rejects(persistChat(), /本次保存不一致/);
+});
+
 for (const channel of ['story', 'phone']) test(`${channel}清除恢复记录保存失败，原记录保留且重试不再调用模型`, async () => {
   const e = environment(seed()); await e.runtime.start();
   const key = channel === 'story' ? '澄湾待更新正文' : '澄湾待更新手机';

@@ -14,7 +14,7 @@
         type="button"
         class="cw-notif-content"
         :aria-expanded="isExpanded"
-        :aria-label="isError ? '查看未完成操作的原因与恢复选项' : '展开通知全文'"
+        :aria-label="isError && !canResend ? '查看未完成操作的原因与恢复选项' : '展开通知全文'"
         @click="toggleExpand"
       >
         <SvgIcon
@@ -28,7 +28,7 @@
           ref="marqueeContainerRef"
           class="cw-notif-marquee-container"
           :class="{ 'is-paused': isPaused || isExpanded }"
-          :title="isError ? '点击展开错误原因并处理' : displayText + (isOverflowing ? ' (触碰或悬停暂停滚动，点击展开详情)' : ' (点击展开详情)')"
+          :title="isError && !canResend ? '点击展开错误原因并处理' : displayText + (isOverflowing ? ' (触碰或悬停暂停滚动，点击展开详情)' : ' (点击展开详情)')"
           @mouseenter="isPaused = true"
           @mouseleave="isPaused = false"
           @touchstart.passive="isPaused = true"
@@ -52,11 +52,11 @@
           type="button"
           class="cw-notif-toggle-btn"
           :title="isExpanded ? '收起详情' : '展开查看详情'"
-          :aria-label="isExpanded ? '收起详情' : isError ? '查看错误原因与恢复操作' : '展开通知详情'"
+          :aria-label="isExpanded ? '收起详情' : isError && !canResend ? '查看错误原因与恢复操作' : '展开通知详情'"
           :aria-expanded="isExpanded"
           @click.stop="toggleExpand"
         >
-          <span v-if="isError">{{ isExpanded ? '收起' : '处理' }}</span>
+          <span v-if="isError">{{ isExpanded ? '收起' : canResend ? '详情' : '处理' }}</span>
           <SvgIcon :name="isExpanded ? 'chevronDown' : 'chevronRight'" :size="13" />
         </button>
 
@@ -77,13 +77,13 @@
     <transition name="cw-fade">
       <div v-if="isExpanded" class="cw-notif-detail-panel">
         <div class="cw-detail-header">
-          <span class="cw-detail-title">{{ isError ? '异常详情与恢复' : '任务进度详情' }}</span>
+          <span class="cw-detail-title">{{ canResend ? '请求详情' : isError ? '异常详情与恢复' : '任务进度详情' }}</span>
           <button class="cw-btn-text-xs" @click="isExpanded = false">收起详情</button>
         </div>
         <p class="cw-detail-body" :role="isError ? 'alert' : undefined">
           {{ fullDetailText }}
         </p>
-        <div v-if="isError" class="cw-detail-footer">
+        <div v-if="isError && !canResend" class="cw-detail-footer">
           <button
             class="cw-btn cw-btn-xs cw-btn-primary"
             :disabled="isActing"
@@ -113,6 +113,7 @@ const props = defineProps<{
   toastMessage?: string | null;
   errorText?: string | null;
   updateFailed?: boolean;
+  canResend?: boolean;
   isGenerating?: boolean;
   isUpdatingVariables?: boolean;
   busyHint?: string;
@@ -141,6 +142,7 @@ const hasNotification = computed(() => isError.value || isBusy.value || !!props.
 // F02：失败时保留固定简明摘要，不要将长错误放进跑马灯
 const displayText = computed(() => {
   if (isError.value) {
+    if (props.canResend) return '原请求已失效，可重新发送';
     return props.busyHint ? `${props.busyHint} · 点击处理` : '操作未完成 · 点击处理';
   }
   if (props.busyHint) return props.busyHint;

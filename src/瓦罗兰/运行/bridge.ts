@@ -26,6 +26,7 @@ export function connectRuntime(remote: Runtime) {
     if (!service?.ready) {
       unavailable = true;
       view.readOnly = true;
+      view.canResend = false;
       view.error = '后台脚本尚未就绪，请检查辅助API脚本是否启用';
       return;
     }

@@ -108,6 +108,48 @@ test('保存未确认显示失败阶段和原始原因，保留恢复入口', as
   assert(rendered.includes('合成保存确认失败'));
 });
 
+test('来源失效且已清理时可重新发送，通知保留楼层原因并隐藏空的恢复入口', async t => {
+  const { withEnv } = require('./修复宿主.cjs');
+  const { taskPresentation } = require('../界面/桌面端/utils/task-presentation.ts');
+  await withEnv(async e => {
+    e.story = async () => {
+      e.messages[1].message = '玩家修改了输入';
+      return '旧正文';
+    };
+    await assert.rejects(e.runtime.send('原输入'), /第1楼的原文已变化/);
+    const view = e.runtime.view;
+    assert.equal(view.canResend, true);
+    assert.equal(taskPresentation(view).locked, false);
+    const fixture = notification(t, { errorText: view.error, canResend: view.canResend });
+    fixture.view.toggleExpand();
+    const rendered = await html(fixture);
+    assert.match(rendered, /可重新发送/);
+    assert.match(rendered, /第1楼的原文已变化/);
+    assert.doesNotMatch(rendered, /立即重试|取消待处理请求/);
+    e.story = async () => '新请求的正文';
+    await e.runtime.send('新输入');
+    assert.equal(e.messages.at(-1).message, '新请求的正文');
+    assert.equal(view.error, '');
+    assert.equal(view.canResend, false);
+  });
+});
+
+test('桌面确认未改动的草稿时保留保存操作，不用展示草稿替换原文', t => {
+  require('./修复宿主.cjs');
+  const { stripProtocol } = require('../运行/message-protocol.ts');
+  const props = { actionType: 'edit', message: { id: 2, role: 'assistant', content: '原文\n<StatusPlaceHolderImpl/>' } };
+  const fixture = setup('components/chat/MessageConfirmModal.vue', props, { stripProtocol });
+  t.after(() => fixture.scope.stop());
+  assert.equal(fixture.view.editDraft.value, '原文');
+  fixture.view.handleConfirm();
+  assert.equal(fixture.emissions[0][0], 'confirm');
+  assert.equal(fixture.emissions[0][1].newContent, undefined);
+  fixture.view.editDraft.value = '实际修改';
+  fixture.view.handleConfirm();
+  assert.equal(fixture.emissions[1][0], 'confirm');
+  assert.equal(fixture.emissions[1][1].newContent, '实际修改');
+});
+
 test('F01: 首次无通知、节点出现、隐藏及重新出现后均观察当前节点并释放旧观察器', async t => {
   const fixture = notification(t);
   const { view, props, observed } = fixture;

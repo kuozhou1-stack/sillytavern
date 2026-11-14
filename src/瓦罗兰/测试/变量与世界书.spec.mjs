@@ -695,7 +695,9 @@ test('世界书所有条目文件存在且唯一，概率递归配置完整，�
   assert.equal(new Set(rows.map(e => e.名称)).size, rows.length);
   assert.equal(rows.filter(e => e.激活策略.类型 === '绿灯').length, 1);
   assert(!rows.some(e => [13, 17].includes(e.uid) || e.文件.includes('地区概况/')));
-  assert.equal(rows.filter(e => !e.启用).length, 1);
+  assert.deepEqual(new Set(rows.filter(e => !e.启用).map(e => e.名称)), new Set([
+    '[initvar]变量初始化勿开', '[mvu_update]变量更新规则', '[mvu_update]变量输出格式',
+  ]), '模型结算条目由变量请求单独读取，不作为常驻条目重复发送');
   const resident = rows.filter(e => e.文件.startsWith('常驻/'));
   assert.equal(resident.length, 13, '叙事设定统一由常驻目录维护，不复制到变量规则');
   for (const row of resident) {

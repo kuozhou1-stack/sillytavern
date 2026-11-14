@@ -2,6 +2,103 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { withEnv, copy, block, patch, createRuntime, deferred, until } = require('./修复宿主.cjs');
 
+test('候选正文原样保存或只改自身楼号时保留结算，编辑正文仍触发重算', async () => {
+  await withEnv(async e => {
+    await e.runtime.send('开始');
+    const row = e.messages[2], story = row.message, original = copy(row.data);
+    row.swipe_id = 0;
+    row.swipes = [story, '另一份候选正文'];
+    row.swipe_info = [copy(row.extra), { plugin: '另一候选元数据' }];
+    row.swipes_data = [row.data, { plugin: '另一候选变量' }];
+    const other = [row.swipes[1], copy(row.swipe_info[1]), copy(row.swipes_data[1])];
+    await e.runtime.messageAction('edit', 2, story);
+    await e.listeners.get('edited')(2);
+    row.message += '\n<StatusPlaceHolderImpl/>';
+    await e.runtime.messageAction('edit', 2);
+    assert.equal(e.diskChat.at(-1).mes, row.message);
+    row.message = '（第2楼）\n' + story;
+    await e.listeners.get('edited')(2);
+    assert.equal(row.message, '（第2楼）\n' + story);
+    await e.runtime.messageAction('edit', 2, story);
+    assert.equal(row.message, story);
+    assert.deepEqual([row.swipes[1], row.swipe_info[1], row.swipes_data[1]], other);
+    assert.deepEqual(row.data, original);
+    assert.equal(e.vars.澄湾待更新正文, null);
+    assert.equal(e.runtime.view.error, '');
+    await e.runtime.messageAction('edit', 2, '（第3楼）\n' + story);
+    assert.equal(e.vars.澄湾待更新正文?.text, '（第3楼）\n' + story);
+  });
+});
+
+test('桌面明确恢复到已结算或待结算原文时，写回当前候选并保留原提交', async () => {
+  for (const waiting of [false, true]) await withEnv(async e => {
+    if (waiting) {
+      e.update = async () => { throw Error('断开变量连接'); };
+      await assert.rejects(e.runtime.send('等待'), /断开变量连接/);
+    } else await e.runtime.send('开始');
+    const row = e.messages[2], original = row.message;
+    const prior = structuredClone(e.vars.澄湾待更新正文);
+    const settlement = structuredClone(row.extra.cw_story_settlements);
+    const calls = e.calls.length;
+    row.message = '第三方直接写入的其他内容';
+    e.runtime.refreshMessages();
+    await e.runtime.messageAction('edit', 2, original);
+    assert.equal(row.message, original);
+    assert.equal(e.diskChat.at(-1).mes, original);
+    assert.equal(e.calls.length, calls);
+    assert.deepEqual(row.extra.cw_story_settlements, settlement);
+    assert.deepEqual(e.vars.澄湾待更新正文, prior);
+  });
+});
+
+test('原生重复编辑回调或仅加本楼编号不会中断正在执行的变量结算', async () => {
+  await withEnv(async e => {
+    const waiting = deferred();
+    e.update = () => waiting.promise;
+    const ongoing = e.runtime.send('开始');
+    await until(() => e.calls.some(call => call.kind === 'update'));
+    const original = e.vars.澄湾待更新正文.id;
+    await e.listeners.get('edited')(2);
+    e.messages[2].message = '（第2楼）\n' + e.messages[2].message;
+    await e.listeners.get('edited')(2);
+    waiting.resolve(block([]));
+    await ongoing;
+    assert.deepEqual(e.stops, []);
+    assert.equal(e.messages[2].extra.cw_story_settlements['0'].commitId, original);
+  });
+});
+
+test('失败发送后原样保存玩家输入，原来的重试仍能使用', async () => {
+  await withEnv(async e => {
+    e.story = async () => { throw Error('模拟正文连接失败'); };
+    await assert.rejects(e.runtime.send('玩家行动'), /模拟正文连接失败/);
+    const id = e.vars.澄湾失败请求.id;
+    await e.runtime.messageAction('edit', 1, '玩家行动');
+    assert.equal(e.vars.澄湾失败请求.id, id);
+    e.story = async () => '恢复成功';
+    await e.runtime.retry();
+    assert.equal(e.messages[2].extra.cw_story_settlements['0'].commitId, id);
+    assert.equal(e.messages.length, 3);
+  });
+});
+
+test('改写失败请求的玩家楼后同时退掉旧排队项，从该楼续接只使用新输入', async () => {
+  await withEnv(async e => {
+    e.story = async () => { throw Error('模拟断线'); };
+    await assert.rejects(e.runtime.send('旧行动'), /模拟断线/);
+    const id = e.vars.澄湾失败请求.id;
+    await e.runtime.messageAction('edit', 1, '新行动');
+    assert.equal(e.vars.澄湾失败请求, null);
+    assert.equal(e.runtime.view.canResend, true);
+    assert.deepEqual(e.diskChat[0].chat_metadata.variables.澄湾排队操作, []);
+    assert.equal(e.diskChat[2].mes, '新行动');
+    await assert.rejects(async () => e.runtime.resumeQueued(id), /操作不存在/);
+    e.story = async () => '新回复';
+    await e.runtime.messageAction('player_send', 1);
+    assert.deepEqual(e.messages.map(m => m.message), ['初始楼层', '新行动', '新回复']);
+  });
+});
+
 for (const entry of ['桌面', '酒馆原生']) {
   test(entry + '编辑后只重算当前候选，重载仍从上一楼结算', async () => {
     await withEnv(async e => {

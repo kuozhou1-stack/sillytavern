@@ -23,7 +23,7 @@ import { pendingUpdateTasks, withUpdateTasks, finalizeUpdateTasks } from './upda
 import { phoneTimePrompt } from './phone';
 import { applyPhoneAction, assertPhoneActionNotRepeated, blockText, finalizePhone, type PhoneAction } from './phone';
 import { Schema } from '../schema';
-import { messageSource, assertMessageSource, MessageSourceSchema, type MessageSource } from './request-source';
+import { messageSource, assertMessageSource, MessageSourceError, MessageSourceSchema, sameAssistantFloorText, assistantFloorTextVariants, type MessageSource } from './request-source';
 import { RequestScheduler } from './scheduler';
 import {
   CommitService,
@@ -129,6 +129,9 @@ export function activeContext(lastFloor = getLastMessageId()): Context {
     fingerprint: JSON.stringify(raw),
   };
 }
+/** A source mismatch whose recovery records and player notice were already handled by send(). */
+class StaleStoryRequestError extends MessageSourceError {}
+
 export function createRuntime() {
   // Keep the original callback: Helper's returned stop handle loses this mapping.
   function listen<T extends EventType>(event: T, listener: ListenerType[T]): EventOnReturn {
@@ -144,6 +147,7 @@ export function createRuntime() {
     busy: false,
     updating: false,
     error: '',
+    canResend: false,
     loadError: '',
     loading: false,
     loadPhase: '' as '' | 'read' | 'worldbook' | 'recovery',
@@ -157,10 +161,22 @@ export function createRuntime() {
     recoverable: [] as { id: string; label: string; kind: string; preview: string }[],
     phoneRequest: null as PhoneRequestState | null,
   });
-  let errorSource: 'candidate' | 'operation' = 'operation';
+  let errorSource: 'candidate' | 'operation' | 'source' = 'operation';
   function setError(error: unknown) {
     errorSource = error instanceof CandidateIdentityError ? 'candidate' : 'operation';
+    view.canResend = false;
     view.error = String(error);
+  }
+  function setSourceChangeError(message: string) {
+    setError(message);
+    errorSource = 'source';
+    updateResendState();
+  }
+  function updateResendState() {
+    if (errorSource !== 'source') return;
+    view.canResend = !view.readOnly && !view.loadError && !disposed &&
+      SillyTavern.getCurrentChatId() === boundChat && !pending && !failedSend && !pendingPhone &&
+      !intents.length && !getVariables({ type: 'chat' }).澄湾待确认提交 && !firstUnsettledNarrative();
   }
   function setLoadError(error: unknown, phase: 'read' | 'worldbook' | 'recovery' = 'read') {
     view.loadPhase = phase;
@@ -177,7 +193,7 @@ export function createRuntime() {
   let cancelled = false;
   let epoch = 0;
   let requestSource: MessageSource | undefined;
-  let staleSource = false;
+  let sourceChange: MessageSourceError | undefined;
   let releaseWriter: (() => void) | undefined;
   let writerLock: BrowserLock | undefined;
   let writerTask: Promise<void> | undefined;
@@ -190,6 +206,7 @@ export function createRuntime() {
     target: z.enum(['tasks', 'shop', 'initial']).optional(),
     text: z.string().optional(),
     append: z.boolean().optional(),
+    inputSaved: z.boolean().optional(),
     opening: z.boolean().optional(),
     intent: z.object({ itemId: z.string(), amount: z.number() }).optional(),
     action: z
@@ -385,20 +402,33 @@ export function createRuntime() {
       replay: p.replay, revisionVersion: p.revisionVersion,
       narrativeHash: await sha256(new TextEncoder().encode(stripProtocol(p.text))) };
   }
+  async function matchesNarrativeHash(hash: string, narrative: string, floor: number) {
+    const matches = async (text: string) => hash === await sha256(new TextEncoder().encode(text));
+    if (await matches(narrative)) return true;
+    // 旧回执只有原文哈希，按与来源比较相同的编号规则还原待核对的文本。
+    for (const text of assistantFloorTextVariants(narrative, floor)) {
+      if (await matches(text)) return true;
+    }
+    return false;
+  }
+  function sameReplyNarrative(expected: string, current: string, floor: number) {
+    return sameAssistantFloorText(stripProtocol(expected), stripProtocol(current), floor);
+  }
   async function captureSavedNarrative(p: NonNullable<typeof pending>) {
     const saved = getChatMessages(p.replyFloor!)[0];
     // The completed create operation includes native/plugin receive processing.
     // Seal its readback once; retries must never adopt later edits this way.
     const generated = p.text;
     p.text = saved.message;
-    if (stripProtocol(generated) === stripProtocol(p.text)) return;
+    if (sameReplyNarrative(generated, p.text, p.replyFloor!)) return;
     const extra = messageExtra(saved);
     extra.cw_story_request = await narrativeRequest(p);
     assertContext(p.context, activeContext());
     assertMessageSource(p.source, p.replyFloor);
-    if (stripProtocol(getChatMessages(p.replyFloor!)[0].message) !== stripProtocol(p.text))
+    const current = getChatMessages(p.replyFloor!)[0];
+    if (!current || !sameReplyNarrative(p.text, current.message, p.replyFloor!))
       throw Error('正文保存读回期间已被编辑，保留原请求供检查');
-    await writeStoryCandidate(p.replyFloor!, p.replySwipe ?? 0, saved.message, extra);
+    await writeStoryCandidate(p.replyFloor!, p.replySwipe ?? 0, current.message, extra);
   }
   async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, id: string, structured = false) {
     try {
@@ -540,6 +570,7 @@ export function createRuntime() {
         view.loadPhase = '';
         setError('');
       }
+      updateResendState();
       return true;
     } catch (e) {
       setLoadError(e);
@@ -852,7 +883,7 @@ export function createRuntime() {
       throw Error('待结算正文已切换候选，请返回原候选后重试');
     if (
       p.replyFloor !== undefined &&
-      stripProtocol(getChatMessages(p.replyFloor)[0]?.message ?? '') !== stripProtocol(p.text)
+      !sameReplyNarrative(p.text, getChatMessages(p.replyFloor)[0]?.message ?? '', p.replyFloor)
     )
       throw Error('待更新正文已被编辑，请取消后重新生成');
     if (pendingAlreadyCommitted(p)) {
@@ -961,7 +992,7 @@ export function createRuntime() {
     const { envelope, settlement } = prepared;
     const candidate = envelope.stat_data as State, floor = settlement.floor, replySwipe = settlement.swipe;
     const before = Schema.parse(p.envelope.stat_data);
-    const message = storedNarrative(p.text);
+    let message = storedNarrative(p.text);
     assertContext(p.context, activeContext());
     assertMessageSource(p.source, p.replyFloor);
     if (cancelled || disposed || epoch !== startedEpoch) throw Error('更新已停止，结果保留待重试');
@@ -982,7 +1013,12 @@ export function createRuntime() {
       p.replyFloor = floor;
       p.replySwipe = 0;
     } else {
-      const extra = messageExtra(getChatMessages(floor)[0]);
+      const saved = getChatMessages(floor)[0];
+      if (!saved || saved.role !== 'assistant' || !sameReplyNarrative(p.text, saved.message, floor))
+        throw Error(`第 ${floor} 楼待结算正文已被编辑，未写入旧结算结果`);
+      // 变量请求和保存回执都可能等待。保留这期间写入楼层的编号和展示标记。
+      message = storedNarrative(saved.message);
+      const extra = messageExtra(saved);
       delete extra.cw_update_pending;
       delete extra.cw_story_request;
       delete extra.cw_incomplete;
@@ -993,7 +1029,7 @@ export function createRuntime() {
       await writeStoryCandidate(floor, replySwipe, message, extra, envelope);
     }
     if (
-      getChatMessages(floor)[0]?.message !== message ||
+      !sameAssistantFloorText(message, getChatMessages(floor)[0]?.message ?? '', floor) ||
       !equal(Schema.parse(service.host.read(floor).stat_data), envelope.stat_data)
     )
       throw Error('回复楼层状态读回不一致');
@@ -1030,12 +1066,13 @@ export function createRuntime() {
     cancelled = false;
     view.streaming = '';
     setError('');
-    staleSource = false;
+    sourceChange = undefined;
     requestSource = undefined;
     let context = activeContext();
     let envelope = copy(service.host.read(context.floor));
     let openingTaskId: string | undefined;
     let inputSaved = !append;
+    let replyFloor: number | undefined;
     try {
       assertContext(context, activeContext());
       requestSource = messageSource();
@@ -1046,8 +1083,15 @@ export function createRuntime() {
         });
         requestSource = [...requestSource, { id: inputFloor, role: 'user', swipe: 0,
           text, archive: text, candidate: text }];
-        assertMessageSource(requestSource);
         inputSaved = true;
+        // 玩家楼已创建。即使失效出队或后续生成的保存失败，恢复也只能沿该楼继续。
+        const queued = intents.find(item => item.id === submissionId && item.kind === 'story');
+        if (queued) {
+          queued.source = requestSource;
+          queued.inputSaved = true;
+          await saveIntents();
+        }
+        assertMessageSource(requestSource);
         // Publish the saved floor before acknowledging input; disk/model work may take longer.
         refreshMessages();
         onSent?.();
@@ -1127,6 +1171,7 @@ export function createRuntime() {
         [{ role: 'assistant', message: storedNarrative(reply), extra: { cw_update_pending: true, cw_story_request: origin } }],
         { refresh: 'affected' },
       );
+      replyFloor = floor;
       pending.replyFloor = floor;
       pending.replySwipe = 0;
       await captureSavedNarrative(pending);
@@ -1136,27 +1181,40 @@ export function createRuntime() {
       view.busy = false;
       await finishPending();
     } catch (e) {
-      if (requestSource) {
+      if (e instanceof MessageSourceError) sourceChange ??= e;
+      if (!sourceChange && requestSource && !disposed && SillyTavern.getCurrentChatId() === context.chat) {
         try {
           assertMessageSource(requestSource, pending?.replyFloor);
-        } catch {
-          staleSource = true;
+        } catch (error) {
+          if (!(error instanceof MessageSourceError)) throw error;
+          sourceChange = error;
         }
       }
-      if (staleSource) {
-        pending = null;
+      if (sourceChange) {
+        const reason = sourceChange.message;
+        const savedReply = replyFloor === undefined || disposed || SillyTavern.getCurrentChatId() !== context.chat
+          ? undefined : messageExtra(getChatMessages(replyFloor)[0]);
+        const replyStillSelected = savedReply?.cw_story_request?.id === submissionId;
         if (!disposed && SillyTavern.getCurrentChatId() === context.chat) {
           const records = getVariables({ type: 'chat' });
           const matchingFailure = records.澄湾失败请求?.id === submissionId;
-          await patchChat({
-            澄湾待更新正文: null,
-            ...(matchingFailure ? { 澄湾失败请求: null } : {}),
-            ...(records.澄湾待确认提交?.commitId === submissionId ? { 澄湾待确认提交: null } : {}),
-          });
+          try {
+            await patchChat({
+              澄湾待更新正文: null,
+              ...(matchingFailure ? { 澄湾失败请求: null } : {}),
+              ...(records.澄湾待确认提交?.commitId === submissionId ? { 澄湾待确认提交: null } : {}),
+            }, [submissionId]);
+          } catch (error) {
+            setError(`${reason}。旧请求清理未确认：${error instanceof Error ? error.message : error}。请恢复该排队操作。`);
+            throw Error(view.error, { cause: error });
+          }
+          pending = null;
           if (matchingFailure && failedSend?.id === submissionId) failedSend = null;
         }
-        setError('源消息已变化，旧结果已丢弃，请重新发送');
-        throw Error(view.error, { cause: e });
+        setSourceChangeError(reason + (replyFloor === undefined ? '。本轮没有新增正文，可从当前玩家楼续接，或发送新输入。'
+          : replyStillSelected ? `。正文保留在第 ${replyFloor} 楼，原结算请求已失效。请从该楼的消息菜单重新生成回复。`
+          : `。本轮正文曾写入第 ${replyFloor} 楼，请检查当前楼层和候选。`));
+        throw new StaleStoryRequestError(view.error, { cause: sourceChange });
       }
       setError(cancelled
         ? pending
@@ -1265,6 +1323,24 @@ export function createRuntime() {
       } else {
         const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
         if (journal) {
+          if (journal.replyFloor !== undefined) {
+            // 正文结算属于回复候选。普通提交会把 candidate 写进 journal.context 指向的上一楼。
+            const floor = journal.replyFloor;
+            const swipe = Number(journal.candidate?._系统?.候选回复id);
+            // 酒馆助手会把越界的楼号截到最后一楼。
+            const row = floor <= getLastMessageId() ? getChatMessages(floor, { include_swipes: true })[0] : undefined;
+            const written = row?.swipes_data[swipe]?.stat_data;
+            if (isCommittedCandidate(written, floor, swipe) && written?._系统?.提交记录?.[journal.commitId]) {
+              await patchChat({ 澄湾待确认提交: null }, [journal.commitId]);
+              setError('');
+            } else if (!row) {
+              await patchChat({ 澄湾待确认提交: null }, [journal.commitId]);
+              setSourceChangeError(`第 ${floor} 楼已删除，旧结算记录已清理。`);
+            } else {
+              throw Error(`第 ${floor} 楼缺少这次结算的确认记录，请检查原候选。如需重新生成，请先取消这条待确认记录。`);
+            }
+            return;
+          }
           const novel = intents.find(item => item.kind === 'novel' && item.id === journal.commitId);
           if (novel?.target) {
             await refreshNovelContent(novel.target, novel.id);
@@ -1285,8 +1361,13 @@ export function createRuntime() {
         }
       }
     } catch (error) {
-      setError(error);
-      console.error('[瓦洛兰重试] 未完成，保留待处理记录', error);
+      if (failedSend && error instanceof MessageSourceError && !(error instanceof StaleStoryRequestError) &&
+          !getVariables({ type: 'chat' }).澄湾待确认提交) {
+        await discardStaleRecovery();
+        if (!failedSend) throw new StaleStoryRequestError(view.error, { cause: error });
+      }
+      if (!(error instanceof StaleStoryRequestError)) setError(error);
+      console.error('[瓦洛兰重试] 未完成', error);
       throw error;
     } finally {
       view.updating = false;
@@ -1343,11 +1424,15 @@ export function createRuntime() {
     const previous = pending?.replyFloor === id && (pending.replySwipe ?? 0) === swipe ? pending : undefined;
     if (!previous && edited.data?.stat_data?._系统?.楼层id !== id) return false;
     const text = replacement ?? edited.message;
-    if (previous?.text === text) return true;
-    if (view.busy || view.updating) stop();
     const extra = messageExtra(edited);
-    const context = activeContext(id - 1);
     const oldCommit = extra.cw_story_settlements?.[String(swipe)]?.commitId;
+    const cached = settledTexts.get(`${id}:${swipe}`);
+    // 原生事件在存档已被改写后触发，原文取自同一候选的待办或已结算版本。
+    const before = previous?.text ?? (cached?.commitId === oldCommit ? cached?.text : undefined);
+    // 原生编辑已经写入。桌面显式恢复到已结算原文时，调用方仍需保存替换文本。
+    if (before !== undefined && sameAssistantFloorText(before, text, id)) return replacement === undefined;
+    if (view.busy || view.updating) stop();
+    const context = activeContext(id - 1);
     let replay: CommitReplay | undefined;
     try {
       const oldStory = extra.cw_story_settlements?.[String(swipe)] as StorySettlement | undefined;
@@ -1382,7 +1467,6 @@ export function createRuntime() {
     } catch (error) {
       // 原生完成编辑事件发生在正文已被宿主改写之后。只用事先缓存的同候选原文恢复。
       if (replacement === undefined) {
-        const cached = settledTexts.get(`${id}:${swipe}`);
         if (cached && cached.commitId === oldCommit && getChatMessages(id)[0]?.message === edited.message) {
           await writeStoryCandidate(id, swipe, cached.text, extra);
           await saveChat();
@@ -1424,29 +1508,37 @@ export function createRuntime() {
       return;
     }
     if (!['edit', 'delete'].includes(action)) validateApi(settings.variable, '正文变量');
-    if (failedSend) {
-      failedSend = null;
-      await saveFailed();
+    const old = action === 'edit' ? getChatMessages(id)[0] : undefined;
+    const message = old?.role === 'assistant' ? storedNarrative(text ?? '') : text ?? '';
+    if (old && (text === undefined || old.message === message || old.message === text)) {
+      await saveChat();
+      return;
+    }
+    if (old?.role === 'assistant' && sameAssistantFloorText(old.message, message, id)) {
+      await setMessages([{ message_id: id, message }], { refresh: 'affected' });
+      refresh();
+      await saveChat();
+      return;
     }
     if (action === 'edit') {
-      const old = getChatMessages(id)[0];
-      let message = text ?? '';
-      if (old?.role === 'assistant') {
-        message = storedNarrative(message);
-        if (await recordEditedStory(id, message)) return;
-      }
-      await setMessages([{ message_id: id, message }], { refresh: 'affected' });
+      const recorded = old?.role === 'assistant' && await recordEditedStory(id, message);
+      if (!recorded) await setMessages([{ message_id: id, message }], { refresh: 'affected' });
+      // 旧操作的排队快照可能截止于玩家输入前；按完整失败快照移除失效重试和同 ID 排队项。
+      if (failedSend) await discardStaleRecovery();
+      if (recorded) return;
     } else {
       if (id === 0) throw Error('第 0 层为界面容器，请在新聊天中重新建档');
       epoch++;
       scheduler.cancelWaiting('楼层已删除，旧排队操作失效');
-      if (pending || pendingPhone || intents.length) {
+      if (pending || pendingPhone || failedSend || intents.length) {
         await patchChat({
           澄湾待更新正文: null,
           澄湾待更新手机: null,
+          澄湾失败请求: null,
         }, intents.map(item => item.id));
         pending = null;
         pendingPhone = null;
+        failedSend = null;
       }
       const start = action === 'player_send' ? id + 1 : id;
       const remove = Array.from({ length: Math.max(0, getLastMessageId() - start + 1) }, (_, offset) => start + offset);
@@ -1789,18 +1881,30 @@ export function createRuntime() {
       await persisted;
       requireWriter();
       if (item.chat !== boundChat || expectedEpoch !== epoch) throw Error('排队期间聊天或分支已变化，请重新执行');
-      assertMessageSource(item.source, undefined, true);
       refresh();
+      // 已落玩家楼只允许恢复这次输入；普通待发项仍可排在前一轮回复之后。
+      const savedInput = item.kind === 'story' && item.inputSaved === true;
+      const hasRecovery = pending?.id === item.id || pendingPhone?.id === item.id || failedSend?.id === item.id;
+      if (!savedInput || (!hasRecovery && !view.data?._系统.提交记录[item.id])) {
+        try {
+          assertMessageSource(item.source, undefined, !savedInput);
+        } catch (error) {
+          if (!savedInput || !(error instanceof MessageSourceError)) throw error;
+          await persistIntents([item.id]);
+          setSourceChangeError(error.message + '。旧请求已清理，可按当前内容重新发送。');
+          throw new StaleStoryRequestError(view.error, { cause: error });
+        }
+      }
       let phoneResult: PhoneActionResult | void = undefined;
       if (item.kind === 'novel' && item.target) {
         if (pending || pendingPhone || failedSend) throw Error('有尚未完成的操作，请先重试或取消');
         await refreshNovelContent(item.target, item.id);
       } else if (!view.data?._系统.提交记录[item.id]) {
-        if (pending?.id === item.id || pendingPhone?.id === item.id || failedSend?.id === item.id) phoneResult = await retry();
+        if (hasRecovery) phoneResult = await retry();
         else {
           if (pending || pendingPhone || failedSend) throw Error('有尚未完成的操作，请先重试或取消');
           if (item.kind === 'story')
-            await send(item.text ?? '', item.append !== false, item.intent, item.id, item.opening, onSent);
+            await send(item.text ?? '', !savedInput && item.append !== false, item.intent, item.id, item.opening, onSent);
           else if (item.action) phoneResult = await phoneAction(copy(item.action), item.id);
           else throw Error('手机操作记录缺少内容');
         }
@@ -1914,6 +2018,7 @@ export function createRuntime() {
     }
     scheduler.cancel(id);
     await persistIntents([id]);
+    updateResendState();
   }
   const listeners: EventOnReturn[] = [];
   function recoverablePreparationJournal(journal: any, current?: Context) {
@@ -1933,11 +2038,14 @@ export function createRuntime() {
   async function discardStaleRecovery() {
     const previous = pending;
     const current = activeContext();
+    let reason = '';
     const sourceMatches = (source: MessageSource | undefined, replyFloor?: number) => {
       try {
         assertMessageSource(source, replyFloor);
         return true;
-      } catch {
+      } catch (error) {
+        if (!(error instanceof MessageSourceError)) throw error;
+        reason ||= error.message;
         return false;
       }
     };
@@ -1952,25 +2060,31 @@ export function createRuntime() {
           pending.replySwipe !== undefined &&
           getChatMessages(pending.replyFloor, { include_swipes: true })[0]?.swipe_id !== pending.replySwipe) ||
         (pending.replyFloor !== undefined &&
-          stripProtocol(getChatMessages(pending.replyFloor)[0]?.message ?? '') !== stripProtocol(pending.text)));
+          !sameReplyNarrative(pending.text, getChatMessages(pending.replyFloor)[0]?.message ?? '', pending.replyFloor)));
     const phoneCommitted = pendingPhone && phoneAlreadyCommitted(pendingPhone);
     const stalePhone = pendingPhone && !(phoneCommitted
       ? sourceMatches(pendingPhone.source)
       : valid(pendingPhone.context, pendingPhone.source));
     const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
     // 调度可能已写入而保存未确认。原日志证明这次版本变化，retry 会先确认它。
-    const prepared = recoverablePreparationJournal(journal, current) && sourceMatches(failedSend!.source);
+    // A committed preparation still needs its original story identity even if the player
+    // temporarily edits its input. retry validates the source again before confirming it.
+    const prepared = recoverablePreparationJournal(journal, current);
     const staleFailed = failedSend && !valid(failedSend.context, failedSend.source) && !prepared;
     if (!stalePending && !stalePhone && !staleFailed) return;
+    const obsolete = [stalePending && pending?.id, stalePhone && pendingPhone?.id, staleFailed && failedSend?.id]
+      .filter((id): id is string => typeof id === 'string');
+    await patchChat({
+      澄湾待更新正文: stalePending ? null : pending,
+      澄湾待更新手机: stalePhone ? null : pendingPhone,
+      澄湾失败请求: staleFailed ? null : failedSend,
+      ...(stalePending && pending && journal?.replyFloor !== undefined && journal.replyFloor === pending.replyFloor &&
+        journal.commitId === pending.id ? { 澄湾待确认提交: null } : {}),
+    }, obsolete);
     if (stalePending) pending = null;
     if (stalePhone) pendingPhone = null;
     if (staleFailed) failedSend = null;
-    await patchChat({
-      澄湾待更新正文: pending,
-      澄湾待更新手机: pendingPhone,
-      澄湾失败请求: failedSend,
-    });
-    setError('楼层已变化，旧请求已清理；现在可以重新发送');
+    setSourceChangeError((reason || '存档楼层、候选或请求基线已变化') + '。旧请求已清理，可按当前内容重新发送。');
     if (stalePending && previous) await restoreOrphanedNarrative(previous);
   }
   function firstUnsettledNarrative() {
@@ -2013,10 +2127,11 @@ export function createRuntime() {
     try {
       assertContext(original.context, context);
       assertMessageSource(original.source, last.message_id);
-      if ('text' in original && stripProtocol(original.text) !== narrative) throw Error('正文已编辑');
-      if ('narrativeHash' in original && original.narrativeHash !== await sha256(new TextEncoder().encode(narrative))) throw Error('正文已编辑');
-    } catch {
-      setError('待结算正文的原请求已失效，不能绑定当前输入；请删除该正文后重新发送');
+      if ('text' in original && !sameReplyNarrative(original.text, last.message, last.message_id)) throw Error('正文已编辑');
+      if ('narrativeHash' in original && !await matchesNarrativeHash(original.narrativeHash, narrative, last.message_id))
+        throw Error('正文已编辑');
+    } catch (error) {
+      setError(`第 ${last.message_id} 楼正文的原请求已失效。${error instanceof Error ? error.message : String(error)}。请从该楼的消息菜单重新生成回复。`);
       return;
     }
     pending = {
@@ -2095,6 +2210,8 @@ export function createRuntime() {
         }
       }
       if (pending || failedSend || pendingPhone) setError('上次请求尚未完成，请点击重试');
+      else if (!view.error && !view.readOnly && getVariables({ type: 'chat' }).澄湾待确认提交?.replyFloor !== undefined)
+        setError('上次回复的结算尚未确认，请点击重试核对原楼层。');
     } catch (error) {
       if (!disposed && SillyTavern.getCurrentChatId() === boundChat) setLoadError(error, phase);
     } finally {
@@ -2192,8 +2309,9 @@ export function createRuntime() {
           if (event === tavern_events.MESSAGE_UPDATED && requestSource) {
             try {
               assertMessageSource(requestSource, undefined, true);
-            } catch {
-              staleSource = true;
+            } catch (error) {
+              if (!(error instanceof MessageSourceError)) throw error;
+              sourceChange ??= error;
               stop();
             }
           }

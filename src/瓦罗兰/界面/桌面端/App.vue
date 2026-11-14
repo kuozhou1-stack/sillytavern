@@ -77,6 +77,7 @@
                 v-if="!notificationOverlay"
                 :toast-message="toastMessage"
                 :error-text="runtime?.view.error"
+                :can-resend="runtime?.view.canResend"
                 :update-failed="updateFailed && activeModal !== 'phone'"
                 :is-generating="isGenerating"
                 :is-updating-variables="isUpdatingVariables"
@@ -375,7 +376,7 @@ const isGenerating = computed(() =>
 const isUpdatingVariables = computed(() =>
   taskState.value ? taskState.value.updating : props.previewState === 'waiting',
 );
-const updateFailed = computed(() => !!runtime?.view.error || props.previewState === 'failed');
+const updateFailed = computed(() => (!!runtime?.view.error && !runtime.view.canResend) || props.previewState === 'failed');
 const loadFailure = computed(() => runtime?.view.loading ? '正在重新读取存档并恢复上次操作…'
   : runtime && (runtime.view.loadError || !runtime.view.data)
     ? runtime.view.loadError || runtime.view.error || '尚未读取到有效的存档状态。' : '');

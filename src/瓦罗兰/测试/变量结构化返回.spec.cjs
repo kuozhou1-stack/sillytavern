@@ -54,7 +54,7 @@ test('新认识人物可省缺省字段，旧记录改单个字段保留其他�
     assert.deepEqual(e.state().玩家.已知信息.已认识人物.known, { ...oldPerson, 称呼: '新称呼' });
     assert.deepEqual(e.state().玩家.已知信息.已认识人物[id], person);
 
-    e.update = async () => block([{ op: 'replace', path: example.path + '/来源/方式', value: '亲眼看到' }]);
+    e.update = async () => block([{ op: 'replace', path: example.path + '/来源/方式', value: { 方式: '观察' } }]);
     await assert.rejects(e.runtime.send('测试来源枚举边界'), /来源[\s\S]*方式/);
     assert.deepEqual(e.state().玩家.已知信息.已认识人物[id], person);
   } finally {

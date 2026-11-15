@@ -1,7 +1,10 @@
 // Only standalone advice is auxiliary. Never strip arbitrary story/protocol text.
-const adviceBlock = /(?:^|(?:\r?\n){1,2})<advice>([\s\S]*?)<\/advice>(?=\r?\n|$)/;
-const adviceWithSpacing = /(?:^|(?:\r?\n){1,2})<advice>[\s\S]*?<\/advice>(?:\r?\n){0,2}/g;
-const withoutAdvice = (text: string) => text.replace(adviceWithSpacing, '\n\n').replace(/^(?:\r?\n){1,2}/, '').trimEnd();
+// A transfer receipt verifies the exact player's text, which may itself contain literal tags.
+const transferredAdvice = /(?:^|(?:\r?\n){1,2})<advice>([\s\S]*?)<\/advice>(?=\r?\n|$)/g;
+const adviceBlock = /(?:^|(?:\r?\n){1,2})<advice>([^<]*(?:<(?!\/?advice>)[^<]*)*)<\/advice>(?=\r?\n|$)/;
+const adviceWithSpacing = new RegExp(adviceBlock.source + '(?:\\r?\\n){0,2}', 'g');
+const withoutAdvice = (text: string) => text.replace(adviceWithSpacing, (block, _content, offset) =>
+  offset === 0 || offset + block.length === text.length ? '' : '\n\n');
 
 function floorTextLayout(text: string, id: number) {
   const marker = `（第${id}楼）`;
@@ -76,6 +79,7 @@ export const MessageSourceSchema = z.array(z.object({
   id: z.number(), role: z.enum(['system', 'user', 'assistant']), swipe: z.number(), text: z.string(),
   // text owns the request input; archive/candidate retain the two saved observations.
   archive: z.string().optional(), candidate: z.string().optional(), advice: z.boolean().optional(),
+  continuationStart: z.literal(true).optional(),
 }));
 export type MessageSource = z.infer<typeof MessageSourceSchema>;
 
@@ -106,7 +110,7 @@ export function messageSource(): MessageSource {
       typeof receipt.text !== 'string' || typeof receipt.replacementText !== 'string' ||
       source.archive !== receipt.replacementText || assistant?.role !== 'assistant' ||
       assistant.id !== receipt.assistantId ||
-      ![...assistant.text.matchAll(new RegExp(adviceBlock.source, 'g'))].some(match => match[1] === receipt.text)) continue;
+      ![...assistant.text.matchAll(transferredAdvice)].some(match => match[1] === receipt.text)) continue;
     source.text = receipt.text;
     if (source.candidate === receipt.replacementText) source.candidate = receipt.text;
     assistant.advice = true;
@@ -120,11 +124,17 @@ function sourceDifference(before: MessageSource[number], after: MessageSource[nu
   const floor = `第${before.id}楼`;
   if (before.role !== after.role) return floor + '的发言身份已变化';
   if (before.swipe !== after.swipe) return `${floor}切换了候选（${before.swipe + 1} → ${after.swipe + 1}）`;
+  // Only the reply selected as a continuation's starting point supplies its direct input.
+  if (before.role === 'assistant' && !before.continuationStart) return '';
   const same = (a: string, b: string) => {
     if (a === b || before.role !== 'assistant') return a === b;
     if (sameAssistantFloorText(a, b, before.id)) return true;
-    const hasAdvice = before.advice || after.advice || (adviceBlock.test(a) && adviceBlock.test(b));
-    if (!hasAdvice || (!adviceBlock.test(a) && !adviceBlock.test(b))) return false;
+    const blocks = (text: string) => Array.from(text.matchAll(new RegExp(adviceBlock.source, 'g')), match => match[1]);
+    const oldBlocks = blocks(a), newBlocks = blocks(b);
+    if (!oldBlocks.length && !newBlocks.length) return false;
+    if (oldBlocks.length && newBlocks.length) {
+      if (oldBlocks.length !== newBlocks.length || oldBlocks.some((value, index) => value !== newBlocks[index])) return false;
+    } else if (!(before.advice || after.advice)) return false;
     // Move the advice block in the complete archived text. Treating the first
     // blank line after a floor marker as leading whitespace changes paragraph breaks.
     const left = withoutAdvice(a);

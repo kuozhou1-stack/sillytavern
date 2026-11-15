@@ -93,7 +93,8 @@ test("资料选择只看名称与本轮输入，最终hook移除酒馆宏和预�
  const c=informationSelectionPrompt(seed(),'本轮输入');const before=structuredClone(c);
  const result=require('../运行/prompts.ts').nativePromptConfig(c);
  assert.deepEqual(c,before);assert.equal(result.injects,undefined);
- assert(result.user_input.includes('本轮输入'));assert(result.user_input.includes('InformationSelection'));
+ assert(result.user_input.includes('本轮输入'));assert(result.user_input.includes('后台资料选择任务'));
+ assert.deepEqual(result.json_schema,c.json_schema);
  assert.equal(result.overrides.chat_history.with_depth_entries,false);
 });
 
@@ -124,13 +125,10 @@ test('资料选择有独立任务和完整输出示例，玩家输入不进入�
   const task = config.injects.map(item => item.content).join('\n');
   assert(task.includes('后台资料选择任务'));
   assert(task.includes('资料选择输出格式:'));
-  assert(task.includes('format: |-'));
-  assert(task.includes('<InformationSelection>'));
-  assert(task.includes('"地点": ["目录中的地点ID"]'));
-  assert(task.includes('"组织": ["目录中的组织ID"]'));
-  assert(task.includes('{"地点": [], "组织": []}'));
+  const examples = require('yaml').parse(task.slice(task.indexOf('资料选择输出格式:'))).资料选择输出格式;
+  assert.deepEqual(JSON.parse(examples.format), { 地点: ['目录中的地点ID'], 组织: ['目录中的组织ID'] });
+  assert.deepEqual(JSON.parse(examples.无需展开资料时), { 地点: [], 组织: [] });
   assert(task.includes('剧情续写、正文字数和思考区格式不改变本通道职责'));
-  assert(task.includes('本次完整回复就是 format 所示的选择结果区块'));
   assert(!task.includes('携带酒馆预设时保留其补充指引'));
   assert(!task.includes('请继续讲述这段故事'));
   assert.equal(JSON.parse(config.user_input).本轮输入, '请继续讲述这段故事');
@@ -238,6 +236,12 @@ test('实际host正文与后台均携带选择结果，原生位置保留且完�
     e.story = async () => '你在测试咖啡馆喝茶。';
     await e.runtime.send('去测试咖啡馆');
     assert.equal(e.selected.length, 1);
+    const schema = e.selected[0].json_schema;
+    assert.equal(schema.name, 'information_selection');
+    assert.equal(schema.strict, true);
+    const ids = { type: 'array', items: { type: 'string' } };
+    assert.deepEqual(schema.value, { type: 'object', properties: { 地点: ids, 组织: ids },
+      required: ['地点', '组织'], additionalProperties: false });
     assert.equal(e.calls.filter(call => call.kind === 'story').length, 1);
     const story = JSON.stringify(e.payloads.find(item => item.stage === 'story').messages);
     assert(story.includes('CAFÉ_DETAIL') && !story.includes('HOME_DETAIL') && !story.includes('GUILD_DETAIL'),'正文仅展开选中的资料');
@@ -419,6 +423,23 @@ test('选择时源消息被编辑后不发送正文，不将旧输入保留成�
     assert.equal(e.calls.length, 0);
     assert.equal(e.vars.澄湾失败请求 ?? null, null);
     assert.equal(e.state()._系统.资料加载.选择依据, null);
+  });
+});
+
+test('续写起点在资料选择期间被编辑，不提交旧选择或发出续篇正文', async () => {
+  await withEnv(async e => {
+    await e.runtime.send('走到路口');
+    const prior = structuredClone(e.diskChat[3].variables[0].stat_data._系统.资料加载);
+    const calls = e.calls.length, selections = e.selected.length;
+    e.select = async () => {
+      e.messages[2].message = '玩家修改了上一段结尾';
+      return selectorReply(['library']);
+    };
+    await assert.rejects(e.runtime.messageAction('continue', 2), /第\s*2\s*楼/);
+    assert.equal(e.selected.length, selections + 1);
+    assert.equal(e.calls.length, calls);
+    assert.deepEqual(e.state()._系统.资料加载, prior);
+    assert.equal(e.messages.length, 3);
   });
 });
 

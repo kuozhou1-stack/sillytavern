@@ -144,7 +144,18 @@ export function informationSelectionPrompt(
   const organizations = [...new Set([
     ...state.玩家.身份.组织id, ...participants.flatMap(person => person.组织id),
   ])].filter(id => Object.hasOwn(state.组织, id));
+  const fields = options.characters ? ['人物', ...kinds] : kinds;
   return {
+    json_schema: {
+      name: 'information_selection',
+      strict: true,
+      value: {
+        type: 'object',
+        properties: Object.fromEntries(fields.map(field => [field, { type: 'array', items: { type: 'string' } }])),
+        required: [...fields],
+        additionalProperties: false,
+      },
+    },
     overrides: { persona_description: '', world_info_before: '', world_info_after: '',
       char_description: '', char_personality: '', scenario: '', chat_history: { prompts: [], with_depth_entries: false } },
     injects: [{ role: 'system', position: 'in_chat', depth: 0, content:
@@ -160,22 +171,15 @@ export function informationSelectionPrompt(
 
 资料选择输出格式:
   rule:
-    - 将本轮选择结果放在 InformationSelection 区块内，区块中是一个有效的 JSON 对象；预设外层标签可以包裹此区块。
-    - ${options.characters ? '人物、地点和组织三个字段' : '地点和组织两个字段'}都要保留，值均为按相关性排序的字符串数组；填写下方目录对应类别中的 ID（对象键），不是名称或完整资料。
-    - format 中的“目录中的地点ID”和“目录中的组织ID”是占位说明，请替换为实际选中的 ID；有多个就逐项填写，没有要展开的资料就填空数组 []。
-    - 本次完整回复就是 format 所示的选择结果区块，闭合 InformationSelection 后结束回复；不附加 thinking、think、reasoning 思考区、剧情正文、UpdateVariable、JSONPatch、分析解释或回执。
+    - 本次完整回复是一个 JSON 对象，直接输出，不加标签、代码围栏或剧情。
+    - ${fields.join('、')}都要保留，值均为按相关性排序的字符串数组。填写下方目录对应类别中的 ID（对象键）。
+    - 将示例中的占位 ID 替换为实际选择；多个 ID 逐项填写，无需展开的类别填空数组 []。
   format: |-
-    <InformationSelection>
     {
-      ${options.characters ? '"人物": ["人物目录中的ID"],' : ''}
-      "地点": ["目录中的地点ID"],
-      "组织": ["目录中的组织ID"]
+      ${fields.map(field => `"${field}": ["目录中的${field}ID"]`).join(',\n      ')}
     }
-    </InformationSelection>
   无需展开资料时: |-
-    <InformationSelection>
-    {${options.characters ? '"人物": [], ' : ''}"地点": [], "组织": []}
-    </InformationSelection>` }],
+    {${fields.map(field => `"${field}": []`).join(', ')}}` }],
     user_input: JSON.stringify({ 目录: directory, 当前地点id: state.玩家.当前状态.当前地点id,
       相关地点id: references, 相关组织id: organizations, 本轮输入: input, 最近正文: history,
       当前场景: state.世界.当前场景, 当前时间: state.世界.当前时间, 玩家身份: state.玩家.身份, 玩家背景: state.玩家.背景,

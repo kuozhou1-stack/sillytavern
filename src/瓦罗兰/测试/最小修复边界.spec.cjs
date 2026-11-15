@@ -157,7 +157,8 @@ test('源快照只读取原生楼层身份和两层文本，不读取或复制va
     assert.deepEqual(source, [{ id: 0, role: 'assistant', swipe: 0, text: '原文', archive: '原文', candidate: '旧候选' }]);
     raw[0].swipes[0] = '原文';
     assert.doesNotThrow(() => assertMessageSource(source));
-    raw[0].mes = '真编辑';
-    assert.throws(() => assertMessageSource(source), /源消息/);
+    raw[0].mes = '已改写的历史助手正文';
+    assert.doesNotThrow(() => assertMessageSource(source));
+    assert.equal(source[0].text, '原文');
   } finally { global.getChatMessages = helper; }
 });

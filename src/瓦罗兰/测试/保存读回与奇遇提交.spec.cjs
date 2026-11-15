@@ -252,17 +252,19 @@ for (const action of ['stop', 'edit']) test(`奇遇日志等待期间${action}�
   const gate = deferred(), journal = e.runtime.service.host.journal;
   let reached = false;
   e.runtime.service.host.journal = async value => { if (value) { reached = true; await gate.promise; } return journal(value); };
-  const before = copy(e.messages[0].data.stat_data), originalText = e.messages[0].message;
+  const player = { role: 'user', message: '去市场看看', extra: {} };
+  e.messages.push(player);
+  const before = copy(e.messages[0].data.stat_data), originalText = player.message;
   const operation = e.runtime.novelRefresh('shop').then(() => null, error => error);
   await until(() => reached); const writes = e.writes;
-  if (action === 'stop') e.runtime.stop(); else e.messages[0].message = '日志保存期间编辑了源消息';
+  if (action === 'stop') e.runtime.stop(); else player.message = '日志保存期间编辑了玩家输入';
   gate.resolve();
   assert.match(String(await operation), action === 'stop' ? /取消|变化/ : /源消息/);
   assert.equal(e.writes, writes); assert.deepEqual(e.messages[0].data.stat_data, before);
   if (action === 'stop') assert.equal(e.vars.澄湾待确认提交, null);
   else {
     await assert.rejects(e.runtime.retry(), /源消息/); assert.equal(e.writes, writes);
-    e.messages[0].message = originalText; await e.runtime.retry();
+    player.message = originalText; await e.runtime.retry();
     assert.equal(Object.keys(e.state().奇遇系统._商店商品).length, 1);
     assert.equal(e.calls.length, 1, '从原提交日志恢复，不重新创作');
   }

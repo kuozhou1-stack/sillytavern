@@ -10,6 +10,18 @@ function setup() {
   return { assistant, user, source: messageSource(), chat: SillyTavern.chat };
 }
 
+function setupContinuation() {
+  const { assistant, chat } = setup();
+  chat.pop();
+  return assistant;
+}
+
+function continuationSource() {
+  const source = messageSource();
+  source.at(-1).continuationStart = true;
+  return source;
+}
+
 test('助手楼本号独占首行可增删，包括正文和仍未同步的选中候选', () => {
   for (const newline of ['\n', '\r\n']) {
     const { assistant, source } = setup();
@@ -39,21 +51,57 @@ test('编号与有回执的 advice 转移叠加仍能识别玩家原输入', () 
   assert.throws(() => assertMessageSource(source), MessageSourceError);
 });
 
-test('独立 advice 跨过楼号时保留原有段落；编辑编号和正文之间的空行仍失效', () => {
-  const { assistant } = setup();
+test('玩家原话包含字面 advice 标签，外层转移回执仍还原完整输入', () => {
+  const { assistant, user } = setup();
+  const original = '把 <advice>某项</advice> 当作普通文字。';
+  user.mes = original;
+  const source = messageSource();
+  user.extra = { izumi_advice: { version: 1, revision: 1, assistantId: 0, text: original, replacementText: '已转移' } };
+  assistant.mes = '<advice>' + original + '</advice>\n\n' + assistant.mes;
+  user.mes = '已转移';
+  assert.equal(messageSource()[1].text, original);
+  assert.doesNotThrow(() => assertMessageSource(source));
+  assistant.mes = assistant.mes.replace('某项', '另一项');
+  assert.throws(() => assertMessageSource(source), /第1楼的原文已变化/);
+});
+
+test('续写起点的独立 advice 跨过楼号时保留原有段落；编辑正文空行仍失效', () => {
+  const assistant = setupContinuation();
   const advice = '<advice>同一建议</advice>';
   const archive = '（第0楼）\n\n正文';
   assistant.mes = advice + '\n\n' + archive;
-  const prior = messageSource();
+  const prior = continuationSource();
   assistant.mes = archive + '\n\n' + advice;
   assert.doesNotThrow(() => assertMessageSource(prior));
-  const moved = messageSource();
+  const moved = continuationSource();
+  assistant.mes = archive + '\n\n<advice>另一条建议</advice>';
+  assert.throws(() => assertMessageSource(moved), /第0楼的原文已变化/);
   assistant.mes = '（第0楼）\n正文\n\n' + advice;
   assert.throws(() => assertMessageSource(moved), /第0楼的原文已变化/);
 });
 
-test('预设在最后一个完整 planning 块的边界写入楼号，正反向校验都能复原', () => {
-  const { assistant } = setup();
+test('相同 advice 不能掩盖续写起点的末尾空格、空行或实质改字', () => {
+  const assistant = setupContinuation();
+  const advice = '<advice>同一建议</advice>\n\n';
+  const body = '第一段\n\n末段 \n\n';
+  assistant.mes = advice + body;
+  const source = continuationSource();
+  for (const changed of [body.replace('末段 ', '末段'), body.slice(0, -1), body.replace('末段', '另一段')]) {
+    assistant.mes = advice + changed;
+    assert.throws(() => assertMessageSource(source), /第0楼的原文已变化/);
+  }
+});
+
+test('续写起点有独立 advice 时，同行带结束标签的字面正文仍参与比较', () => {
+  const assistant = setupContinuation();
+  assistant.mes = '<advice>同一建议</advice>\n\n原文\n<advice>第一种</advice>仍是同行正文';
+  const source = continuationSource();
+  assistant.mes = assistant.mes.replace('第一种', '第二种');
+  assert.throws(() => assertMessageSource(source), /第0楼的原文已变化/);
+});
+
+test('续写起点在最后一个完整 planning 块的边界写入楼号，正反向都能复原', () => {
+  const assistant = setupContinuation();
   const p = '<konatan_planning~outer><konatan_planning>子计划</konatan_planning></konatan_planning>';
   const header = p + '\n第一段\n' + p;
   const marker = '（第0楼）';
@@ -65,15 +113,15 @@ test('预设在最后一个完整 planning 块的边界写入楼号，正反向�
   ];
   for (const [bare, numbered] of pairs) {
     assistant.mes = bare;
-    const original = messageSource();
+    const original = continuationSource();
     assistant.mes = numbered;
     assert.doesNotThrow(() => assertMessageSource(original));
-    const after = messageSource();
+    const after = continuationSource();
     assistant.mes = bare;
     assert.doesNotThrow(() => assertMessageSource(after));
   }
   assistant.mes = header + '\n正文';
-  const before = messageSource();
+  const before = continuationSource();
   for (const altered of [
     header + '\n（第7楼）\n正文', header.replace('子计划', '更改计划') + '\n' + marker + '\n正文',
     header + '\n正文\n' + marker, header.replace(p, p + '\n' + marker) + '\n正文',
@@ -85,21 +133,21 @@ test('预设在最后一个完整 planning 块的边界写入楼号，正反向�
   }
   for (const incomplete of ['<konatan_planning>尚未结束', p + '<konatan_planning', '</konatan_planning>']) {
     assistant.mes = incomplete + '\n正文';
-    const original = messageSource();
+    const original = continuationSource();
     assistant.mes = incomplete + '\n' + marker + '\n正文';
     assert.throws(() => assertMessageSource(original), /第0楼的原文已变化/);
   }
 });
 
-test('已有的独立尾号可在同一助手楼移到开头，回复哈希兼容形式保留正文原字节', () => {
-  const { assistant, source } = setup();
+test('续写起点的独立尾号可移到开头，回复哈希兼容形式保留正文原字节', () => {
+  const assistant = setupContinuation(), source = continuationSource();
   const { assistantFloorTextVariants } = require('../运行/request-source.ts');
   for (const eol of ['\n', '\r\n']) {
     const body = '开头\r\n\n正文末尾有空格 ';
     const marker = '（第0楼）';
     const foot = body + eol + marker, head = marker + eol + body;
     assistant.mes = foot;
-    const prior = messageSource();
+    const prior = continuationSource();
     assistant.mes = head;
     assert.doesNotThrow(() => assertMessageSource(prior));
     assert.deepEqual([...assistantFloorTextVariants(foot, 0)], [head]);
@@ -110,31 +158,37 @@ test('已有的独立尾号可在同一助手楼移到开头，回复哈希兼�
     assert.throws(() => assertMessageSource(prior), /第0楼的原文已变化/);
   }
   assistant.mes = source[0].text + '\n（第1楼）';
-  const wrong = messageSource();
+  const wrong = continuationSource();
   assistant.mes = '（第1楼）\n' + source[0].text;
   assert.throws(() => assertMessageSource(wrong), /第0楼的原文已变化/);
 });
 
-test('错楼号、标记位置、重复标记、换行或真实正文变化均报出首个差异', () => {
+test('续写起点的错楼号、重复标记、换行或真实正文变化均报出首个差异', () => {
   for (const rewrite of [t => '（第1楼）\n' + t, t => t + '\n（第0楼）', t => '（第0楼）' + t,
     t => '（第0楼）\n（第0楼）\n' + t, t => '（第0楼）\n ' + t, t => '（第0楼）\n' + t + '变了']) {
-    const { assistant, source } = setup();
+    const assistant = setupContinuation(), source = continuationSource();
     assistant.mes = rewrite(assistant.mes);
     assert.throws(() => assertMessageSource(source), /第0楼的原文已变化/);
   }
-  const { assistant, user, source } = setup();
+  const assistant = setupContinuation();
+  const original = continuationSource();
+  assistant.swipes[0] = '改写了起点的选中候选';
+  assert.throws(() => assertMessageSource(original), /第0楼的选中候选文本已变化/);
   assistant.mes = '（第0楼）\n' + assistant.mes;
-  const marked = messageSource();
+  const marked = continuationSource();
   assistant.mes = assistant.mes.replace('\n', '\r\n');
   assert.throws(() => assertMessageSource(marked), /第0楼的原文已变化/);
-  user.mes = '（第1楼）\n' + user.mes;
-  assert.throws(() => assertMessageSource(source), /第1楼的原文已变化/);
 });
 
-test('候选编辑、切换、角色、删楼及追加有各自原因，回复楼和前缀边界仍有效', () => {
+test('历史助手同一候选改字可继续，玩家编辑、切候选、删楼与追加照常检验', () => {
   const { assistant, user, chat, source } = setup();
   assistant.swipes[0] = '真实候选修改';
-  assert.throws(() => assertMessageSource(source), /第0楼的选中候选文本已变化/);
+  assert.doesNotThrow(() => assertMessageSource(source));
+  assistant.mes = '普通助手正文已改写';
+  assert.doesNotThrow(() => assertMessageSource(source));
+  user.mes = '（第1楼）\n' + user.mes;
+  assert.throws(() => assertMessageSource(source), /第1楼的原文已变化/);
+  user.mes = source[1].text;
   assistant.swipe_id = 1;
   assert.throws(() => assertMessageSource(source), /第0楼切换了候选/);
   assistant.swipe_id = 0;

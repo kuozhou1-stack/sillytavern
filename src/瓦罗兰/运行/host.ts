@@ -132,6 +132,13 @@ export function activeContext(lastFloor = getLastMessageId()): Context {
 /** A source mismatch whose recovery records and player notice were already handled by send(). */
 class StaleStoryRequestError extends MessageSourceError {}
 
+function storySource(source: MessageSource, id?: string, continuation = false): MessageSource {
+  // Old failed sends also saved a continuation flag. Landed replies retain the continue_ action ID.
+  const start = source?.at(-1);
+  if (!start || start.continuationStart || !(continuation || id?.startsWith('continue_'))) return source;
+  return [...source.slice(0, -1), { ...start, continuationStart: true }];
+}
+
 type VariableUpdateRequest = {
   id: string;
   retryIssue?: { kind: 'patch-syntax'; line?: number; column?: number } | { kind: 'missing-progress'; targets: number };
@@ -385,6 +392,8 @@ export function createRuntime() {
     continuation?: boolean;
     append?: boolean;
   } | null = getVariables({ type: 'chat' }).澄湾失败请求 ?? null;
+  if (pending) pending = { ...pending, source: storySource(pending.source, pending.id) };
+  if (failedSend) failedSend = { ...failedSend, source: storySource(failedSend.source, failedSend.id, failedSend.continuation) };
   let pendingPhone: (VariableUpdateRequest & {
     context: Context;
     envelope: Mvu.MvuData;
@@ -751,7 +760,7 @@ export function createRuntime() {
     return failed?.id === id && typeof failed.error === 'string' && failed.error.startsWith(prefix)
       ? '\n上一份结算请求需要先展开已有资料：' + failed.error.slice(prefix.length) : '';
   }
-  async function selectInformation(before: State, input: string, key: string, retain = false, action?: PhoneAction) {
+  async function selectInformation(before: State, input: string, key: string, retain = false, action?: PhoneAction, origin?: MessageSource) {
     if (!settings.informationAuto) return before;
     const library = getVariables({ type: 'chat' })[LIBRARY_KEY];
     const characters = settings.characterAuto ? characterSelectionContext(before, library, settings.characterRoster, input, action) : undefined;
@@ -760,7 +769,7 @@ export function createRuntime() {
       return ensureInformationContext(before, input);
     const api = informationApi(settings);
     validateApi(api, '资料选择');
-    const expected = activeContext(), source = messageSource();
+    const expected = activeContext(), source = origin ?? messageSource();
     const quotas = { 地点: settings.locationRoster, 组织: settings.organizationRoster };
     const config = informationSelectionPrompt(before, input, source.filter(item => item.role !== 'system'),
       { quotas, characters: chooseCharacters ? characters : undefined });
@@ -784,11 +793,12 @@ export function createRuntime() {
     }
     return ensureInformationContext(selected, input);
   }
-  async function scheduleInformation(input: string, key: string) {
+  async function scheduleInformation(input: string, key: string, origin?: MessageSource) {
     const expected = activeContext(), before = Schema.parse(service.host.read(expected.floor).stat_data);
-    const selected = await selectInformation(before, input, key);
+    const selected = await selectInformation(before, input, key, false, undefined, origin);
     if (selected === before) return;
     assertContext(expected, activeContext());
+    if (origin) assertMessageSource(origin);
     await service.commit(expected, uid('information_selection'), () => selected);
     refresh();
   }
@@ -1091,8 +1101,10 @@ export function createRuntime() {
     opening = false,
     onSent?: () => void,
     continuation = false,
+    originalSource?: MessageSource,
   ) {
     requireWriter();
+    const savedSource = continuation ? storySource(originalSource ?? messageSource(), submissionId, true) : originalSource;
     if (!view.busy && !view.updating) await restoreOrphanedNarrative();
     if (!pending && firstUnsettledNarrative()) throw Error(view.error || '待结算正文尚未恢复，请先处理该楼层');
     if (!text.trim() || view.busy || view.updating || pending || pendingPhone || view.managementPending) throw Error('输入为空或仍有待处理更新');
@@ -1110,7 +1122,7 @@ export function createRuntime() {
     let replyFloor: number | undefined;
     try {
       assertContext(context, activeContext());
-      requestSource = messageSource();
+      requestSource = savedSource ?? messageSource();
       if (append) {
         const inputFloor = getLastMessageId() + 1;
         await createMessages([{ role: 'user', message: text, extra: intent ? { cw_use_intent: intent } : {} }], {
@@ -1147,7 +1159,7 @@ export function createRuntime() {
         envelope = copy(service.host.read(context.floor));
       }
       assertMessageSource(requestSource);
-      await scheduleInformation(text, 'story:' + submissionId);
+      await scheduleInformation(text, 'story:' + submissionId, continuation ? requestSource : undefined);
       context = activeContext();
       envelope = copy(service.host.read(context.floor));
       if (opening) {
@@ -1261,7 +1273,7 @@ export function createRuntime() {
           context,
           text,
           intent,
-          source: requestSource ?? messageSource(),
+          source: requestSource ?? savedSource ?? messageSource(),
           id: submissionId,
           opening,
           continuation,
@@ -1353,7 +1365,8 @@ export function createRuntime() {
           failedSend.id,
           failedSend.opening,
           undefined,
-          failedSend.continuation,
+          failedSend.continuation ?? failedSend.id?.startsWith('continue_'),
+          failedSend.source,
         );
       } else {
         const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
@@ -1514,7 +1527,7 @@ export function createRuntime() {
       ? previous.id : uid('edited_round');
     const next: NonNullable<typeof pending> = {
       context, envelope: copy(service.host.read(context.floor)), text, id: idToSettle,
-      source: messageSource().filter(m => m.id !== id), replyFloor: id, replySwipe: swipe, mode: 'extra',
+      source: storySource(messageSource().filter(m => m.id !== id), idToSettle), replyFloor: id, replySwipe: swipe, mode: 'extra',
       openingTaskId: previous?.openingTaskId ?? edited.data?.stat_data?._系统?.提交记录?.[oldCommit]?.任务id ?? undefined,
       intent: previous?.intent ?? (priorMessage?.role === 'user' ? messageExtra(priorMessage).cw_use_intent : undefined),
       replay,
@@ -2159,9 +2172,10 @@ export function createRuntime() {
       setError('待结算正文缺少原请求归属，不能绑定当前输入；请删除该正文后重新发送');
       return;
     }
+    const source = storySource(original.source, original.id);
     try {
       assertContext(original.context, context);
-      assertMessageSource(original.source, last.message_id);
+      assertMessageSource(source, last.message_id);
       if ('text' in original && !sameReplyNarrative(original.text, last.message, last.message_id)) throw Error('正文已编辑');
       if ('narrativeHash' in original && !await matchesNarrativeHash(original.narrativeHash, narrative, last.message_id))
         throw Error('正文已编辑');
@@ -2175,7 +2189,7 @@ export function createRuntime() {
       text: last.message,
       id: original.id,
       intent: IntentSchema.shape.intent.parse(original.intent),
-      source: original.source,
+      source,
       replyFloor: last.message_id,
       replySwipe,
       mode: 'extra',

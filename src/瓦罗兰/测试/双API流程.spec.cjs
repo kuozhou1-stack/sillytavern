@@ -1556,7 +1556,7 @@ test('P0 已存在的message与swipe不一致时以存档原文归属，候选�
   });
 });
 
-test('P0 advice缺凭据、错误搬运目标、改写原始输入及夹带剧情修改均拒绝', async () => {
+test('advice 搬运只在有回执且玩家原意匹配时有效，旧助手剧情修改不影响归属', async () => {
   const { messageSource, assertMessageSource } = require(root + '/运行/request-source.ts');
   for (const mutation of ['缺凭据', '错误目标', '改写输入', '改写剧情']) await withEnv(async e => {
     e.messages.push({ role: 'user', message: '原始输入', extra: {} });
@@ -1566,7 +1566,8 @@ test('P0 advice缺凭据、错误搬运目标、改写原始输入及夹带剧�
     if (mutation === '错误目标') e.messages[1].extra.izumi_advice.assistantId = 99;
     if (mutation === '改写输入') e.messages[1].extra.izumi_advice.text = '另一个输入';
     if (mutation === '改写剧情') e.messages[0].message += '\n修改既有剧情';
-    assert.throws(() => assertMessageSource(source), /源消息/, mutation);
+    if (mutation === '改写剧情') assert.doesNotThrow(() => assertMessageSource(source));
+    else assert.throws(() => assertMessageSource(source), /源消息/, mutation);
   });
 });
 
@@ -1604,15 +1605,17 @@ test('上一楼的独立 advice 建议被替换或移动时不丢弃正在生成
   });
 });
 
-test('advice 变化之外的正文编辑仍使生成结果失效', async () => {
+test('普通发送在历史助手剧情和辅助建议被编辑后仍可结算', async () => {
   await withEnv(async e => {
     e.messages[0].message = '已有剧情\n\n<advice>旧建议</advice>';
     e.story = async () => {
       e.messages[0].message = '被改写的剧情\n\n<advice>新建议</advice>';
-      return '不得提交的正文';
+      return '本轮已生成的正文';
     };
-    await assert.rejects(e.runtime.send('按我的行动继续'), /源消息已变化/);
-    assert.equal(e.messages.length, 2);
+    await e.runtime.send('按我的行动继续');
+    assert.equal(e.messages[2].message, '本轮已生成的正文');
+    const commitId = e.messages[2].extra.cw_story_settlements[0].commitId;
+    assert.ok(e.state()._系统.提交记录[commitId]);
   });
 });
 

@@ -2,6 +2,61 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { block, createRuntime, deferred, endpoint, until, withEnv } = require('./修复宿主.cjs');
 
+test('继续剧情期间可改更早的助手楼，同一候选的续写起点改写则拒绝旧正文', async () => {
+  for (const editedFloor of [0, 2]) await withEnv(async e => {
+    await e.runtime.send('走到路口');
+    e.story = async () => {
+      e.messages[editedFloor].message = '改写了这段剧情的结尾';
+      return '生成的续篇';
+    };
+    const continuing = e.runtime.messageAction('continue', 2);
+    if (editedFloor === 2) {
+      await assert.rejects(continuing, /第\s*2\s*楼/);
+      assert.equal(e.messages.length, 3);
+      assert.deepEqual(e.calls.map(c => c.kind), ['story', 'update', 'story']);
+    } else {
+      await continuing;
+      assert.equal(e.messages[3].message, '生成的续篇');
+      assert.ok(e.state()._系统.提交记录[e.messages[3].extra.cw_story_settlements[0].commitId]);
+    }
+  });
+});
+
+for (const record of ['待结算记录', '旧失败请求', '旧楼层回执']) {
+  test(`冷开${record}仍核对原续写起点，不为改过结尾的楼层重发或提交`, async () => withEnv(async e => {
+    await e.runtime.send('走到路口');
+    const fail = async () => { throw Error('模拟连接中断'); };
+    if (record === '旧失败请求') e.story = fail;
+    else e.update = fail;
+    await assert.rejects(e.runtime.messageAction('continue', 2), /模拟连接中断/);
+    const calls = e.calls.length;
+    const failed = record === '旧失败请求';
+    const saved = failed ? e.vars.澄湾失败请求 : e.vars.澄湾待更新正文;
+    const id = saved.id;
+    await e.runtime.dispose();
+    if (record === '旧失败请求') {
+      assert.equal(saved.continuation, true);
+      delete saved.id;
+      for (const m of saved.source) delete m.continuationStart;
+    } else if (record === '旧楼层回执') {
+      delete e.vars.澄湾待更新正文;
+      const origin = e.messages[3].extra.cw_story_request;
+      assert.equal(origin.id, id);
+      for (const m of origin.source) delete m.continuationStart;
+    }
+    e.messages[2].message = '起点已经换了结尾';
+    e.saveDisk();
+    e.runtime = createRuntime();
+    await e.runtime.start();
+    assert.match(e.runtime.view.error, /第\s*2\s*楼/);
+    await assert.rejects(e.runtime.retry(), failed ? /没有待恢复提交/ : /第\s*2\s*楼/);
+    assert.equal(e.calls.length, calls);
+    assert.equal(e.state()._系统.提交记录[id], undefined);
+    assert.equal(e.messages.length, failed ? 3 : 4);
+    assert.equal(e.messages[2].message, '起点已经换了结尾');
+  }));
+}
+
 test('正文回包时玩家已编辑输入，指出楼层且旧队列不能再次追加原输入', async () => {
   await withEnv(async e => {
     const reply = deferred();

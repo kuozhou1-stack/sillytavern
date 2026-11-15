@@ -8,7 +8,7 @@ import ts from 'typescript';
 import { Schema, root, read, readYaml, createInputJsonSchema } from '../工具/生成派生产物.mjs';
 import { atPath, typeOf, ruleTypeOf, ruleLeaves, ruleTypeDeclarations } from '../工具/schema-utils.mjs';
 import { compactJsonSchema } from '../工具/compact-json-schema.mjs';
-import { generateRuleTypes, renderRuleTypes } from '../工具/生成规则类型.mjs';
+import { renderRuleTypes } from '../工具/生成规则类型.mjs';
 import { bundleWorldbook } from '../工具/打包世界书.mjs';
 import { collectWorldInformation } from '../工具/生成世界资料.mjs';
 
@@ -649,8 +649,7 @@ test('每条精简规则连同公共定义可编译，与完整展开类型双�
 
 test('规则类型再生成无漂移，更新条件与字段清单不被覆盖', () => {
   const before = read('世界书/变量/变量更新规则.yaml');
-  generateRuleTypes();
-  assert.equal(read('世界书/变量/变量更新规则.yaml'), before);
+  assert.equal(renderRuleTypes(before), before);
 });
 
 test('主次分支完整且层级必填，次要保留外貌标识与统一性格，主要专属字段仍隔离', () => {

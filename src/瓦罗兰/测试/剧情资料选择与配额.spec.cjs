@@ -87,6 +87,8 @@ test('必要资料和手动模式优先，补齐结算上下文不丢旧值或�
 
 test('人物字段只在启用人物选择时属于输出契约',()=>{
  assert.deepEqual(parseInformationSelection('{"人物":["fit"],"地点":[],"组织":[]}',true).人物,['fit']);
+ assert.deepEqual(parseInformationSelection('<InformationSelection>{"人物":[],"地点":[],"组织":[]}</InformationSelection>',true),
+  {人物:[],地点:[],组织:[]});
  assert.throws(()=>parseInformationSelection('{"地点":[],"组织":[]}',true));
  assert.throws(()=>parseInformationSelection('{"人物":[],"地点":[],"组织":[]}'));
 });
@@ -100,6 +102,11 @@ test('实际Runtime同一选择请求决定人物和资料，再生成正文，�
  };
  try{
   await assert.rejects(e.runtime.send('准备上课'),/模拟结算中断/);
+  const schema=e.calls.find(call=>call.stage==='information').config.json_schema;
+  const ids={type:'array',items:{type:'string'}};
+  assert.equal(schema.strict,true);
+  assert.deepEqual(schema.value,{type:'object',properties:{人物:ids,地点:ids,组织:ids},
+    required:['人物','地点','组织'],additionalProperties:false});
   assert.deepEqual(Object.keys(e.state().角色),['fit']);assert.equal(choices,1);
   const phases=e.calls.map(c=>c.stage);assert.deepEqual(phases,['information','story','variables']);
   const body=e.messages.at(-1).message;await e.runtime.retry();

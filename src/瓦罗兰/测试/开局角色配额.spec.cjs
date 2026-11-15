@@ -10,6 +10,7 @@ fixture._compile(fs.readFileSync(spec, 'utf8') +
   '\nmodule.exports={Schema,copy,withEnv,environment,createRuntime,createProfile,block,patch,endpoint,sentPrompts};', spec);
 const { Schema, copy, withEnv, createRuntime, createProfile, block, patch, endpoint, sentPrompts } = fixture.exports;
 const { prepareOpeningCharacterRoster } = require('../运行/character-roster.ts');
+const { lifeUpdates } = require('./生活更新夹具.cjs');
 const { LibrarySchema, libraryRevision, libraryView, prepareLibraryCommand } = require('../运行/character-library.ts');
 const { initialConnectionIds } = require('../运行/creation.ts');
 const { catalogCharacters } = require('../界面/桌面端/utils/character-catalog.ts');
@@ -111,7 +112,8 @@ async function runOpening(p, expected) {
     assert.deepEqual(e.state().世界.当前场景.在场人物, p.details.世界.当前场景.在场人物);
     assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 1); assertRelations(e, p);
     await reload(e); record(e, '磁盘镜像重载后'); assertRelations(e, p);
-    e.update = async () => block([]); await e.runtime.send('继续观察环境'); record(e, '下一次普通发送成功后');
+    e.update = async () => block(lifeUpdates(e.state()));
+    await e.runtime.send('继续观察环境'); record(e, '下一次普通发送成功后');
     assertRelations(e, p);
     assert.deepEqual(Object.keys(allPeople(e)).sort(), identities);
     assert.deepEqual({ accounts: Object.keys(e.state().手机.账号), contacts: Object.keys(e.state().手机.联系人), chats: Object.keys(e.state().手机.会话) }, phoneIds);

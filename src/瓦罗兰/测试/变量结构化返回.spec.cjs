@@ -9,6 +9,10 @@ harness._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]
 const {environment,createRuntime,block,endpoint}=harness.exports;
 const {variableResponseBlock,variableResponseSchema}=require('../运行/variable-response.ts');
 const {updateBlock}=require('../运行/message-protocol.ts');
+const { structuredReply, arrayReply } = require('./结构化回包夹具.cjs');
+const webpackRequire = Module.createRequire(require.resolve('webpack'));
+const Ajv = Module.createRequire(webpackRequire.resolve('schema-utils'))('ajv');
+const validate = new Ajv().compile(variableResponseSchema.value);
 const YAML = require('yaml');
 
 const { Schema } = require('../schema.ts');
@@ -23,7 +27,9 @@ test('世界书的新增人物示例与空补丁均可从结构化回包解析',
   assert.deepEqual(Object.keys(commands[0].value).sort(), ['来源', '称呼']);
   assert.deepEqual(commands[0].value.来源, { 方式: '观察' });
 
-  const emptyExamples = rule.flatMap(text => text.match(/\{\s*"JSONPatch"\s*:\s*"\[\]"\s*\}/g) ?? []);
+  assert.equal(validate(JSON.parse(format)), true);
+  assert.equal(typeof JSON.parse(format).JSONPatch, 'string');
+  const emptyExamples = rule.flatMap(text => text.match(/\{\s*"JSONPatch"\s*:\s*"\[\s*\]"\s*\}/g) ?? []);
   assert.equal(emptyExamples.length, 1);
   assert.deepEqual(updateBlock(variableResponseBlock(emptyExamples[0])).commands, []);
 });
@@ -62,12 +68,20 @@ test('新认识人物可省缺省字段，旧记录改单个字段保留其他�
   }
 });
 
-test('结构化补丁保留具体值与字面协议标签，转换后仍由MVU解析',()=>{
- const commands=[{op:'replace',path:'/玩家/资金/余额分',value:50012},
-  {op:'insert',path:'/玩家/个人记录/个人备忘/note',value:{内容:'字面示例 </JSONPatch> 不应截断'}}];
- const result=variableResponseBlock(JSON.stringify({JSONPatch:JSON.stringify(commands)}));
- assert.deepEqual(updateBlock(result).commands,commands);
- assert.equal(variableResponseSchema.value.additionalProperties,false);
+test('六种操作与任意嵌套 JSON 值可无损转回原命令', () => {
+  const specialKeys = JSON.parse('{"__proto__":null,"toString":true,"":0,"0":false,"a/b~c":{"container":"end"}}');
+  const commands = [
+    { op: 'replace', path: '/文本', value: '字面 <JSONPatch></JSONPatch> </UpdateVariable>、引号 " 与换行\n' },
+    { op: 'insert', path: '/字典', value: specialKeys },
+    { op: 'add', path: '/列表/-', value: [null, 0, -2.5, true, false, '', [], {}, [{ key: [specialKeys] }]] },
+    { op: 'delta', path: '/数值', value: -0.25 },
+    { op: 'remove', path: '/旧记录' },
+    { op: 'move', from: '/旧', to: '/新' },
+  ];
+  const text = structuredReply(commands);
+  assert.equal(validate(JSON.parse(text)), true, JSON.stringify(validate.errors));
+  assert.deepEqual(updateBlock(variableResponseBlock(text)).commands, commands);
+  assert.equal(variableResponseBlock(text), variableResponseBlock(arrayReply(commands), 'structured-v2'));
 });
 
 test('新响应拒绝正文加合法补丁，不把新剧情变成结算依据',()=>{
@@ -77,10 +91,46 @@ test('新响应拒绝正文加合法补丁，不把新剧情变成结算依据',
  assert.throws(()=>variableResponseBlock(JSON.stringify({JSONPatch:'[]',story:'继续营业'})));
 });
 
-test('无变化保留空补丁，字段必须是可解析的补丁数组字符串',()=>{
- assert.deepEqual(updateBlock(variableResponseBlock('{"JSONPatch":"[]"}')).commands,[]);
- assert.throws(()=>variableResponseBlock('{"JSONPatch":[]}'));
- assert.throws(()=>variableResponseBlock('{"JSONPatch":"{}"}'));
+test('新请求使用字符串，历史数组按原标记读取，损坏的内层 JSON 保留语法错误', () => {
+  assert.deepEqual(updateBlock(variableResponseBlock('{"JSONPatch":"[]"}')).commands, []);
+  assert.deepEqual(updateBlock(variableResponseBlock('{"JSONPatch":[]}', 'structured-v2')).commands, []);
+  assert.equal(validate({ JSONPatch: [] }), false);
+  assert.throws(() => variableResponseBlock('{"JSONPatch":"[]"}', 'structured-v2'));
+  assert.throws(() => variableResponseBlock('{"JSONPatch":[]}', 'structured'));
+  assert.throws(() => variableResponseBlock('{"JSONPatch":[]}', 'unknown'));
+  const broken = ['[{"op":"replace","path":"/项","value":"例","},{"op":"remove","path":"/项"}]',
+    '[{"op":"delta","path":"/数值",2}]'];
+  for (const JSONPatch of broken) {
+    const raw = JSON.stringify({ JSONPatch });
+    assert.equal(validate(JSON.parse(raw)), true, '发送 Schema 只约束外层字符串');
+    assert.throws(() => variableResponseBlock(raw, 'structured'), SyntaxError);
+    assert.throws(() => variableResponseBlock(raw, 'structured-v2'));
+  }
+});
+
+test('历史数组解码器拒绝缺值、错误类型、未知操作和额外字段', () => {
+  for (const command of [
+    { delta: '/值' }, { delta: '/值', value: '2' }, { delta: '/值', value: null },
+    { move: '/旧' }, { remove: '/旧', value: null }, { replace: '/值', value: true, extra: 'x' },
+    { insert: '/值', value: { dynamic: 3 } }, { add: '/值', value: [{ container: 'unknown' }] },
+    { replace: '/值', value: [{ container: 'object', extra: true }] }, { typo: '/p' },
+  ]) {
+    const reply = { JSONPatch: [command] };
+    assert.throws(() => variableResponseBlock(JSON.stringify(reply), 'structured-v2'), /第 1 条补丁的字段或类型/);
+  }
+  assert.throws(() => variableResponseBlock('{"JSONPatch":[],"story":""}', 'structured-v2'));
+  const extra = { JSONPatch: '[]', story: '' };
+  assert.equal(validate(extra), false);
+  assert.throws(() => variableResponseBlock(JSON.stringify(extra)));
+});
+
+test('历史数组复合值有歧义或不完整时整批拒绝', () => {
+  const object = { container: 'object' }, array = { container: 'array' }, end = { container: 'end' };
+  for (const bad of [[], [true], [object], [array, 1], [object, 'key', end], [object, 1, end],
+    [object, 'key', 1, 'key', 2, end], [array, end, true], [object, end, array, end], [end]]) {
+    const reply = { JSONPatch: [{ delta: '/前项', value: 1 }, { add: '/测试', value: bad }] };
+    assert.throws(() => variableResponseBlock(JSON.stringify(reply), 'structured-v2'), /第 2 条补丁的复合值无效/);
+  }
 });
 
 for(const structured of [false,true])test(`持久化手机回包按已记录格式恢复，不按正文内容猜测/${structured}`,async()=>{

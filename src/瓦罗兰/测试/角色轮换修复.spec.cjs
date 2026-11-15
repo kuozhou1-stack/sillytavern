@@ -22,6 +22,7 @@ const { finalizeArchive } = require('../运行/archive.ts');
 const { elapsedMinutes } = require('../运行/world.ts');
 const { planOpeningCharacters } = require('../运行/opening.ts');
 const { pendingUpdateTasks, finalizeUpdateTasks } = require('../运行/update-tasks.ts');
+const { lifeUpdates, lifeCandidate } = require('./生活更新夹具.cjs');
 const options = { majorLimit: 6, minorLimit: 3, majorRotation: 2, minorRotation: 1 };
 const names = ['01-摘要误占生活检查', '02-自动待机丢失升格', '03-回复评论漏锁对象', '04-主要角色长期占位'];
 const output = process.env.VALORAN_AUDIT_DIR;
@@ -79,7 +80,7 @@ function select(x, input = '', config = options, action) {
   record(x.s, x.l, 'schedule', { input, config, action, pinned }); return p;
 }
 function finish(x) {
-  x.s = finalizeUpdateTasks(x.s, copy(x.s), pendingUpdateTasks(x.s), block([]));
+  x.s = finalizeUpdateTasks(x.s, lifeCandidate(x.s), pendingUpdateTasks(x.s));
   countRound(x.s, 'regression-' + trace.length);
   x.s = planTasks(x.s); record(x.s, x.l, 'success');
 }
@@ -97,7 +98,7 @@ function prompts(e) {
     assert(!content.includes('"queues"')); assert(!content.includes('LifeCheck'));
   };
   e.story = async config => { capture(config, 'story-request'); return '玩家安静观察周围。'; };
-  e.update = async config => { capture(config, 'variable-or-phone-request'); return reply([]); };
+  e.update = async config => { capture(config, 'variable-or-phone-request'); return reply(lifeUpdates(e.state())); };
 }
 
 check(0, 'R1 摘要与生活任务并存，旧版本不阻挡；摘要身份保持', () => {
@@ -115,7 +116,7 @@ check(0, 'R1 摘要与生活任务并存，旧版本不阻挡；摘要身份保�
   }
 });
 
-check(0, 'R1 Runtime：真实摘要失败不成为轮换完成凭据，生活空更新有效', async () => {
+check(0, 'R1 Runtime：摘要失败不成为轮换完成凭据，已写入的人物生活进展可以提交', async () => {
   const s = automaticRosterSeed();
   for (let i = 0; i < 10; i++) s.角色.m00.经历.最近经历['record' + i] = { 日期说明: '2026年09月22日', 日期精度: '日', 经历: '完成独立工作' + i, 来源事件id: [], 来源存档id: null };
   const initial = planTasks(Schema.parse(s));
@@ -124,6 +125,7 @@ check(0, 'R1 Runtime：真实摘要失败不成为轮换完成凭据，生活空
     prompts(e); await e.runtime.send('观察环境');
     const a = auto(e.state(), e.vars.澄湾角色库), id = a.checks.m00;
     assert.notEqual(id, summary); assert.equal(e.state()._系统.任务[id].状态, '已提交');
+    assert.notEqual(e.state().角色.m00.当前状态, initial.角色.m00.当前状态);
     assert.equal(e.state()._系统.任务[summary].状态, '失败');
     assert.equal(e.state()._系统.任务[summary].提交id, initial._系统.任务[summary].提交id);
     await rejects(() => finalizeArchive(initial, copy(e.state()), summary, true), /摘要/);
@@ -219,7 +221,7 @@ for (const failure of ['none', 'library', 'journal']) check(1, 'R2 Runtime 升�
       const s = e.state(); newId = pendingUpdateTasks(s).find(id => s._系统.任务[id].类别 === '升格' && s._系统.任务[id].目标id.includes('n02'));
       assert(newId); assert.notEqual(newId, oldId); assert(s.角色.n02._管理.版本 > oldVersion);
       assert.equal(s._系统.任务[oldId].候选结果JSON, null);
-      return reply([patch('/角色/n02/层级', '主要'), patch('/角色/n02/性格', {})]);
+      return reply([...lifeUpdates(s), patch('/角色/n02/层级', '主要'), patch('/角色/n02/性格', {})]);
     };
     if (failure === 'none') await e.runtime.send('联系n02'); else await e.runtime.retry();
     assert.equal(e.state().角色.n02.层级, '主要'); assert.equal(e.state().角色.n02._管理.升格, false);
@@ -227,7 +229,7 @@ for (const failure of ['none', 'library', 'journal']) check(1, 'R2 Runtime 升�
     assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 3);
     assert.equal(e.messages.filter(m => m.role === 'user').length, 3);
     hostRecord(e, 'promotion-completed');
-    e.update = async () => block([]); await e.runtime.send('联系n02');
+    e.update = async () => reply(lifeUpdates(e.state())); await e.runtime.send('联系n02');
     assert.equal(Object.values(e.state()._系统.任务).filter(t => t.类别 === '升格').length, 2);
   }, automaticRosterSeed(), automaticSettings());
 });
@@ -264,7 +266,7 @@ check(1, 'R2 Runtime：待机提交失败同ID恢复，旧候选失效，升格�
     assert.equal(e.state().角色.n02._管理.升格, true);
     await rejects(() => validateTaskResult(e.state(), copy(e.state()), newId, true, true), /升格候选/);
     hostRecord(e, 'promotion-result-failed');
-    e.update = async () => { assert.equal(pendingUpdateTasks(e.state()).find(id => e.state()._系统.任务[id].类别 === '升格'), newId); return reply([patch('/角色/n02/层级', '主要'), patch('/角色/n02/性格', {})]); };
+    e.update = async () => { assert.equal(pendingUpdateTasks(e.state()).find(id => e.state()._系统.任务[id].类别 === '升格'), newId); return reply([...lifeUpdates(e.state()), patch('/角色/n02/层级', '主要'), patch('/角色/n02/性格', {})]); };
     await e.runtime.send('联系n02');
     assert.equal(e.state()._系统.任务[newId].状态, '已提交'); assert.equal(e.state().角色.n02._管理.升格, false);
     assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 4);
@@ -344,7 +346,7 @@ check(3, '策略：失败生活检查保留原任务，恢复成功才推进；�
     log(x.s._系统.任务[tid].错误, '预期故障：直接注入任务错误文本，无异常堆栈或模型回包');
     countRound(x.s, 'other-' + i); select(x); assert.equal(auto(x.s, x.l).rotation[id], tid); assert(x.s.角色[id]);
   }
-  x.s = finalizeUpdateTasks(x.s, copy(x.s), pendingUpdateTasks(x.s), block([]));
+  x.s = finalizeUpdateTasks(x.s, lifeCandidate(x.s), pendingUpdateTasks(x.s));
   const before = Object.keys(x.s.角色); select(x); assert.deepEqual(Object.keys(x.s.角色), before);
   countRound(x.s, 'completed'); select(x); assert(!x.s.角色[id]);
 });

@@ -450,6 +450,24 @@ test('结算暴露关联资料时自动补齐原记录，只重新结算并丢�
   });
 });
 
+test('手动重试的语法反馈只进入当次变量请求，补资料后的自动请求不重复反馈', async () => {
+  await withEnv(async e => {
+    e.story = async () => '你回到自己的住处，重新整理了客厅。';
+    e.update = async () => JSON.stringify({ JSONPatch: '请先展开资料：library' });
+    await assert.rejects(e.runtime.send('先喝茶，随后回家整理'), SyntaxError);
+    e.update = async () => block([{ op: 'replace', path: '/地点/home/简介', value: '整理过客厅的住处' }]);
+    await e.runtime.retry();
+    const requests = e.payloads.filter(item => item.stage === 'variables').map(item => JSON.stringify(item.messages));
+    assert.equal(requests.length, 3);
+    assert.doesNotMatch(requests[0], /内层数组无法解析/);
+    assert.match(requests[1], /内层数组无法解析/);
+    assert.doesNotMatch(requests[1], /LIBRARY_DETAIL|请先展开资料：library/);
+    assert.doesNotMatch(requests[2], /内层数组无法解析/);
+    assert.match(requests[2], /HOME_DETAIL/);
+    assert.equal(e.selected.length, 1);
+  });
+});
+
 test('选择器漏选当前自建住处时，正文和首次结算均获得完整资料', async () => {
   const state = seed();
   const id = 'residence_d424dbd1-f9a1-4382-90ee-75f4d0273d4e';

@@ -27,15 +27,7 @@ const { normalizeWorldInformation } = require(root + '/运行/世界资料.ts');
 const { normalizeMapLandmarks } = require(root + '/运行/地图地标.ts');
 const { normalizeGeographicNames } = require(root + '/运行/地理名称.ts');
 const block = patches => `<UpdateVariable><JSONPatch>${JSON.stringify(patches)}</JSONPatch></UpdateVariable>`;
-function structuredFixtureReply(config, reply) {
-  if (config.json_schema?.name !== 'variable_update' || typeof reply !== 'string') return reply;
-  try {
-    return JSON.stringify({ JSONPatch: JSON.stringify(updateBlock(reply).commands) });
-  } catch {
-    // Intentionally malformed provider fixtures stay malformed for error tests.
-    return reply;
-  }
-}
+const { structuredFixtureReply } = require('./结构化回包夹具.cjs');
 const patch = (path, value) => ({ op: 'replace', path, value });
 const time = 分 => ({ 年: 2026, 月: 9, 日: 22, 时: 10, 分 });
 const endpoint = name => ({ apiurl: `https://${name}.invalid/v1`, model: name, key: `test-${name}` });

@@ -87,6 +87,14 @@ for(const mode of ['main','extra'])for(const role of ['system','user'])test(`正
   const taskMessages=worker.finalMessages.filter(m=>m.content.includes('不是新的正文回合。'));
   assert.equal(taskMessages.length,1,'完整职责只由本次读取的变量规则提供一份');
   assert.equal(taskMessages[0].role,role,'沿用变量格式条目的原生角色');
+  const example=require('yaml').parse(formatEntry.content).变量输出格式.format;
+  assert(taskMessages[0].content.includes(example),'实际发出的结算提示应包含已安装世界书的示例');
+  const patchString=JSON.parse(example).JSONPatch;
+  assert.equal(typeof patchString,'string');
+  assert.equal(worker.json_schema.value.properties.JSONPatch.type,'string');
+  const exampleBlock=require('../运行/variable-response.ts').variableResponseBlock(example,'structured');
+  assert.deepEqual(require('../运行/message-protocol.ts').updateBlock(exampleBlock).commands,JSON.parse(patchString));
+  assert(!worker.user_input.includes(example),'协议示例不应出现在交接的玩家正文中');
   assert.match(taskMessages[0].content,/<advice>\s*本次执行变量更新[\s\S]*?<\/advice>/,
    '预设要求执行最新advice时，任务标签应指向后台结算职责');
   assert.equal(worker.user_input.split(story).length-1,1,'已完成正文只交接一份');

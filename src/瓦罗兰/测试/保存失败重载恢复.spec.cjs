@@ -9,6 +9,8 @@ harness._compile(fs.readFileSync(fixture, 'utf8').split('const goods =')[0] +
 const { environment, seed, copy, block, patch, endpoint, useInstalledSave, persistChat, deferred, until } = harness.exports;
 const { createRuntime } = require('../运行/host.ts');
 const { Schema } = require('../schema.ts');
+const { lifeUpdates } = require('./生活更新夹具.cjs');
+const { arrayReply } = require('./结构化回包夹具.cjs');
 
 async function reload(e, fromDisk = false) {
   await e.runtime.dispose();
@@ -55,6 +57,7 @@ test('原生保存等待期间新增排队操作，不能误报已保存的正�
 
 for (const stage of ['candidate', 'clear', 'retry-context']) test(`名单${stage}保存失败后重载，保留原请求及journal，直接重试`, async () => {
   const e = environment(rosterSeed(), automatic); await e.runtime.start();
+  e.update = async () => block(lifeUpdates(e.state()));
   let fault = true, observed = false;
   useInstalledSave(e, () => {
     const j = e.vars.澄湾待确认提交;
@@ -212,8 +215,49 @@ for (const channel of ['story', 'phone']) test(`${channel}候选写入后保存�
   } finally { await e.runtime.dispose(); }
 });
 
+for (const format of [undefined, 'structured', 'structured-v2']) test(`只有手机回包的磁盘待办按原格式恢复一次/${format ?? 'XML'}`, async () => {
+  const e = environment();
+  await e.runtime.start();
+  let failOnce = true;
+  useInstalledSave(e, () => {
+    const pending = e.vars.澄湾待更新手机;
+    if (failOnce && pending?.reply && !pending.candidate) {
+      failOnce = false;
+      return 'http';
+    }
+    return false;
+  });
+  const commands = [patch('/玩家/当前状态/体力值', 79)];
+  e.update = async () => block(commands);
+  try {
+    await expectedFailure(e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '通知会面时间' }), /保存未确认/);
+    const saved = e.diskChat[0].chat_metadata.variables.澄湾待更新手机;
+    assert.equal(saved.replyFormat, 'structured');
+    assert.deepEqual(JSON.parse(saved.reply), { JSONPatch: JSON.stringify(commands) });
+    assert.equal(saved.candidate, undefined);
+    if (format === undefined) {
+      delete saved.replyFormat;
+      saved.reply = block(commands);
+    } else if (format === 'structured-v2') {
+      saved.replyFormat = format;
+      saved.reply = arrayReply(commands);
+    }
+    const id = saved.id, calls = e.calls.length;
+    await reload(e, true);
+    await e.runtime.retry();
+    assert.equal(e.calls.length, calls);
+    assert.equal(e.state().玩家.当前状态.体力值, 79);
+    assert.equal(Object.keys(e.state().手机.原文.消息).length, 1);
+    assert.deepEqual(Object.keys(e.state()._系统.已计轮事件), [id]);
+    assert(e.state()._系统.提交记录[id]);
+    assert.equal(e.diskChat[0].chat_metadata.variables.澄湾待更新手机, null);
+    assert.deepEqual(e.diskChat[0].chat_metadata.variables.澄湾排队操作, []);
+  } finally { await e.runtime.dispose(); }
+});
+
 test('手机名单第一阶段快照保存失败，无journal时仍可从原排队操作直接重试', async () => {
   const e = environment(rosterSeed(), automatic); await e.runtime.start(); let fault = true;
+  e.update = async () => block(lifeUpdates(e.state()));
   useInstalledSave(e, () => {
     if (fault && e.vars.澄湾角色库 && !e.vars.澄湾待确认提交) { fault = false; return 'http'; }
     return false;

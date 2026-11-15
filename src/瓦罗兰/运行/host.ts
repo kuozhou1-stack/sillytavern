@@ -19,7 +19,7 @@ import {
 import { mergeOpeningTasks, planOpeningCharacters, openingMessage } from './opening';
 import { taskReceipt, type UpdateReceipt } from './update-receipt';
 import { planTasks } from './tasks';
-import { pendingUpdateTasks, withUpdateTasks, finalizeUpdateTasks } from './update-tasks';
+import { pendingUpdateTasks, withUpdateTasks, finalizeUpdateTasks, MissingRosterProgressError } from './update-tasks';
 import { phoneTimePrompt } from './phone';
 import { applyPhoneAction, assertPhoneActionNotRepeated, blockText, finalizePhone, type PhoneAction } from './phone';
 import { Schema } from '../schema';
@@ -42,7 +42,7 @@ import { SettingsSchema, createSettingsController, validateApi, apiConnection, i
 import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
 import { withPromptContext, preparePromptWorldbook } from './prompt-context';
-import { variableResponseBlock, variableResponseSchema } from './variable-response';
+import { PatchArraySyntaxError, variableResponseBlock, variableResponseSchema, type VariableReplyFormat } from './variable-response';
 import { withPromptInstructions, promptProjections } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
 import { applyCommitReplay, replayAfterStory, MissingCommitReplay, type CommitReplay } from './commit-replay';
@@ -131,6 +131,22 @@ export function activeContext(lastFloor = getLastMessageId()): Context {
 }
 /** A source mismatch whose recovery records and player notice were already handled by send(). */
 class StaleStoryRequestError extends MessageSourceError {}
+
+type VariableUpdateRequest = {
+  id: string;
+  retryIssue?: { kind: 'patch-syntax'; line?: number; column?: number } | { kind: 'missing-progress'; targets: number };
+};
+
+function variableRetryPrompt(issue: VariableUpdateRequest['retryIssue']) {
+  if (issue?.kind === 'patch-syntax') {
+    const location = Number.isSafeInteger(issue.line) && Number.isSafeInteger(issue.column)
+      ? `（第 ${issue.line} 行，第 ${issue.column} 列）` : '';
+    return `本次待办曾返回语法无效的 JSONPatch 字符串，内层数组无法解析${location}。请按当前格式把本轮完整补丁数组写入 JSONPatch 字符串，检查字段名、引号和逗号。`;
+  }
+  if (issue?.kind === 'missing-progress' && Number.isSafeInteger(issue.targets))
+    return `本次待办的一份回包未产生业务变化，要求更新的 ${issue.targets} 位人物实际覆盖 0 位。请按本轮生活检查及当前资料补全各目标的进展，输出完整结算。`;
+  return '';
+}
 
 export function createRuntime() {
   // Keep the original callback: Helper's returned stop handle loses this mapping.
@@ -345,9 +361,8 @@ export function createRuntime() {
     updateQueueView();
     return Promise.resolve();
   };
-  let pending: {
+  let pending: (VariableUpdateRequest & {
     context: Context;
-    id: string;
     text: string;
     envelope: Mvu.MvuData;
     replyFloor?: number;
@@ -359,7 +374,7 @@ export function createRuntime() {
     prepared?: { envelope: Mvu.MvuData; settlement: StorySettlement };
     replay?: CommitReplay;
     revisionVersion?: number;
-  } | null = getVariables({ type: 'chat' }).澄湾待更新正文 ?? null;
+  }) | null = getVariables({ type: 'chat' }).澄湾待更新正文 ?? null;
   let failedSend: {
     context: Context;
     text: string;
@@ -370,17 +385,16 @@ export function createRuntime() {
     continuation?: boolean;
     append?: boolean;
   } | null = getVariables({ type: 'chat' }).澄湾失败请求 ?? null;
-  let pendingPhone: {
+  let pendingPhone: (VariableUpdateRequest & {
     context: Context;
-    id: string;
     envelope: Mvu.MvuData;
     draft: State;
     action: PhoneAction;
     reply?: string;
-    replyFormat?: 'structured';
+    replyFormat?: VariableReplyFormat;
     candidate?: State;
     source?: MessageSource;
-  } | null = getVariables({ type: 'chat' }).澄湾待更新手机 ?? null;
+  }) | null = getVariables({ type: 'chat' }).澄湾待更新手机 ?? null;
   function setPhoneRequest(p: { id: string; action: PhoneAction; context: Context }, status: PhoneRequestStatus) {
     view.phoneRequest = { ...phoneRequestIdentity(p.id, p.action, p.context), status };
   }
@@ -430,17 +444,23 @@ export function createRuntime() {
       throw Error('正文保存读回期间已被编辑，保留原请求供检查');
     await writeStoryCandidate(p.replyFloor!, p.replySwipe ?? 0, current.message, extra);
   }
-  async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, id: string, structured = false) {
+  async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, operation: VariableUpdateRequest, format?: VariableReplyFormat) {
     try {
-      return await parseCandidate(structured ? variableResponseBlock(text) : text, envelope);
+      return await parseCandidate(format === undefined ? text : variableResponseBlock(text, format), envelope);
     } catch (error) {
       // Keep the actual response and stack in the chat, outside stat_data/prompts.
       // A retry may request a new response, but must not erase the failed evidence.
-      await patchChat({ 澄湾最近解析失败: {
-        channel, id, at: new Date().toISOString(),
-        error: String(error), stack: error instanceof Error ? error.stack : undefined,
-        response: text,
-      } });
+      const { id } = operation;
+      if (error instanceof PatchArraySyntaxError) operation.retryIssue = { kind: 'patch-syntax', ...error.location };
+      await patchChat({
+        ...(error instanceof PatchArraySyntaxError && operation === pending ? { 澄湾待更新正文: pending } : {}),
+        澄湾最近解析失败: {
+          channel, id, at: new Date().toISOString(),
+          error: String(error), stack: error instanceof Error ? error.stack : undefined,
+          ...(error instanceof Error && error.cause instanceof SyntaxError ? { cause: String(error.cause) } : {}),
+          response: text,
+        },
+      });
       console.error('[瓦洛兰变量解析] 已保存原始回复与堆栈', { channel, id }, error);
       throw error;
     }
@@ -727,8 +747,9 @@ export function createRuntime() {
   }
   function informationRetryHint(id: string) {
     const failed = getVariables({ type: 'chat' }).澄湾最近解析失败;
-    return failed?.id === id && String(failed.error).includes('请先展开资料')
-      ? '\n上一份结算请求需要先展开已有资料：' + String(failed.error).split('：').at(-1) : '';
+    const prefix = 'Error: 请先展开资料再更新：';
+    return failed?.id === id && typeof failed.error === 'string' && failed.error.startsWith(prefix)
+      ? '\n上一份结算请求需要先展开已有资料：' + failed.error.slice(prefix.length) : '';
   }
   async function selectInformation(before: State, input: string, key: string, retain = false, action?: PhoneAction) {
     if (!settings.informationAuto) return before;
@@ -821,25 +842,31 @@ export function createRuntime() {
   }
   async function requestScopedUpdate(
     before: State, envelope: Mvu.MvuData, makeConfig: (state: State) => Promise<GenerateConfig>,
-    api: ApiSettings, name: string, id: string, saveContext: (state: State) => Promise<void>, cachedReply?: string,
-    receiveReply?: (text: string, structured: boolean) => Promise<void>, rejectReply?: () => void,
-    cachedStructured = false,
+    api: ApiSettings, name: string, operation: VariableUpdateRequest, saveContext: (state: State) => Promise<void>, cachedReply?: string,
+    receiveReply?: (text: string, format: VariableReplyFormat) => Promise<void>, rejectReply?: () => void,
+    cachedFormat?: VariableReplyFormat,
   ) {
     // Retry the variable handoff once with the missing records. Never regenerate the story or apply the rejected patch.
     for (let attempt = 0; attempt < 2; attempt++) {
       const cached = attempt === 0 && cachedReply !== undefined;
-      const text = cached ? cachedReply : await requestUpdate(await makeConfig(before), api, name, before);
-      // Old persisted phone replies used tagged MVU text. New responses must
-      // obey the requested structured transport; never silently accept prose.
-      const structured = !cached || cachedStructured;
-      await receiveReply?.(text, structured);
+      let text: string;
+      if (cached) text = cachedReply;
+      else {
+        let config = await makeConfig(before);
+        const feedback = attempt === 0 && variableRetryPrompt(operation.retryIssue);
+        if (feedback) config = withPromptInstructions(config, [{ role: 'system', position: 'in_chat', depth: 0, content: feedback }]);
+        text = await requestUpdate(config, api, name, before);
+      }
+      // Unmarked phone replies predate structured output and use the original MVU reader.
+      const format = cached ? cachedFormat : 'structured';
+      if (!cached) await receiveReply?.(text, 'structured');
       try {
-        const parsed = await parseUpdate(text, { ...envelope, stat_data: before }, name, id, structured);
+        const parsed = await parseUpdate(text, { ...envelope, stat_data: before }, name, operation, format);
         return { before, text, parsed };
       } catch (error) {
         rejectReply?.();
         if (!(error instanceof InformationNotLoadedError) || !settings.informationAuto || attempt !== 0) throw error;
-        const expanded = expandInformationForRetry(before, updateBlock(structured ? variableResponseBlock(text) : text).commands);
+        const expanded = expandInformationForRetry(before, updateBlock(format === undefined ? text : variableResponseBlock(text, format)).commands);
         if (expanded === before) throw error;
         before = expanded;
         await saveContext(before);
@@ -932,14 +959,22 @@ export function createRuntime() {
       return withUpdateTasks(await livePromptConfig(state, instruction, 'worker'), state, taskIds);
     };
     console.info('[瓦洛兰正文变量] 交接正文', { floor: p.replyFloor, characters: narrative.length });
-    const settled = await requestScopedUpdate(before, p.envelope, makeUpdateConfig, settings.variable, '正文变量', p.id,
+    const settled = await requestScopedUpdate(before, p.envelope, makeUpdateConfig, settings.variable, '正文变量', p,
       async state => { p.envelope = { ...p.envelope, stat_data: state }; await savePending(); });
     before = settled.before;
     const { text: updateText, parsed } = settled;
     if (!parsed) throw Error('MVU 未返回解析结果，保留正文以重试');
     let candidate = finalizePhone(before, validateSettlement(before, validateModel(before, parsed.stat_data)));
     candidate = validateUse(before, candidate, p.intent);
-    candidate = finalizeUpdateTasks(before, candidate, taskIds, updateText);
+    try {
+      candidate = finalizeUpdateTasks(before, candidate, taskIds, updateText);
+    } catch (error) {
+      if (error instanceof MissingRosterProgressError && p === pending) {
+        p.retryIssue = { kind: 'missing-progress', targets: error.targetCount };
+        await savePending();
+      }
+      throw error;
+    }
     candidate = finalizeWorld(before, candidate);
     candidate = refreshNovelSystem(candidate);
     assertContext(p.context, activeContext());
@@ -1658,7 +1693,6 @@ export function createRuntime() {
       if (!p.candidate) {
         let draft = p.draft;
         const config = settings.phone;
-        validateApi(config, '手机');
         const taskIds = pendingUpdateTasks(draft);
         const budget = phoneBudget(draft, action, view.data?._系统.生成密度);
         const instruction =
@@ -1683,7 +1717,7 @@ export function createRuntime() {
           },
           config,
           '手机',
-          id,
+          p,
           async state => {
             assertPhoneWritable();
             p.draft = state;
@@ -1692,18 +1726,18 @@ export function createRuntime() {
             await savePhone();
           },
           p.reply,
-          async (text, structured) => {
+          async (text, format) => {
             assertPhoneWritable();
             rejectedReply = false;
             p.reply = text;
-            p.replyFormat = structured ? 'structured' : undefined;
+            p.replyFormat = format;
             setPhoneRequest(p, 'settling');
             await savePhone();
           },
           () => {
             rejectedReply = true;
           },
-          p.replyFormat === 'structured',
+          p.replyFormat,
         );
         assertPhoneWritable();
         draft = settled.before;
@@ -1721,6 +1755,7 @@ export function createRuntime() {
           if (action.kind !== 'refresh' || !equal(draft.手机.原文, candidate.手机.原文)) countRound(candidate, id);
           p.candidate = planTasks(candidate);
         } catch (error) {
+          if (error instanceof MissingRosterProgressError) p.retryIssue = { kind: 'missing-progress', targets: error.targetCount };
           rejectedReply = true;
           throw error;
         }

@@ -30,6 +30,7 @@ const { copy } = require(root + '/运行/core.ts');
 const { prepareLibraryCommand, LibrarySchema, libraryView } = require(root + '/运行/character-library.ts');
 const { validateModel } = require(root + '/运行/core.ts');
 const { pendingUpdateTasks, withUpdateTasks } = require(root + '/运行/update-tasks.ts');
+const { lifeUpdates } = require('./生活更新夹具.cjs');
 const { stripProtocol, storedNarrative, updateBlock } = require(root + '/运行/message-protocol.ts');
 const { parseAndValidateCharacterJson } = require(root + '/界面/桌面端/utils/char_importer.ts');
 const { displayedMessage } = require(root + '/界面/桌面端/utils/message-display.ts');
@@ -41,15 +42,7 @@ const { normalizeWorldInformation } = require(root + '/运行/世界资料.ts');
 const { normalizeMapLandmarks } = require(root + '/运行/地图地标.ts');
 const { normalizeGeographicNames } = require(root + '/运行/地理名称.ts');
 const block = patches => `<UpdateVariable><JSONPatch>${JSON.stringify(patches)}</JSONPatch></UpdateVariable>`;
-function structuredFixtureReply(config, reply) {
-  if (config.json_schema?.name !== 'variable_update' || typeof reply !== 'string') return reply;
-  try {
-    return JSON.stringify({ JSONPatch: JSON.stringify(updateBlock(reply).commands) });
-  } catch {
-    // Intentionally malformed provider fixtures stay malformed for error tests.
-    return reply;
-  }
-}
+const { structuredFixtureReply } = require('./结构化回包夹具.cjs');
 const patch = (path, value) => ({ op: 'replace', path, value });
 const time = 分 => ({ 年: 2026, 月: 9, 日: 22, 时: 10, 分 });
 const publicPerson = person => { const result = copy(person); delete result._管理; delete result._更新循环; return result; };
@@ -59,7 +52,8 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const sentPrompts = config => config.finalMessages ??
   config.overrides?.chat_history?.prompts ?? config.ordered_prompts?.filter(p => typeof p === 'object') ?? config.injects ?? [];
 const sentState = config => JSON.parse(sentPrompts(config).map(p => p.content).join('\n').match(/<status_current_variable>\s*([\s\S]*?)\s*<\/status_current_variable>/)[1]);
-const taskFact = (config, label) => config.user_input.slice(config.user_input.indexOf(label) + label.length).split('\n\n本轮已完成正文')[0].trim();
+const taskFact = (config, label) => config.user_input.slice(config.user_input.indexOf(label) + label.length)
+  .split('\n\n本轮已完成正文')[0].trim();
 
 test('建档正文走原生入口，建档变量任务失败重试仍可用，历史不保存长清单', async () => {
   await withEnv(async e => {
@@ -1057,6 +1051,7 @@ test('角色调度提交等待或失败不阻塞玩家消息显示，重试不�
     assert.match(String(await sending), /调度暂不可用/);
     assert.equal(e.vars.澄湾失败请求.append, false);
     fail = false;
+    e.update = async () => block(lifeUpdates(e.state()));
     await e.runtime.retry();
     assert.equal(e.messages.filter(m => m.role === 'user').length, 1);
     assert.equal(e.calls.filter(c => c.kind === 'story').length, 1);
@@ -1349,12 +1344,13 @@ test('旧聊天多段正文缺少原请求归属时保留原文，禁止猜测�
 
 test('JSONPatch 解析失败保留原始响应与堆栈，变量不写入且重试不重复正文', async () => {
   await withEnv(async e => {
-    const response = JSON.stringify({ JSONPatch: '[] {"unexpected":true}' });
+    const response = JSON.stringify({JSONPatch:'[{"op":"delta","path":"/玩家/资金/余额分",2}]'});
     e.update = async () => response;
     await assert.rejects(e.runtime.send('查看时间'), /JSON/);
     assert.equal(e.vars.澄湾最近解析失败.response, response);
     assert(!Object.hasOwn(e.vars.澄湾最近解析失败, 'jsonPatch'), '原始响应已完整保留，不重复保存不可靠的正则截取');
-    assert.match(e.vars.澄湾最近解析失败.stack, /SyntaxError/);
+    assert.match(e.vars.澄湾最近解析失败.stack, /Error/);
+    assert.match([e.vars.澄湾最近解析失败.stack, e.vars.澄湾最近解析失败.cause].join(' '), /SyntaxError/);
     assert.equal(activeContext().floor, 0);
     assert.equal(e.parses, 0);
     e.update = async () => block([]);
@@ -1991,6 +1987,7 @@ test('手机遗漏世界时钟但生成未来回复时不保存；重试完整�
 test('手机可独立使用，正文变量端点为空不阻塞手机操作', async () => {
   await withEnv(
     async e => {
+      e.update = async () => block(lifeUpdates(e.state()));
       await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
       assert.equal(e.calls.length, 1);
       assert.equal(e.calls[0].config.custom_api.model, 'phone');
@@ -2155,6 +2152,8 @@ test('手机调用期间切换聊天，不把候选写入新聊天', async () =>
 test('Google 映射和携带预设仍使用手机独立端点与同一规则', async () => {
   await withEnv(
     async e => {
+      const remote = publicPerson(e.state().角色.remote);
+      e.update = async () => block(lifeUpdates(e.state()));
       await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
       assert.equal(e.calls.length, 1);
       const call = e.calls[0];
@@ -2164,7 +2163,7 @@ test('Google 映射和携带预设仍使用手机独立端点与同一规则', a
       assert.equal(call.config.should_stream, false);
       assert.equal(call.config.injects.length, 2);
       assert.equal(call.config.overrides.chat_history.with_depth_entries, true);
-      assert.deepEqual(sentState(call.config).角色.remote, publicPerson(e.state().角色.remote));
+      assert.deepEqual(sentState(call.config).角色.remote, remote);
       assert(e.rules.every(r => !r.enabled));
     },
     seed(),
@@ -2244,7 +2243,9 @@ test('开局调度：建档171人后只发送地点相关和明确联系的3人�
     e.story = async config => { await capture(config); return '玩家独自观察开场广场。'; };
     e.update = async config => {
       await capture(config);
-      return block(e.state().角色.m01?.年龄 === null ? [patch('/角色/m01/年龄', 30)] : []);
+      const updates = lifeUpdates(e.state());
+      if (e.state().角色.m01?.年龄 === null) updates.push(patch('/角色/m01/年龄', 30));
+      return block(updates);
     };
     await e.runtime.startOpening();
     assert.deepEqual(e.calls.map(c => c.config.custom_api?.model ?? 'main'), ['main', 'variable']);
@@ -3259,7 +3260,7 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
       if (!extra) rosters.push(Object.keys(people));
     };
     e.story = async config => { await capture(config); return '本轮只是观察环境。'; };
-    e.update = async config => { await capture(config); return block([]); };
+    e.update = async config => { await capture(config); return block(lifeUpdates(e.state())); };
     await e.runtime.send('观察环境');
     await e.runtime.send('继续观察环境');
     assert.equal(rosters[1].filter(id => id.startsWith('m') && !rosters[0].includes(id)).length, 3);
@@ -3292,11 +3293,12 @@ test('自动调度：正文、变量和手机最终请求均为6+3，关闭完�
       final.push(extra ? config.custom_api.model : 'story');
     };
     e.story = async config => { await capture(config); return '玩家观察了当前环境，未与远处人物互动。'; };
-    e.update = async config => { await capture(config); return block([]); };
+    e.update = async config => { await capture(config); return block(lifeUpdates(e.state())); };
     await e.runtime.send('观察环境');
     const roster = e.vars.澄湾角色库.revisions[e.state()._系统.角色库版本].automatic;
     assert.equal(Object.keys(roster.checks).length, 9);
     assert(Object.values(roster.checks).every(id => e.state()._系统.任务[id].状态 === '已提交'));
+    for (const id of Object.keys(roster.checks)) assert.equal(e.state().角色[id].当前状态, '正在整理本次工作记录');
     assert(!e.state().角色.n19);
     await e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '你好' });
     assert(e.state().角色.n19);
@@ -3313,7 +3315,7 @@ test('自动调度：正文失败重试不重复轮换或复制快照，检查�
     const snapshotCount = Object.keys(library.snapshots).length;
     const roster = copy(library.revisions[e.state()._系统.角色库版本].automatic);
     assert(Object.values(roster.rotation).every(id => e.state()._系统.任务[id].状态 === '排队'));
-    e.story = async () => '本轮没有特殊事件。'; e.update = async () => block([]);
+    e.story = async () => '本轮没有特殊事件。'; e.update = async () => block(lifeUpdates(e.state()));
     await e.runtime.retry();
     assert.equal(Object.keys(e.vars.澄湾角色库.snapshots).length, snapshotCount);
     assert(Object.values(roster.rotation).every(id => e.state()._系统.任务[id].状态 === '已提交'));
@@ -3324,6 +3326,7 @@ test('自动调度：正文失败重试不重复轮换或复制快照，检查�
 
 test('自动调度：活动名单保存失败回滚，快照仍可恢复，重试后再发模型请求', async () => {
   await withEnv(async e => {
+    e.update = async () => block(lifeUpdates(e.state()));
     const original = copy(e.state());
     SillyTavern.saveChat = async () => { if (!e.messages[0].data.stat_data.角色.m29) throw Error('自动名单保存失败');  e.saveDisk(); };
     await assert.rejects(e.runtime.send('观察环境'), /自动名单保存失败/);
@@ -3342,6 +3345,7 @@ test('自动调度：活动名单保存失败回滚，快照仍可恢复，重�
 
 test('自动调度：手机操作前名单保存失败，重试先恢复名单且只发送一次手机消息', async () => {
   await withEnv(async e => {
+    e.update = async () => block(lifeUpdates(e.state()));
     const original = copy(e.state());
     SillyTavern.saveChat = async () => { if (!e.messages[0].data.stat_data.角色.m29) throw Error('自动名单保存失败');  e.saveDisk(); };
     await assert.rejects(e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '轮换后的问候' }), /自动名单保存失败/);
@@ -4106,7 +4110,7 @@ test('常驻语义：正文维持原激活，raw及携带预设的正文/手机�
       for (const rule of shared)
         assert.equal(messages.filter(message => message.content === rule.content).length, 1, rule.name);
       assert(!JSON.stringify(messages).includes('[chengwan-'));
-      return block([]);
+      return block(lifeUpdates(e.state()));
     };
     await e.runtime.send('正常交谈');
     await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });

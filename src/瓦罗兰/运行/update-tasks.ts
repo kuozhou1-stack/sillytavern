@@ -5,9 +5,13 @@ import { validateTaskResult, isCharacterLifeTask, hasCurrentCharacterTargets } f
 import { taskHasActiveTargets } from './character-activity';
 import { publicModelData, promptProjections, withPromptInstructions } from './model-history';
 import { createSourceContextProjector } from './source-context';
+import { rosterProgress } from './roster-progress';
 
 function currentTaskTargets(state: State, task: State['_系统']['任务'][string]) {
   return isCharacterLifeTask(task) ? hasCurrentCharacterTargets(state, task) : taskHasActiveTargets(state, task);
+}
+function requiresRosterProgress(task: State['_系统']['任务'][string]) {
+  return task.触发来源 === '自动角色调度：当前生活检查' && isCharacterLifeTask(task);
 }
 
 /** Maintenance is folded into an authorized story/phone request, never sent on its own. */
@@ -79,12 +83,28 @@ export function withUpdateTasks(config: GenerateConfig, state: State, ids: strin
   }]);
 }
 
+export class MissingRosterProgressError extends Error {
+  constructor(readonly targetCount: number) {
+    super(`本轮自动生活检查要求更新 ${targetCount} 位人物，但回包没有产生业务变化。请重试本轮变量结算。`);
+  }
+}
+
 export function finalizeUpdateTasks(before: State, candidate: State, ids: string[], _rawText?: string) {
+  const pending = ids.map(id => [id, before._系统.任务[id]] as const).filter(([, task]) =>
+    task && !['失效', '取消', '已提交'].includes(task.状态) && currentTaskTargets(before, task));
+  const mandatory = new Set(pending.filter(([, task]) => requiresRosterProgress(task)).map(([id]) => id));
+  const targets = [...mandatory].flatMap(id => before._系统.任务[id].目标id);
+  // 先看模型候选，随后各待办清计数和写回状态时不能给别的目标提供完成依据。
+  const progress = targets.length ? rosterProgress(before, candidate, targets) : undefined;
+  if (progress && !progress.anyPublicChange) throw new MissingRosterProgressError(new Set(targets).size);
   let result = candidate;
-  for (const id of ids) {
-    const task = before._系统.任务[id];
-    if (!task || ['失效', '取消', '已提交'].includes(task.状态) || !currentTaskTargets(before, task)) continue;
+  for (const [id, task] of pending) {
     try {
+      if (progress && mandatory.has(id)) {
+        const missing = task.目标id.filter(target => !progress.changed.has(target));
+        if (missing.length)
+          throw Error('缺少自动生活检查的实际进展：' + missing.map(target => before.角色[target].姓名 || target).join('、'));
+      }
       result =
         task.类别 === '摘要'
           ? finalizeArchive(before, copy(result), id, true)

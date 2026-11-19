@@ -131,15 +131,11 @@
 
         <!-- B. 系统已开启视图：三大 Tab 切换 -->
         <template v-else>
-          <div v-if="isRefreshing" class="cw-novel-actions">
-            <button v-if="isRefreshing" type="button" class="cw-btn cw-btn-ghost cw-btn-sm" @click="runtime?.stop()">
-              停止刷新
-            </button>
-          </div>
-          <QueueStatus scope="novel" compact />
-          <div v-if="blockedHint" class="cw-blocked-hint" role="status">
+          <div v-if="refreshNotice" class="cw-blocked-hint" :role="refreshError ? 'alert' : 'status'">
             <SvgIcon name="alertCircle" :size="13" />
-            <span>{{ blockedHint }}</span>
+            <span>{{ refreshNotice }}</span>
+            <button v-if="refreshTab && currentTab !== refreshTab" type="button" class="cw-btn cw-btn-ghost cw-btn-xs"
+              @click="currentTab = refreshTab">{{ refreshTab === 'shop' ? '前往商店' : '前往任务大厅' }}</button>
           </div>
           <!-- 1. 任务大厅 -->
           <TaskHall
@@ -148,13 +144,14 @@
             :novel-state="novelState"
             :disabled="isOperationBlocked"
             :pending-id="pendingTargetId"
-            :refresh-disabled="!runtime?.novelRefresh"
-            :refreshing="isRefreshing"
-            @refresh="handleRefresh('tasks')"
             @accept="id => handleAction({ kind: 'accept', id })"
             @abandon="id => handleAction({ kind: 'abandon', id })"
             @claim="id => handleAction({ kind: 'claim', id })"
-          />
+          >
+            <template #refresh>
+              <NovelRefreshControl target="tasks" :disabled="isOperationBlocked" @refresh="handleRefresh('tasks')" @feedback="message => emit('feedback', message)" />
+            </template>
+          </TaskHall>
 
           <!-- 2. 系统商店 -->
           <SystemShop
@@ -163,12 +160,13 @@
             :novel-state="novelState"
             :disabled="isOperationBlocked"
             :pending-id="pendingTargetId"
-            :refresh-disabled="!runtime?.novelRefresh"
-            :refreshing="isRefreshing"
-            @refresh="handleRefresh('shop')"
             @buy="id => handleAction({ kind: 'buy', id })"
             @open-inventory="handleGoToInventory"
-          />
+          >
+            <template #refresh>
+              <NovelRefreshControl target="shop" :disabled="isOperationBlocked" @refresh="handleRefresh('shop')" @feedback="message => emit('feedback', message)" />
+            </template>
+          </SystemShop>
 
           <!-- 3. 收支明细 -->
           <CoinLedger v-else-if="currentTab === 'ledger'" :novel-state="novelState" />
@@ -193,7 +191,7 @@ import SvgIcon from '../icons/SvgIcon.vue';
 import TaskHall from './TaskHall.vue';
 import SystemShop from './SystemShop.vue';
 import CoinLedger from './CoinLedger.vue';
-import QueueStatus from '../shared/QueueStatus.vue';
+import NovelRefreshControl from './NovelRefreshControl.vue';
 
 const props = defineProps<{
   state: State;
@@ -234,9 +232,26 @@ const blockedHint = computed(() => {
   return '';
 });
 const isOperationBlocked = computed(() => isPending.value || !!blockedHint.value);
-const isRefreshing = computed(() => !!runtime && taskPresentation(runtime.view).stoppable &&
-  (runtime.view.operation === 'novel' || (runtime.view.operation === 'recovery' &&
-    runtime.view.recoverable.some(item => item.kind === 'novel'))));
+const hasNovelRequest = computed(() => !!runtime && [...runtime.view.queued, ...runtime.view.recoverable]
+  .some(item => item.kind === 'novel'));
+const pendingRefresh = computed(() => runtime?.view.recoverable.find(item => item.kind === 'novel')
+  ?? runtime?.view.queued.find(item => item.kind === 'novel'));
+const refreshTab = computed(() => {
+  const target = runtime?.view.activeNovelTarget ?? pendingRefresh.value?.target;
+  if (!target) return null;
+  return target === 'shop' ? 'shop' : 'tasks';
+});
+const refreshError = computed(() => runtime?.view.recoverable.some(item => item.kind === 'novel') ? runtime.view.error : '');
+const refreshNotice = computed(() => {
+  if (refreshError.value) return refreshError.value;
+  if (runtime?.view.operation === 'novel' || pendingRefresh.value) {
+    if (runtime?.view.recoverable.some(item => item.kind === 'novel')) return '上次刷新未完成，可再次刷新或取消。';
+    if (refreshTab.value && currentTab.value !== refreshTab.value)
+      return refreshTab.value === 'shop' ? '商店刷新中…' : '任务刷新中…';
+    return '';
+  }
+  return blockedHint.value;
+});
 
 async function handleRefresh(target: NovelRefreshTarget) {
   if (isOperationBlocked.value || !runtime?.novelRefresh) return;
@@ -248,10 +263,9 @@ async function handleRefresh(target: NovelRefreshTarget) {
   pendingTargetId.value = 'refresh:' + target;
   try {
     await runtime.novelRefresh(target);
-    emit('feedback', target === 'tasks' ? '新任务已加入，已有任务保持原状' : '商店新品已加入，购买记录和限购保持原状');
   } catch (error: unknown) {
     const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
-    emit('feedback', '刷新未完成：' + message);
+    if (!hasNovelRequest.value || !runtime.view.error) emit('feedback', '刷新未完成：' + message);
   } finally {
     isPending.value = false;
     pendingTargetId.value = null;
@@ -274,7 +288,6 @@ async function handleAction(action: Omit<NovelAction, 'operationId'>) {
     });
 
     if (action.kind === 'enable') {
-      emit('feedback', newlyEnabling ? '奇遇系统已开启，已发放 30 蓝色精粹及生活目标！' : '奇遇系统已开启');
       if (newlyEnabling && novelState.value._启用) {
         if (!runtime.novelRefresh) {
           emit('feedback', '奇遇已开启；请等待后台更新后刷新任务和商店');
@@ -285,10 +298,9 @@ async function handleAction(action: Omit<NovelAction, 'operationId'>) {
           pendingTargetId.value = 'refresh:' + target;
           try {
             await runtime.novelRefresh(target);
-            emit('feedback', target === 'shop' ? '待接取任务已满，商店新品已生成' : '初始随机任务与商店新品已生成');
           } catch (error: unknown) {
             const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
-            emit('feedback', '奇遇已开启，初始内容未生成：' + message);
+            if (!hasNovelRequest.value || !runtime.view.error) emit('feedback', '奇遇已开启，初始内容未生成：' + message);
           }
         }
       }
@@ -441,12 +453,7 @@ function handleClose() {
   gap: 12px;
 }
 
-.cw-novel-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
+
 
 .cw-header-balance-badge {
   display: flex;
@@ -658,6 +665,10 @@ function handleClose() {
   gap: 5px;
   font-size: 12px;
   color: var(--cw-danger);
+  padding: 6px 10px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-bg-card);
 }
 
 /* 暗色主题细调 (Dark mode overrides) */

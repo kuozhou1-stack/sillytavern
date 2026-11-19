@@ -61,7 +61,12 @@ const display = (value: unknown, exists: boolean): string => {
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (typeof value === 'string') return value === '' ? '空文本' : value;
   if (Array.isArray(value)) return value.length ? `${value.length} 项` : '空列表';
-  if (record(value)) return Object.keys(value).length ? `${Object.keys(value).length} 项` : '空记录';
+  if (record(value)) {
+    const keys = Object.keys(value);
+    if (keys.length === 5 && ['年', '月', '日', '时', '分'].every(key => typeof value[key] === 'number'))
+      return `${value.年}年${value.月}月${value.日}日 ${String(value.时).padStart(2, '0')}:${String(value.分).padStart(2, '0')}`;
+    return keys.length ? `${keys.length} 项` : '空记录';
+  }
   return String(value);
 };
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);

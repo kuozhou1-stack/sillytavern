@@ -6,60 +6,21 @@
       <div class="cw-widget-date">{{ currentDateStr }} · 瓦罗兰</div>
     </div>
 
-    <!-- 应用网格 -->
-    <div class="cw-apps-grid">
-      <!-- 邻信 -->
-      <div class="cw-app-icon-item" @click="emit('openApp', 'linxin')">
-        <div class="cw-app-icon cw-icon-linxin">
-          <SvgIcon name="messageSquare" :size="28" />
-          <span v-if="linxinUnread > 0" class="cw-app-badge">{{ linxinUnread }}</span>
-        </div>
-        <span class="cw-app-name">邻信</span>
-      </div>
-
-      <!-- 微澜 -->
-      <div class="cw-app-icon-item" @click="emit('openApp', 'weilan')">
-        <div class="cw-app-icon cw-icon-weilan">
-          <SvgIcon name="globe" :size="28" />
-          <span v-if="weilanUnread > 0" class="cw-app-badge">{{ weilanUnread }}</span>
-        </div>
-        <span class="cw-app-name">微澜</span>
-      </div>
-
-      <!-- 世界地图 -->
-      <div class="cw-app-icon-item" @click="emit('openApp', 'map')">
-        <div class="cw-app-icon cw-icon-map">
-          <SvgIcon name="compass" :size="28" />
-        </div>
-        <span class="cw-app-name">世界地图</span>
-      </div>
-
-      <!-- 手机设置 -->
-      <div class="cw-app-icon-item" @click="emit('openApp', 'settings')">
-        <div class="cw-app-icon cw-icon-settings">
-          <SvgIcon name="settings" :size="28" />
-        </div>
-        <span class="cw-app-name">手机设置</span>
-      </div>
-    </div>
-
-    <!-- 底部 Dock 栏 -->
-    <div class="cw-home-dock">
-      <div class="cw-dock-inner">
-        <button class="cw-dock-icon" title="邻信" @click="emit('openApp', 'linxin')">
-          <SvgIcon name="messageSquare" :size="22" />
-        </button>
-        <button class="cw-dock-icon" title="微澜" @click="emit('openApp', 'weilan')">
-          <SvgIcon name="globe" :size="22" />
-        </button>
-        <button class="cw-dock-icon" title="地图" @click="emit('openApp', 'map')">
-          <SvgIcon name="compass" :size="22" />
-        </button>
-        <button class="cw-dock-icon" title="设置" @click="emit('openApp', 'settings')">
-          <SvgIcon name="settings" :size="22" />
-        </button>
-      </div>
-    </div>
+    <nav class="cw-apps-grid" aria-label="手机应用">
+      <button
+        v-for="app in apps"
+        :key="app.key"
+        type="button"
+        class="cw-app-icon-item"
+        @click="emit('openApp', app.key)"
+      >
+        <span class="cw-app-icon" :class="'cw-icon-' + app.key">
+          <SvgIcon :name="app.icon" :size="28" />
+          <span v-if="app.unread" class="cw-app-badge" :aria-label="app.unread + ' 条未读'">{{ app.unread }}</span>
+        </span>
+        <span class="cw-app-name">{{ app.name }}</span>
+      </button>
+    </nav>
   </div>
 </template>
 
@@ -84,6 +45,13 @@ const emit = defineEmits<{
   (e: 'openApp', appName: 'linxin' | 'weilan' | 'map' | 'settings'): void;
 }>();
 
+const apps = computed(() => [
+  { key: 'linxin', name: '邻信', icon: 'messageSquare', unread: props.linxinUnread },
+  { key: 'weilan', name: '微澜', icon: 'globe', unread: props.weilanUnread },
+  { key: 'map', name: '世界地图', icon: 'compass', unread: 0 },
+  { key: 'settings', name: '手机设置', icon: 'settings', unread: 0 },
+] as const);
+
 const currentTimeStr = computed(() => {
   const t = props.worldTime;
   if (!t || typeof t.时 !== 'number') return '--:--';
@@ -99,18 +67,13 @@ const currentDateStr = computed(() => {
 </script>
 
 <style scoped lang="scss">
-.cw-app-button{border:0;background:transparent;padding:0;font:inherit;}
-.cw-expectations{display:flex;flex-direction:column;gap:5px;flex-shrink:0;text-align:left;color:var(--cw-text-primary);background:var(--cw-bg-card);border:1px solid var(--cw-border);border-radius:12px;padding:10px;font-size:12px;cursor:pointer;overflow-wrap:anywhere;}
-.cw-icon-calendar{background:linear-gradient(135deg,#dc714d,#bb4b32);}
-.cw-icon-news{background:linear-gradient(135deg,#456885,#273e54);}
-.cw-icon-creator{background:linear-gradient(135deg,#be185d,#831843);}
 .cw-phone-home {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: clamp(20px, 6%, 40px);
   padding: 16px 20px 12px;
   background: linear-gradient(180deg, var(--cw-bg-main) 0%, var(--cw-bg-card-subtle) 100%);
 }
@@ -148,7 +111,14 @@ const currentDateStr = computed(() => {
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    border: 0;
+    padding: 4px 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
     user-select: none;
+    &:focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 2px; }
+
     transition: transform 0.15s;
 
     &:hover {
@@ -204,43 +174,6 @@ const currentDateStr = computed(() => {
   }
 }
 
-.cw-home-dock {
-  padding-bottom: 8px;
-
-  .cw-dock-inner {
-    background: var(--cw-bg-panel);
-    backdrop-filter: var(--cw-glass-blur);
-    border: 1px solid var(--cw-border);
-    border-radius: 24px;
-    padding: 10px 16px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    box-shadow: var(--cw-shadow);
-
-    .cw-dock-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      border: none;
-      background: var(--cw-bg-card);
-      color: var(--cw-text-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: var(--cw-shadow-sm);
-      transition: all 0.15s;
-
-      &:hover {
-        background: var(--cw-bg-card-hover);
-        color: var(--cw-accent);
-        transform: translateY(-2px);
-      }
-    }
-  }
-}
-
 @media (max-width: 360px) {
   .cw-phone-home {
     padding: 16px 10px 12px;
@@ -272,16 +205,6 @@ const currentDateStr = computed(() => {
       .cw-app-name {
         font-size: 11px;
       }
-    }
-  }
-
-  .cw-home-dock .cw-dock-inner {
-    padding: 6px 8px;
-
-    .cw-dock-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
     }
   }
 }

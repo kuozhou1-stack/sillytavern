@@ -2,6 +2,7 @@
 export function taskPresentation(view: {
   operation: string;
   phase?: string;
+  streaming?: string;
   busy: boolean;
   updating: boolean;
   error: string;
@@ -10,18 +11,19 @@ export function taskPresentation(view: {
   messages: { isUpdatePending?: boolean }[];
   queued?: { kind: string }[];
 }) {
+  const savedStory = view.messages.some(message => message.isUpdatePending);
   const recoveringPhone =
     view.operation === 'recovery' &&
     view.recoverable.some(i => i.kind === 'phone') &&
-    !view.messages.some(m => m.isUpdatePending);
+    !savedStory;
   const phone = view.operation === 'phone' || recoveringPhone;
   const novel = view.operation === 'novel' || (view.operation === 'recovery' &&
-    view.recoverable.some(item => item.kind === 'novel') && !view.messages.some(message => message.isUpdatePending));
+    view.recoverable.some(item => item.kind === 'novel') && !savedStory);
   const generating = view.busy && !phone && !novel && view.operation !== 'background';
   const updating =
     view.updating &&
     !phone && !novel &&
-    (view.operation === 'story' || view.operation === 'recovery' || view.messages.some(m => m.isUpdatePending));
+    (view.operation === 'story' || view.operation === 'recovery' || savedStory);
   const acting =
     ['local', 'recovery', 'novel'].includes(view.operation) ||
     !!view.queued?.some(item => ['local', 'recovery', 'novel'].includes(item.kind));
@@ -37,6 +39,12 @@ export function taskPresentation(view: {
     'story-save': '保存正文', variables: '结算变量', validating: '校验生成结果',
     saving: '保存并确认结果', novel: '生成奇遇内容',
   };
+  if (view.phase === 'story' && !view.error) {
+    phases.story = view.streaming ? '正在接收正文' : '等待正文回复';
+  }
+  if (view.phase === 'variables' && savedStory && !phone && !novel) {
+    phases.variables = '正文已保存，结算变量';
+  }
   const phase = view.phase && phases[view.phase];
   const hint = phase && (view.busy || view.updating || view.operation || view.error)
     ? `${phone ? '手机 · ' : ''}${phase}${view.error ? '未完成' : '…'}`

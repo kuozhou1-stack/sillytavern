@@ -79,7 +79,7 @@ const emit = defineEmits<{
 
 const originalContent = computed(() => props.message.role === 'user'
   ? props.message.content : stripProtocol(props.message.content));
-const initialDraft = originalContent.value;
+const initialDraft = props.message.editContent ?? originalContent.value;
 const editDraft = ref(initialDraft);
 
 const actionTitle = computed(() => {

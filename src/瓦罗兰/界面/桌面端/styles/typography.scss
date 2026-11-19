@@ -1,0 +1,58 @@
+/* 瓦洛兰 字体排版系统 */
+
+:root {
+  --cw-font-family-system:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  --cw-font-family-sans: 'Source Han Sans SC', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --cw-font-family-serif: 'Source Han Serif SC', 'Noto Serif CJK SC', 'Songti SC', 'SimSun', serif;
+  --cw-font-family-kaiti: 'LXGW WenKai', '霞鹜文楷', 'STKaiti', 'KaiTi', serif;
+
+  --cw-font-current: var(--cw-font-family-sans);
+  --cw-font-size-body: 16px;
+  --cw-line-height-body: 1.8;
+  --cw-letter-spacing-body: 0.02em;
+  --cw-paragraph-margin: 0.8em;
+}
+
+[data-font='system'] {
+  --cw-font-current: var(--cw-font-family-system);
+}
+
+[data-font='sans'] {
+  --cw-font-current: var(--cw-font-family-sans);
+}
+
+[data-font='serif'] {
+  --cw-font-current: var(--cw-font-family-serif);
+}
+
+[data-font='kaiti'] {
+  --cw-font-current: var(--cw-font-family-kaiti);
+}
+
+body,
+.cw-text-root {
+  font-family: var(--cw-font-current);
+  font-weight: 400;
+  color: var(--cw-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cw-reading-text {
+  font-family: var(--cw-font-current);
+  font-weight: 400;
+  font-size: var(--cw-font-size-body);
+  line-height: var(--cw-line-height-body);
+  letter-spacing: var(--cw-letter-spacing-body);
+  color: var(--cw-text-primary);
+
+  p {
+    margin-top: 0;
+    margin-bottom: var(--cw-paragraph-margin);
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

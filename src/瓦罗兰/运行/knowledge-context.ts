@@ -119,6 +119,23 @@ export function prepareInformationCommand(state: State, kind: InformationKind, i
   return result;
 }
 
+function informationHistoryText(text: string) {
+  const story = stripProtocol(text);
+  const openings = [...story.matchAll(/<(?:thinking|think)\b/gi)];
+  let visible = '', cursor = 0;
+  if (openings.length) {
+    const ends = completeThoughtEnds(story);
+    for (const { index } of openings) {
+      const end = ends.get(index);
+      if (end === undefined || index < cursor) continue;
+      visible += story.slice(cursor, index);
+      cursor = end;
+    }
+  }
+  return (visible + story.slice(cursor))
+    .replace(/<status_current_variable>[\s\S]*?<\/status_current_variable>/gi, '').trim().slice(-2400);
+}
+
 export function informationSelectionPrompt(
   state: State, input: string, recent: { role: string; text: string }[] = [],
   options: InformationSelectionOptions = {},
@@ -128,9 +145,7 @@ export function informationSelectionPrompt(
   ])), ...(options.characters ? { 人物: options.characters.目录 } : {}) };
   const history = recent.slice(-4).map(item => ({
     role: item.role,
-    text: stripProtocol(item.text)
-      .replace(/<status_current_variable>[\s\S]*?<\/status_current_variable>/gi, '')
-      .replace(/<(thinking|think)\b[^>]*>[\s\S]*?<\/\1>/gi, '').trim().slice(-2400),
+    text: informationHistoryText(item.text),
   })).filter(item => item.text);
   const participants = options.characters
     ? Object.entries(state.角色).filter(([id]) => options.characters!.保留人物id.includes(id)).map(([, person]) => person)

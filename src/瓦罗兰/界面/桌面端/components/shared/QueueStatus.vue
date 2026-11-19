@@ -11,7 +11,7 @@
       @click="expanded = !expanded"
     >
       <SvgIcon name="clock" :size="13" />
-      任务与回执<span v-if="waiting.length"> · 待发送 {{ waiting.length }}</span
+      建档人物更新<span v-if="waiting.length"> · 待发送 {{ waiting.length }}</span
       ><span v-if="recoverable.length"> · 待恢复 {{ recoverable.length }}</span>
       <span v-if="opening.length"> · 角色待整理 {{ openingPeople }}</span
       ><span v-if="receipts.length"> · 回执 {{ receipts.length }}</span>
@@ -60,17 +60,17 @@
             <SvgIcon name="alertTriangle" :size="13" />
             未完成 · {{ item.label }}
           </span>
-          <span class="cw-queue-preview-short">{{ item.preview || '操作尚未确认完成' }}</span>
+          <span v-if="item.preview && !item.label.endsWith(item.preview)" class="cw-queue-preview-short">{{ item.preview }}</span>
         </div>
         <div class="cw-queue-actions">
           <button class="cw-btn cw-btn-xs cw-btn-primary" @click="act(() => runtime!.resumeQueued(item.id))">
-            手动恢复
+            {{ scope === 'novel' ? '继续刷新' : '手动恢复' }}
           </button>
           <button class="cw-btn cw-btn-xs" @click="act(() => runtime!.cancelQueued(item.id))">移除</button>
         </div>
       </div>
 
-      <p v-if="error" class="cw-queue-err" role="alert">{{ error }}</p>
+      <p v-if="error || (scope === 'novel' && recoverable.length && runtime.view.error)" class="cw-queue-err" role="alert">{{ error || runtime.view.error }}</p>
 
       <!-- 解决 F33：详细回执收纳为模态弹窗入口，消除狭小嵌套折叠树 -->
       <div v-if="receipts.length" class="cw-queue-row cw-receipts-summary-row">
@@ -288,6 +288,7 @@ function formatFieldPath(path: string): string {
   margin: 0;
   color: var(--cw-danger);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .cw-receipts-summary-row {

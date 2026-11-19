@@ -30,19 +30,7 @@
           </div>
         </div>
 
-        <div class="cw-stats-right-action">
-          <button
-          type="button"
-          class="cw-btn cw-btn-secondary cw-btn-sm cw-hall-refresh-btn"
-          data-action="refresh-tasks"
-          :disabled="props.disabled || props.refreshDisabled"
-          title="通过手机与奇遇 API 生成新任务，保留已有任务和进度"
-          @click="emit('refresh')"
-        >
-          <SvgIcon name="refreshCw" :size="14" :class="{ 'cw-spin': props.refreshing }" />
-          <span>{{ props.refreshing ? '生成中…' : '刷新任务' }}</span>
-        </button>
-        </div>
+        <div class="cw-stats-right-action"><slot name="refresh" /></div>
       </div>
 
       <!-- 双重筛选：状态 + 类型 -->
@@ -323,12 +311,9 @@ const props = defineProps<{
   novelState: State['奇遇系统'];
   disabled?: boolean;
   pendingId?: string | null;
-  refreshDisabled?: boolean;
-  refreshing?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'refresh'): void;
   (e: 'accept', taskId: string): void;
   (e: 'abandon', taskId: string): void;
   (e: 'claim', taskId: string): void;
@@ -561,38 +546,8 @@ function handleClaim(id: string) {
 }
 
 .cw-stats-right-action {
-  flex-shrink: 0;
-}
-
-.cw-hall-refresh-btn {
-  height: 32px;
-  min-width: 96px;
-  justify-content: center;
-  padding: 0 12px;
-  border-radius: var(--cw-radius-sm);
-  border: 1px solid var(--cw-border);
-  background: var(--cw-bg-card);
-  color: var(--cw-text-primary);
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  box-shadow: var(--cw-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
-  transition: all 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--cw-bg-card-hover);
-    border-color: var(--cw-accent);
-    color: var(--cw-accent);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
+  margin-inline-start: auto;
+  max-width: 100%;
 }
 
 .cw-stat-slot {

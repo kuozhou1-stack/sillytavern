@@ -7,7 +7,7 @@
           <SvgIcon name="settings" :size="20" class="cw-header-icon" />
           <span>系统与外观设置</span>
         </div>
-        <button class="cw-btn cw-btn-ghost cw-close-btn" @click="emit('close')">
+        <button type="button" aria-label="关闭设置" class="cw-btn cw-btn-ghost cw-close-btn" @click="emit('close')">
           <SvgIcon name="close" :size="18" />
         </button>
       </div>
@@ -31,6 +31,10 @@
 
       <!-- 主体内容 (使用 v-show 保持各 Tab 状态存活，避免切页丢失未保存输入) -->
       <div ref="modalBodyRef" class="cw-modal-body">
+        <div v-if="appearanceUnconfirmed" class="cw-callout cw-callout-warning" role="alert">
+          <span>外观保存结果待确认。</span>
+          <button class="cw-btn cw-btn-sm" @click="emit('reloadAppearance')">重新读取外观</button>
+        </div>
         <TabTheme
           v-show="currentTab === 'theme'"
           :initial-theme="currentTheme"
@@ -51,11 +55,10 @@
           @change-letter-spacing="v => emit('changeLetterSpacing', v)"
           @change-paragraph-spacing="v => emit('changeParagraphSpacing', v)"
         />
-        <TabAtmosphere v-show="currentTab === 'atmosphere'" @feedback="msg => emit('feedback', msg)" />
+        <TabAtmosphere v-show="currentTab === 'atmosphere'" />
         <TabApiSettings
           v-show="currentTab === 'api'"
           :initial-section="initialSection"
-          @feedback="msg => emit('feedback', msg)"
         />
         <TabRosterAndKnowledge
           ref="rosterKnowledgeRef"
@@ -70,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import type { ApiChannel } from '../../../../运行/settings';
 import SvgIcon from '../icons/SvgIcon.vue';
 import TabTheme from './TabTheme.vue';
@@ -79,9 +82,6 @@ import TabAtmosphere from './TabAtmosphere.vue';
 import TabApiSettings from './TabApiSettings.vue';
 import TabRosterAndKnowledge, { type SubTabKey } from './TabRosterAndKnowledge.vue';
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close');
-}
 
 const props = defineProps<{
   currentTheme?: string;
@@ -91,6 +91,7 @@ const props = defineProps<{
   currentLineHeight?: number;
   currentLetterSpacing?: number;
   currentParagraphSpacing?: number;
+  appearanceUnconfirmed?: boolean;
   initialTab?: string;
 }>();
 
@@ -104,6 +105,7 @@ const emit = defineEmits<{
   (e: 'changeLetterSpacing', value: number): void;
   (e: 'changeParagraphSpacing', value: number): void;
   (e: 'feedback', msg: string): void;
+  (e: 'reloadAppearance'): void;
 }>();
 
 // 统一四字文案
@@ -174,7 +176,6 @@ async function switchTab(target: string) {
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', onKeydown);
   const el = modalBodyRef.value;
   if (!el) return;
   const onScroll = () => {
@@ -185,9 +186,6 @@ onMounted(() => {
   el.addEventListener('scroll', onScroll, { passive: true });
 });
 
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKeydown);
-});
 </script>
 
 <style scoped lang="scss">

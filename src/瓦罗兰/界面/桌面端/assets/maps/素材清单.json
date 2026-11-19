@@ -1,0 +1,42 @@
+[
+  {
+    "source": "districts-a.png",
+    "asset": "districts-a.webp",
+    "width": 1499,
+    "height": 1049,
+    "sourceBytes": 3656481,
+    "assetBytes": 707714
+  },
+  {
+    "source": "districts-b.png",
+    "asset": "districts-b.webp",
+    "width": 1499,
+    "height": 1049,
+    "sourceBytes": 3656682,
+    "assetBytes": 709644
+  },
+  {
+    "source": "districts-c.png",
+    "asset": "districts-c.webp",
+    "width": 1499,
+    "height": 1049,
+    "sourceBytes": 3699415,
+    "assetBytes": 710138
+  },
+  {
+    "source": "districts-d.png",
+    "asset": "districts-d.webp",
+    "width": 1499,
+    "height": 1049,
+    "sourceBytes": 3381996,
+    "assetBytes": 583290
+  },
+  {
+    "source": "world-overview.png",
+    "asset": "world-overview.webp",
+    "width": 1499,
+    "height": 1049,
+    "sourceBytes": 3525331,
+    "assetBytes": 630112
+  }
+]

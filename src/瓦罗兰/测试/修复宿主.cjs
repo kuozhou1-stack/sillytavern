@@ -230,17 +230,18 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     e.mutations.push({ kind: 'delete', refresh: options?.refresh });
     e.messages = e.messages.filter((_, i) => !ids.includes(i));
   };
-  async function finalConfig(config) {
+  async function finalConfig(config, context) {
     const { promptContextText, variableRuleText } = require('../运行/prompt-context.ts');
+    const expand = context?.expandPrompt ?? (text => text.replace('{{valoran_context}}', () => promptContextText(() => e.state())));
     const depthEntries = config.overrides?.chat_history?.with_depth_entries !== false;
     const data = { custom_prompt_post_processing: 'strict', messages: [
       { role: 'system', content: '模拟原生世界书/预设' },
       ...(depthEntries ? [
         ...[...e.rules, ...e.atmosphereEntries].filter(entry => entry.enabled)
           .map(({ position, content, name }) => ({ role: position?.role ?? 'system',
-            content: name.startsWith('[mvu_update]') ? variableRuleText(content.replace(/^# \{\{chengwan_variables\}\}\r?\n|^# \{\{chengwan_variables_end\}\}\r?\n?/gm,'')) : content }))
+            content: expand(content) }))
           .filter(entry => entry.content.trim()),
-        ...[promptContextText(() => e.state())].filter(Boolean).map(content => ({ role: 'system', content })),
+        ...[expand('{{valoran_context}}')].filter(Boolean).map(content => ({ role: 'system', content })),
       ] : []),
       ...[...(config.injects ?? []), ...(config.ordered_prompts ?? []), ...(config.overrides?.chat_history?.prompts ?? [])]
         .filter(p => typeof p === 'object').map(({ role, content }) => ({ role, content })),
@@ -251,8 +252,8 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     if (e.stops.includes(config.generation_id)) throw Error('模拟已取消请求');
     return { ...config, finalMessages: copy(data.messages) };
   }
-  global.generate = async config => {
-    const final = await finalConfig(config);
+  global.generate = async (config, context) => {
+    const final = await finalConfig(config, context);
     const stage = e.runtime.view.phase;
     e.calls.push({ kind: stage === 'story' ? 'story' : 'update', stage, config: copy(final) });
     return structuredFixtureReply(config, await (stage === 'story' ? e.story(final) : e.update(final)));
@@ -284,10 +285,12 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     GENERATION_STOPPED: 'generation_stopped',
   };
   global.Mvu = {
-    events: { VARIABLE_UPDATE_ENDED: 'mvu' },
+    events: { VARIABLE_UPDATE_STARTED: 'mvu-start', COMMAND_PARSED: 'commands', VARIABLE_UPDATE_ENDED: 'mvu', BEFORE_MESSAGE_UPDATE: 'mvu-before-save' },
     getMvuData: options => copy(e.messages[options.message_id].data),
     replaceMvuData: async (data, options) => {
-      e.messages[options.message_id].data = copy(data);
+      const row = e.messages[options.message_id];
+      row.data = copy(data);
+      if (row.swipes_data) row.swipes_data[row.swipe_id ?? 0] = row.data;
       e.writes++;
     },
     parseMessage: async (text, old) => {

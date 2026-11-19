@@ -53,15 +53,6 @@
         <!-- 右侧资料单页分段呈现 -->
         <div class="cw-char-content-pane" :class="{ 'cw-mobile-hidden': !showMobileDetail }">
           <template v-if="currentChar">
-            <!-- 停用角色静态档案查看提示横幅 (吸顶固定) -->
-            <div v-if="isCurrentCharDisabled" class="cw-inactive-dossier-banner">
-              <div class="cw-banner-text">
-                <SvgIcon name="alertCircle" :size="15" />
-                <span>该次要角色当前已停用。正在查看保存的静态档案，不会参与后续剧情与 AI 上下文互动。</span>
-              </div>
-              <button class="cw-btn cw-btn-primary cw-btn-xs" :disabled="isManagementPending" @click="handleToggleCurrentChar">重新启用角色</button>
-            </div>
-
             <!-- 头部名片与升格操作 (吸顶固定，防挤压布局) -->
             <div class="cw-minor-hero">
               <div class="cw-hero-left">
@@ -79,7 +70,6 @@
                         {{ currentChar.年龄 == null ? '年龄未知' : `${currentChar.年龄}岁` }}
                       </span>
                       <span class="cw-badge cw-badge-info cw-badge-sm">次要角色</span>
-                      <span v-if="isCurrentCharDisabled" class="cw-badge cw-badge-muted cw-badge-sm">已停用</span>
                     </div>
                     <div class="cw-hero-meta">
                       <span v-if="currentChar.当前地点id || currentChar.当前状态?.当前地点id">
@@ -98,7 +88,7 @@
                 >
                   <span class="cw-status-dot" :class="{ 'is-active': !isCurrentCharDisabled }" />
                   <span class="cw-status-label" :class="{ 'is-disabled': isCurrentCharDisabled }">
-                    {{ isCurrentCharDisabled ? '已停用' : '已启用' }}
+                    {{ isCurrentCharDisabled ? '已停用 · 关闭时档案' : '已启用' }}
                   </span>
                   <CwToggleSwitch
                     silent-pending
@@ -477,28 +467,6 @@ function getAttitudeDesc(char: any) {
   flex: 1;
   display: flex;
   overflow: hidden;
-}
-
-/* 停用角色静态档案查看提示横幅 */
-.cw-inactive-dossier-banner {
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--cw-warning-bg, rgba(217, 130, 43, 0.12));
-  border-bottom: 1px solid rgba(217, 130, 43, 0.25);
-  color: var(--cw-warning, #d9822b);
-  font-size: 13px;
-
-  .cw-banner-text {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1.4;
-  }
 }
 
 .cw-status-toggle-wrap {

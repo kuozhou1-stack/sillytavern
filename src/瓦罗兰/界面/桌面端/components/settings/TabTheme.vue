@@ -1,18 +1,13 @@
 <template>
   <div class="cw-tab-pane cw-settings-theme-pane">
-    <div class="cw-callout cw-callout-info cw-theme-notice">
-      <SvgIcon name="info" :size="15" class="cw-callout-icon" />
-      <div class="cw-callout-body">
-        <p>切换整套前端色彩主题。主题样式覆盖正文背景、对话框、顶栏、手机应用、所有居中弹窗与控件。</p>
-      </div>
-    </div>
-
     <div class="cw-theme-grid">
-      <div
+      <button
+        type="button"
         v-for="t in themes"
         :key="t.key"
         class="cw-theme-card"
         :class="{ active: currentTheme === t.key }"
+        :aria-pressed="currentTheme === t.key"
         @click="selectTheme(t.key)"
       >
         <div class="cw-theme-preview" :style="{ background: t.bg, borderColor: t.border }">
@@ -30,14 +25,13 @@
           </div>
           <span class="cw-theme-desc">{{ t.desc }}</span>
         </div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import SvgIcon from '../icons/SvgIcon.vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
   initialTheme?: string;
@@ -48,6 +42,7 @@ const emit = defineEmits<{
 }>();
 
 const currentTheme = ref(props.initialTheme || 'warm');
+watch(() => props.initialTheme, theme => { currentTheme.value = theme || 'warm'; });
 
 const themes = [
   {
@@ -127,6 +122,8 @@ function selectTheme(key: string) {
 }
 
 .cw-theme-card {
+  text-align: left;
+  font: inherit;
   padding: 14px;
   border-radius: var(--cw-radius);
   background: var(--cw-bg-card);

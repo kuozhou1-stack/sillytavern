@@ -196,7 +196,12 @@ test('酒馆原生切换候选确认清掉该分支的旧队列', async () => {
     e.story = async () => { throw Error('正文失败'); };
     await assert.rejects(e.runtime.send('切换前的请求'), /正文失败/);
     assert.equal(ids(disk(e)[queue]).length, 1);
-    e.listeners.get('swipe')(0);
+    const first = e.messages[0], alternate = copy(first.data);
+    alternate.stat_data._系统.候选回复id = '1';
+    alternate.stat_data._系统.分支id = e.chat + ':0:1';
+    await setChatMessages([{ message_id: 0, swipe_id: 1, swipes: [first.message, '另一已结算开局'],
+      swipes_data: [copy(first.data), alternate], swipes_info: [copy(first.extra), {}] }]);
+    await e.listeners.get('swipe')(0);
     await until(() => disk(e)[failed] === null && ids(disk(e)[queue]).length === 0);
     await reload(e);
     assert.deepEqual(e.runtime.view.recoverable, []);

@@ -1,6 +1,6 @@
 import { Schema } from '../schema';
 import { uid, copy, type State } from './core';
-import { ownAccount, phoneNotificationPlatform } from './phone';
+import { blockText, ownAccount, phoneNotificationPlatform } from './phone';
 
 const currentMember = (member: State['手机']['群'][string]['成员'][string] | undefined) =>
   Object.values(member?.成员区间 ?? {}).some(interval => interval.离开时间 === null);
@@ -59,11 +59,16 @@ export function managePhone(state: State, op: string, id: string, value?: string
     if (op === 'retract') record.撤回时间 = copy(s.世界.当前时间);
     else if (op === 'deletePost') record.删除时间 = copy(s.世界.当前时间);
     else {
-      if (!value?.trim()) throw Error('内容不能为空');
+      if (value === undefined) throw Error('内容不能为空');
+      const text = value.trim();
+      const originalText = blockText(record.内容块.filter((block: any) => block.类型 === '文字'));
+      if (value === originalText || text === originalText) return Schema.parse(s);
+      const media = record.内容块.filter((block: any) => block.类型 !== '文字');
+      if (!text && !media.length) throw Error('内容不能为空');
       record.编辑版本[uid('version')] = { 时间: record.编辑时间 ?? record.故事时间, 内容块: copy(record.内容块) };
       record.内容块 = [
-        { 类型: '文字', id: uid('block'), 正文: value.trim() },
-        ...record.内容块.filter((block: any) => block.类型 !== '文字'),
+        ...(text ? [{ 类型: '文字', id: uid('block'), 正文: text }] : []),
+        ...media,
       ];
       record.编辑时间 = copy(s.世界.当前时间);
     }

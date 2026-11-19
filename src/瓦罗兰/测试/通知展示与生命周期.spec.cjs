@@ -97,6 +97,23 @@ test('真实阶段优先于笼统生成/结算状态，阶段变化同步显示'
   assert(!fixture.view.displayText.value.includes('正在更新剧情变量'));
 });
 
+test('正文重试按首段和已保存楼层区分等待、接收、独立结算', () => {
+  require('./修复宿主.cjs');
+  const { taskPresentation } = require('../界面/桌面端/utils/task-presentation.ts');
+  const view = { operation: 'recovery', phase: 'story', busy: true, updating: false,
+    error: '', streaming: '', recoverable: [], messages: [] };
+  assert.equal(taskPresentation(view).hint, '等待正文回复…');
+  view.streaming = '首段';
+  assert.equal(taskPresentation(view).hint, '正在接收正文…');
+  view.streaming = '';
+  view.error = 'Too Many Requests';
+  assert.equal(taskPresentation(view).hint, '生成正文未完成');
+  Object.assign(view, { phase: 'variables', busy: false, updating: true, error: '', messages: [{ isUpdatePending: true }] });
+  assert.equal(taskPresentation(view).hint, '正文已保存，结算变量…');
+  Object.assign(view, { busy: false, updating: false, operation: '', error: 'Too Many Requests' });
+  assert.equal(taskPresentation(view).hint, '正文已保存，结算变量未完成');
+});
+
 test('保存未确认显示失败阶段和原始原因，保留恢复入口', async t => {
   const fixture = notification(t, { updateFailed: true, errorText: '合成保存确认失败', busyHint: '保存并确认结果未完成' });
   assert.equal(fixture.view.displayText.value, '保存并确认结果未完成 · 点击处理');

@@ -14,7 +14,7 @@ harness._compile(fs.readFileSync(fixture, 'utf8').split('const novelGoodReply ='
 const { environment, Schema, copy } = harness.exports;
 const { livePromptConfig } = require('../运行/prompts.ts');
 const { withUpdateTasks, finalizeUpdateTasks } = require('../运行/update-tasks.ts');
-const { withPromptContext,promptContextText } = require('../运行/prompt-context.ts');
+const { createPromptRequestContext,promptContextText } = require('../运行/prompt-context.ts');
 const { promptProjections } = require('../运行/model-history.ts');
 const { archiveSourceRecords } = require('../运行/archive.ts');
 const { nativePromptConfig } = require('../运行/prompts.ts');
@@ -139,5 +139,5 @@ test('原生输入保留业务标签，不做状态区块或归属标记清洗',
  assert.equal(nativePromptConfig({user_input:fact}).user_input,fact);});
 
 test('正文资料由原生世界书内容宏返回，完整状态不被写回投影',async()=>{const state=seed(),before=copy(state);
- await withPromptContext({purpose:'story',state},async()=>{const result=promptContextText(()=>state);assert(result.startsWith('<status_current_variable>'));
- assert.equal(Object.hasOwn(JSON.parse(result.match(/<status_current_variable>\s*([\s\S]*?)\s*<\/status_current_variable>/)[1]),'_系统'),false);});assert.deepEqual(state,before);});
+ {const result=createPromptRequestContext({purpose:'story',state}).expandPrompt('{{valoran_context}}');assert(result.startsWith('<status_current_variable>'));
+ assert.equal(Object.hasOwn(JSON.parse(result.match(/<status_current_variable>\s*([\s\S]*?)\s*<\/status_current_variable>/)[1]),'_系统'),false);}assert.deepEqual(state,before);});

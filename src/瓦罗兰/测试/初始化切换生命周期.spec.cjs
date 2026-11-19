@@ -9,7 +9,7 @@ const { Schema } = require('../schema.ts');
 const { registerPromptMacros } = require('../运行/prompt-context.ts');
 const vue = require('vue');
 
-// 执行完整辅助脚本及真实 Runtime。只有宿主事件、MVU、磁盘和模型边界使用隔离夹具。
+// 执行完整辅助脚本及真实 Runtime。宿主加载、生成工厂、事件、MVU、磁盘和模型边界使用隔离夹具。
 function hostFixture() {
   const e = environment();
   const seed = copy(e.messages[0]);
@@ -66,8 +66,10 @@ function hostFixture() {
   let floorReady = true;
   global.getVariables = option => option.type === 'message' && !floorReady ? {} : getVariables(option);
   const initial = copy(chats);
-  function frame(name, { mvuGate } = {}) {
-    let task, hide;
+  function frame(name, { mvuGate, nativeGate } = {}) {
+    let task, hide, nativeEntered = false;
+    const nativeModules = { fixtureFrame: name };
+    const generation = { generate: global.generate, stop: global.stopGenerationById };
     const win = { parent: host, location: { reload() { reloads.push(name); } } };
     // Actual Runtime functions share the same current-chat host, as Tavern's exported APIs do.
     global.window = win;
@@ -82,7 +84,16 @@ function hostFixture() {
       $: value => typeof value === 'function' ? value() : { one(_name, fn) { hide = fn; } },
       require(specifier) {
         if (specifier === '../../运行/host') return { activeContext: require('../运行/host.ts').activeContext,
-          createRuntime() { const runtime = createRuntime(); runtimes.push({ name: name, runtime }); return runtime; } };
+          createRuntime(...args) { const runtime = createRuntime(...args); runtimes.push({ name: name, runtime }); return runtime; } };
+        if (specifier === '../../运行/generation/native') return { async loadNativeModules() {
+          nativeEntered = true;
+          if (nativeGate) await nativeGate.promise;
+          return nativeModules;
+        } };
+        if (specifier === '../../运行/generation') return { createCardGeneration(modules) {
+          assert.equal(modules, nativeModules);
+          return generation;
+        } };
         if (specifier === '../../schema') return { Schema };
         if (specifier === '../../运行/prompt-context') return { registerPromptMacros };
         if (specifier === 'vue') return vue;
@@ -94,7 +105,7 @@ function hostFixture() {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText;
     vm.runInNewContext(code, context, { filename: file });
-    const entry = { name, win, done: () => task, hide: () => hide?.() };
+    const entry = { name, win, done: () => task, hide: () => hide?.(), nativeEntered: () => nativeEntered };
     frames.push(entry);
     return entry;
   }
@@ -122,13 +133,14 @@ function protectedState(h) {
   assert.equal(h.e.writes, 0);
 }
 
-for (const waiting of ['MVU', '首楼变量']) {
+for (const waiting of ['MVU', '首楼变量', '原生模块']) {
   test(waiting + '等待期间切换聊天，新聊天接管一次，旧等待返回不能覆盖', async () => {
     const h = hostFixture(), gate = deferred();
     if (waiting === '首楼变量') h.setFloorReady(false);
-    const a = h.frame('A', waiting === 'MVU' ? { mvuGate: gate } : {});
+    const a = h.frame('A', waiting === 'MVU' ? { mvuGate: gate } : waiting === '原生模块' ? { nativeGate: gate } : {});
     try {
       await until(() => !!h.host.__chengwanService);
+      if (waiting === '原生模块') await until(a.nativeEntered);
       await h.change('B');
       assert.deepEqual(h.reloads, ['A']);
       assert.equal(h.macros.size, 0);
@@ -149,13 +161,14 @@ for (const waiting of ['MVU', '首楼变量']) {
   });
 }
 
-for (const waiting of ['MVU', '初始化后半段']) {
+for (const waiting of ['MVU', '原生模块', '初始化后半段']) {
   test(waiting + '等待先返回、CHAT_CHANGED稍后才发，仍由目标事件触发一次重载', async () => {
     const h = hostFixture(), gate = deferred();
     const book = waiting === '初始化后半段' ? h.holdBook() : null;
-    const a = h.frame('A', book ? {} : { mvuGate: gate });
+    const a = h.frame('A', book ? {} : waiting === '原生模块' ? { nativeGate: gate } : { mvuGate: gate });
     try {
       if (book) await until(book.entered);
+      if (waiting === '原生模块') await until(a.nativeEntered);
       // 酒馆先改聊天文件名；这时楼层仍属于原聊天，目标数据加载完才会发事件。
       h.setChatName('B');
       gate.resolve(); book?.release(); await a.done();
@@ -262,13 +275,14 @@ test('旧初始化被同聊天新实例接管，迟到返回与旧卸载不会�
   } finally { book.release(); await h.close(); }
 });
 
-for (const waiting of ['MVU', '初始化后半段']) {
+for (const waiting of ['MVU', '原生模块', '初始化后半段']) {
   test(waiting + '等待期间卸载，异步返回后不发布服务、不遗留监听', async () => {
     const h = hostFixture(), gate = deferred();
     const book = waiting === '初始化后半段' ? h.holdBook() : null;
-    const a = h.frame('A', book ? {} : { mvuGate: gate });
+    const a = h.frame('A', book ? {} : waiting === '原生模块' ? { nativeGate: gate } : { mvuGate: gate });
     try {
       if (book) await until(book.entered);
+      if (waiting === '原生模块') await until(a.nativeEntered);
       a.hide();
       gate.resolve(); book?.release(); await a.done();
       assert.equal(h.host.__chengwanService, undefined);

@@ -5,17 +5,17 @@ h.filename=file;h.paths=Module._nodeModulePaths(__dirname);
 const req=h.require.bind(h);h.require=n=>n==='node:test'?{test(){}}:req(n);
 h._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={environment,seed,Schema,copy};',file);
 const {environment,seed,Schema,copy}=h.exports;
-const {registerPromptMacros,withPromptContext,promptContextText,preparePromptWorldbook}=require('../运行/prompt-context.ts');
+const {registerPromptMacros,createPromptRequestContext,promptContextText,preparePromptWorldbook}=require('../运行/prompt-context.ts');
 
-test('世界书内容宏允许原生模板合并换行，正文不带变量规则，变量保留一份正式契约',async()=>{
+test('世界书内容宏允许原生模板合并换行，独立正文隐藏规则，同次正文保留一份正式契约',async()=>{
  const callbacks=[];global.registerMacroLike=(regex,replace)=>{const entry={regex,replace};callbacks.push(entry);return {unregister(){callbacks.splice(callbacks.indexOf(entry),1);}};};
  const state=seed(),stop=registerPromptMacros(()=>state);
  try{
   const render=text=>callbacks.reduce((result,m)=>result.replace(m.regex,(match,...args)=>m.replace({},match,...args)),text);
   for(const separator of ['\n','']){
    const source='预设前文\n# {{valoran_variables}}'+separator+'变量输出格式: CONTRACT\n# {{valoran_variables_end}}\n预设尾部';
-   await withPromptContext({purpose:'story',state},async()=>{const result=render(source);assert(!result.includes('CONTRACT'));assert(result.includes('预设前文'));assert(result.endsWith('预设尾部'));});
-   await withPromptContext({purpose:'variables',state},async()=>{const result=render(source);assert.equal(result.split('CONTRACT').length-1,1);assert(!result.includes('valoran_variables'));assert(result.endsWith('预设尾部'));});
+   {const result=render(createPromptRequestContext({purpose:'story',state}).expandPrompt(source));assert(!result.includes('CONTRACT'));assert(result.includes('预设前文'));assert(result.endsWith('预设尾部'));}
+   {const result=render(createPromptRequestContext({purpose:'inline',state}).expandPrompt(source));assert.equal(result.split('CONTRACT').length-1,1);assert(!result.includes('valoran_variables'));assert(result.endsWith('预设尾部'));}
   }
  }finally{stop();}assert.equal(callbacks.length,0);
 });
@@ -28,7 +28,7 @@ test('选中人物的角色包独有信息保留，未选人物的来源档案�
   inactive:{人物id:'inactive',原始快照JSON:JSON.stringify({角色:{姓名:'未选角色'},独有设定:'UNSELECTED_PACKAGE_ONLY'})},
  }}})._系统.来源档案;
  const before=copy(state);
- await withPromptContext({purpose:'story',state},async()=>{const text=promptContextText(()=>state);assert(text.includes('SELECTED_PACKAGE_ONLY'));assert(!text.includes('UNSELECTED_PACKAGE_ONLY'));assert(text.includes('readonly_source_context'));});
+ {const text=createPromptRequestContext({purpose:'story',state}).expandPrompt('{{valoran_context}}');assert(text.includes('SELECTED_PACKAGE_ONLY'));assert(!text.includes('UNSELECTED_PACKAGE_ONLY'));assert(text.includes('readonly_source_context'));}
  assert.deepEqual(state,before);
 });
 

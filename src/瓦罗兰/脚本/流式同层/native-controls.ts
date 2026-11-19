@@ -1,6 +1,7 @@
 import { isCommittedCandidate } from '../../运行/committed-candidate';
 
 type NativeRuntime = {
+  view?: { busy: boolean; updating: boolean; generationId: string | null };
   send: (text: string, append?: boolean, intent?: undefined, onSent?: () => void) => Promise<void>;
   messageAction: (action: string, id: number, text?: string) => Promise<void>;
 };
@@ -59,6 +60,21 @@ export function installNativeControls(options: NativeControls) {
   };
   const fail = (error: unknown) => options.error(String(error));
   const invoke = (action: () => Promise<void>) => void action().catch(fail);
+  let generationStyle: HTMLStyleElement | undefined;
+  const syncGenerationControls = () => {
+    if (!active() || !options.runtime()?.view?.generationId) {
+      generationStyle?.remove();
+      generationStyle = undefined;
+    } else if (!generationStyle) {
+      // 原生点击和 Esc 已广播停止事件。只在本卡请求期间显示原控件，保留宿主自身的生成状态。
+      generationStyle = doc.createElement('style');
+      generationStyle.textContent = `
+        #send_form :is(#send_but, #mes_continue, #mes_impersonate) { display: none !important; }
+        #send_form #mes_stop { display: flex !important; }
+      `;
+      doc.head.append(generationStyle);
+    }
+  };
   const submit = () => {
     const input = doc.getElementById('send_textarea') as HTMLTextAreaElement | null;
     const runtime = options.runtime();
@@ -88,6 +104,9 @@ export function installNativeControls(options: NativeControls) {
     );
     if (!button) return;
     if (button.matches('.swipe_left, .swipe_right')) {
+      block(event);
+      const runtime = options.runtime();
+      const busy = runtime?.view?.busy || runtime?.view?.updating;
       const floor = button.closest('.mes');
       const id = Number(floor?.getAttribute('mesid'));
       const message = Number.isInteger(id) ? options.message(id) : undefined;
@@ -98,11 +117,11 @@ export function installNativeControls(options: NativeControls) {
         : ((message?.swipe_id ?? 0) - 1 + size) % size;
       const candidate = message?.swipes_data?.[target]?.stat_data;
       const committed = isCommittedCandidate(candidate, id, target);
-      if (!options.ready() || options.hasPending() || next || !message || !committed) {
-        block(event);
+      if (!options.ready() || busy || options.hasPending() || next || !message || !committed) {
         options.error(
           !options.ready()
             ? '瓦洛兰服务未就绪，请使用下方恢复入口'
+            : busy ? '请先停止当前生成'
             : options.hasPending()
               ? '请先重试或取消待更新记录，再切换分支'
               : next
@@ -110,13 +129,15 @@ export function installNativeControls(options: NativeControls) {
                 : '此旧候选没有已结算变量，不能作为当前分支',
         );
         recovery();
-      }
+      } else if (runtime) invoke(() => runtime.messageAction('swipe', id, String(target)));
       return;
     }
     if (button.matches('.mes_edit_done')) {
       const id = Number(button.closest('.mes')?.getAttribute('mesid'));
       const last = options.lastMessage();
-      if (options.ready() && !options.hasPending() && Number.isInteger(id) && id === last?.message_id) return;
+      const runtime = options.runtime();
+      if (options.ready() && !runtime?.view?.busy && !runtime?.view?.updating &&
+          !options.hasPending() && Number.isInteger(id) && id === last?.message_id) return;
       block(event);
       options.error('请先处理待更新记录或删除后续楼层，再保存本楼编辑');
       recovery();
@@ -169,13 +190,17 @@ export function installNativeControls(options: NativeControls) {
   };
   doc.addEventListener('click', click, true);
   doc.addEventListener('keydown', keydown, true);
+  eventOn('chengwan:runtime_changed', syncGenerationControls);
   const timer = host.setInterval(recovery, 500);
   recovery();
+  syncGenerationControls();
   return () => {
     disposed = true;
+    eventRemoveListener('chengwan:runtime_changed', syncGenerationControls);
     host.clearInterval(timer);
     doc.removeEventListener('click', click, true);
     doc.removeEventListener('keydown', keydown, true);
     doc.getElementById('cw-native-recovery')?.remove();
+    generationStyle?.remove();
   };
 }

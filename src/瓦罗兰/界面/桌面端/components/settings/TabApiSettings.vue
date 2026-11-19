@@ -1,34 +1,10 @@
 <template>
   <div class="cw-api-settings-view">
-    <!-- 1. 通用说明集中展示容器 -->
-    <div class="cw-callout cw-callout-info cw-api-common-banner">
-      <SvgIcon name="info" :size="16" class="cw-callout-icon" />
-      <div class="cw-callout-body">
-        <span class="cw-callout-title">配置存储与跨端共用</span>
-        <p>瓦罗兰配置独立保存在酒馆与当前浏览器，重新导卡后可复用。电脑与手机使用同一酒馆账号；另一端已打开时，可点击对应配置区的“读取共用配置”。</p>
-        <p class="cw-api-flow-note">流程机制：玩家消息先保存，资料选择 API 按剧情选择地点与组织资料，准备完成后生成正文，最后独立结算变量；角色启停沿用瓦罗兰现有调度。</p>
-      </div>
-    </div>
-
-    <!-- 顶部快捷控制：展开/收起全部 -->
     <div class="cw-api-quick-bar">
-      <span class="cw-api-count-hint">共 3 组接口通道，各通道独立配置与保存</span>
-      <div class="cw-api-quick-actions">
-        <button
-          type="button"
-          class="cw-btn cw-btn-ghost cw-btn-sm"
-          @click="toggleAll(true)"
-        >
-          全部展开
-        </button>
-        <button
-          type="button"
-          class="cw-btn cw-btn-ghost cw-btn-sm"
-          @click="toggleAll(false)"
-        >
-          全部收起
-        </button>
-      </div>
+      <span>各通道单独保存，同一酒馆账号可跨端读取。</span>
+      <button type="button" class="cw-btn cw-btn-secondary cw-btn-sm" @click="toggleAll(!allExpanded)">
+        {{ allExpanded ? '全部收起' : '全部展开' }}
+      </button>
     </div>
 
     <!-- 2. 三类 API 折叠配置分区 -->
@@ -40,53 +16,41 @@
         :class="{ 'is-expanded': expanded[sec.channel] }"
       >
         <!-- 卡片头部 (点击折叠/展开) -->
-        <header
+        <button
+          type="button"
           class="cw-accordion-header"
-          tabindex="0"
-          role="button"
           :aria-expanded="expanded[sec.channel]"
           @click="toggleSection(sec.channel)"
-          @keydown.enter.space.prevent="toggleSection(sec.channel)"
         >
-          <div class="cw-header-left">
-            <div class="cw-channel-icon-badge">
+          <span class="cw-header-left">
+            <span class="cw-channel-icon-badge">
               <SvgIcon :name="sec.icon" :size="16" />
-            </div>
-            <div class="cw-channel-titles">
-              <div class="cw-channel-title-row">
-                <h4 class="cw-channel-name">{{ sec.title }}</h4>
+            </span>
+            <span class="cw-channel-titles">
+              <span class="cw-channel-title-row">
+                <strong class="cw-channel-name">{{ sec.title }}</strong>
                 <span class="cw-badge cw-channel-summary-badge">
                   {{ getSummaryBadge(sec.channel) }}
                 </span>
-              </div>
+              </span>
               <span class="cw-channel-desc">{{ sec.desc }}</span>
-            </div>
-          </div>
+            </span>
+          </span>
 
-          <div class="cw-header-right">
+          <span class="cw-header-right">
             <SvgIcon
               :name="expanded[sec.channel] ? 'chevronUp' : 'chevronDown'"
               :size="16"
               class="cw-chevron-icon"
             />
-          </div>
-        </header>
+          </span>
+        </button>
 
         <!-- 卡片展开主体内容 (v-show 保留各表单实例和未保存草稿) -->
         <div v-show="expanded[sec.channel]" class="cw-accordion-body">
-          <!-- 专属说明容器 -->
-          <div class="cw-callout cw-callout-info cw-channel-notice">
-            <SvgIcon name="info" :size="14" class="cw-callout-icon" />
-            <div class="cw-callout-body">
-              <p>{{ sec.specificNote }}</p>
-            </div>
-          </div>
-
-          <!-- 独立表单与专属操作栏 (传递 hide-notice=true 避免重复通用说明) -->
           <ExtraApiForm
             :channel="sec.channel"
             :hide-notice="true"
-            @feedback="emit('feedback', $event)"
           />
         </div>
       </div>
@@ -102,7 +66,6 @@ import SvgIcon from '../icons/SvgIcon.vue';
 import ExtraApiForm from './ExtraApiForm.vue';
 
 const props = defineProps<{ initialSection?: ApiChannel }>();
-const emit = defineEmits<{ (e: 'feedback', msg: string): void }>();
 const runtime = inject<Runtime | null>(RuntimeKey, null);
 
 interface ApiSectionConfig {
@@ -110,42 +73,37 @@ interface ApiSectionConfig {
   title: string;
   desc: string;
   icon: string;
-  specificNote: string;
 }
 
 const sections: ApiSectionConfig[] = [
   {
     channel: 'variable',
     title: '正文变量 API',
-    desc: '正文完整输出后，依规则自动统一结算全部状态变量',
+    desc: '选择随正文更新，或生成后独立结算',
     icon: 'terminal',
-    specificNote:
-      '正文由酒馆主模型生成。正文完整输出后，此 API 读取变量更新规则，统一更新全部需要变化的变量。与手机及奇遇读取同一份状态，各自触发。变量更新失败保留正文，可重试变量阶段。',
   },
   {
     channel: 'phone',
     title: '手机与奇遇共用 API',
-    desc: '手机发送/发布/互动，以及奇遇任务与商店新品生成',
+    desc: '手机互动、奇遇任务和商店刷新共用此连接',
     icon: 'sparkles',
-    specificNote:
-      '手机发送、发布、互动和刷新，以及奇遇首次开启后的随机内容生成、任务和商店刷新，共用这一份连接配置，与正文变量 API 分开。手机操作按变量规则结算；奇遇刷新只生成可选任务或商店新品，不推进时间、不执行玩家行动、不改余额和已接取任务。浏览与保存设置不会请求生成。',
   },
   {
     channel: 'information',
     title: '资料选择 API',
-    desc: '选择剧情相关的地点与组织资料，连接与预设独立选择',
+    desc: '在生成前为本轮剧情挑选相关资料',
     icon: 'mapPin',
-    specificNote:
-      '玩家消息先保存，资料选择 API 按剧情选择地点与组织资料，准备完成后生成正文，最后独立结算变量；角色启停沿用瓦罗兰现有调度。可使用酒馆正文 API、复用正文变量连接，或独立配置。预设开关由本通道单独保存，专用资料选择任务始终保留；保存配置不会生成内容。',
   },
 ];
 
-// 默认展开第一个，保持用户聚焦；其余分区折叠但保留状态
+// 从设置页进入时全部折叠，指定通道的快捷入口直接展开目标。
 const expanded = reactive<Record<ApiChannel, boolean>>({
-  variable: true,
+  variable: false,
   phone: false,
   information: false,
 });
+
+const allExpanded = computed(() => sections.every(({ channel }) => expanded[channel]));
 
 watch(() => props.initialSection, val => {
   if (val) {
@@ -167,14 +125,12 @@ function toggleAll(open: boolean) {
 
 function getSummaryBadge(channel: ApiChannel): string {
   if (!runtime) return '离线状态';
-  const cfg = runtime.settings[channel];
-  if (channel === 'information') {
-    const infoCfg = cfg as any;
-    if (infoCfg?.reuseVariable) {
-      return `复用正文变量: ${runtime.settings.variable.mode === 'main' ? '酒馆正文 API' : runtime.settings.variable.model || '未配置'}`;
-    }
-  }
-  return cfg?.mode === 'main' ? '酒馆正文 API' : cfg?.model ? `模型: ${cfg.model}` : '未配置模型';
+  if (channel === 'variable' && !runtime.settings.variable.independent) return '正文同次更新';
+  const followsVariable = channel === 'information' && runtime.settings.information.reuseVariable;
+  const cfg = followsVariable ? runtime.settings.variable : runtime.settings[channel];
+  const connection = cfg.mode === 'main' ? '酒馆当前连接' : cfg.name || cfg.model || '未配置模型';
+  const backups = cfg.mode === 'extra' && cfg.autoFailover && cfg.backups.length ? ` · ${cfg.backups.length} 个备用` : '';
+  return (followsVariable ? '跟随正文变量 · ' : '') + connection + backups;
 }
 </script>
 
@@ -185,27 +141,19 @@ function getSummaryBadge(channel: ApiChannel): string {
   gap: 14px;
 }
 
-.cw-api-common-banner {
-  margin-bottom: 2px;
-}
-
 .cw-api-quick-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--cw-bg-card-subtle);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
   font-size: 12px;
   color: var(--cw-text-secondary);
-
-  .cw-api-count-hint {
-    color: var(--cw-text-muted);
-  }
-
-  .cw-api-quick-actions {
-    display: flex;
-    gap: 6px;
-  }
 }
+.cw-api-quick-bar .cw-btn-secondary { flex-shrink: 0; min-height: 32px; background: var(--cw-bg-surface); border: 1px solid var(--cw-border-hover); color: var(--cw-text-primary); }
 
 .cw-api-sections-list {
   display: flex;
@@ -226,6 +174,10 @@ function getSummaryBadge(channel: ApiChannel): string {
   }
 
   .cw-accordion-header {
+    width: 100%;
+    border: 0;
+    text-align: left;
+    font: inherit;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -284,6 +236,9 @@ function getSummaryBadge(channel: ApiChannel): string {
           .cw-channel-summary-badge {
             font-size: 11px;
             font-weight: normal;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            white-space: normal;
           }
         }
 

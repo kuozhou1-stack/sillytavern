@@ -5,7 +5,7 @@ h.filename=file;h.paths=Module._nodeModulePaths(__dirname);
 const req=h.require.bind(h);h.require=n=>n==='node:test'?{test(){}}:req(n);
 h._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]+'\nmodule.exports={Schema,copy,environment,block};',file);
 const {Schema,copy,environment,block}=h.exports;
-const {lifeUpdates}=require('./生活更新夹具.cjs');
+const {lifeUpdates,requestState}=require('./生活更新夹具.cjs');
 const {prepareOpeningCharacterRoster,characterSelectionContext}=require('../运行/character-roster.ts');
 const {libraryView,prepareLibraryCommand}=require('../运行/character-library.ts');
 const {informationSelectionPrompt,parseInformationSelection,applyInformationSelectionValues,effectiveInformationIds}=require('../运行/knowledge-context.ts');
@@ -136,7 +136,7 @@ test('手机先准备实际联系人，再用同次选择细化资料，不把�
  const e=environment(seed(),{characterAuto:true,informationAuto:true,characterRoster:options,variable:{mode:'main'},phone:{mode:'main'}});
  let selection=0;await e.runtime.start();
  e.update=async()=>e.runtime.view.phase==='information'
-  ? JSON.stringify({人物:[++selection===1?'fit':'first'],地点:[],组织:[]}) : block(lifeUpdates(e.state()));
+  ? JSON.stringify({人物:[++selection===1?'fit':'first'],地点:[],组织:[]}) : block(lifeUpdates(requestState(e)));
  try{
   await e.runtime.send('准备上课');assert(!e.state().角色.first);
   const result=await e.runtime.phoneAction({kind:'send',id:'chat',text:'请问咨询安排？'});

@@ -22,7 +22,7 @@ const { finalizeArchive } = require('../运行/archive.ts');
 const { elapsedMinutes } = require('../运行/world.ts');
 const { planOpeningCharacters } = require('../运行/opening.ts');
 const { pendingUpdateTasks, finalizeUpdateTasks } = require('../运行/update-tasks.ts');
-const { lifeUpdates, lifeCandidate } = require('./生活更新夹具.cjs');
+const { lifeUpdates, lifeCandidate, requestState } = require('./生活更新夹具.cjs');
 const options = { majorLimit: 6, minorLimit: 3, majorRotation: 2, minorRotation: 1 };
 const names = ['01-摘要误占生活检查', '02-自动待机丢失升格', '03-回复评论漏锁对象', '04-主要角色长期占位'];
 const output = process.env.VALORAN_AUDIT_DIR;
@@ -91,14 +91,14 @@ function hostRecord(e, phase, more = {}) {
 function prompts(e) {
   const capture = (config, phase) => {
     const content = JSON.stringify(F.sentPrompts(config));
-    const a = auto(e.state(), e.vars.澄湾角色库);
-    hostRecord(e, phase, { promptActive: Object.keys(e.state().角色).filter(id => content.includes('ROSTER_PRIVATE_' + id)), promptTasks: pendingUpdateTasks(e.state()).filter(id => content.includes(id)) });
+    const state = requestState(e), a = auto(state, e.vars.澄湾角色库);
+    hostRecord(e, phase, { promptActive: Object.keys(state.角色).filter(id => content.includes('ROSTER_PRIVATE_' + id)), promptTasks: pendingUpdateTasks(state).filter(id => content.includes(id)) });
     for (const id of a?.manualOff ?? []) assert(!content.includes('ROSTER_PRIVATE_' + id));
-    for (const id of Object.keys(libraryRevision(e.state(), LibrarySchema.parse(e.vars.澄湾角色库)).disabled)) assert(!content.includes('ROSTER_PRIVATE_' + id));
+    for (const id of Object.keys(libraryRevision(state, LibrarySchema.parse(e.vars.澄湾角色库)).disabled)) assert(!content.includes('ROSTER_PRIVATE_' + id));
     assert(!content.includes('"queues"')); assert(!content.includes('LifeCheck'));
   };
   e.story = async config => { capture(config, 'story-request'); return '玩家安静观察周围。'; };
-  e.update = async config => { capture(config, 'variable-or-phone-request'); return reply(lifeUpdates(e.state())); };
+  e.update = async config => { capture(config, 'variable-or-phone-request'); return reply(lifeUpdates(requestState(e))); };
 }
 
 check(0, 'R1 摘要与生活任务并存，旧版本不阻挡；摘要身份保持', () => {

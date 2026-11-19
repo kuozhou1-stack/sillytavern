@@ -12,6 +12,7 @@ const { publicModelData } = require('../运行/model-history.ts');
 const { messageSource, assertMessageSource } = require('../运行/request-source.ts');
 const { createRuntime } = require('../运行/host.ts');
 const { registerMvuSchema } = require('../运行/mvu-schema.ts');
+const { SettingsSchema, validateSettings, informationApi } = require('../运行/settings.ts');
 
 function mvuAdapter() {
   const env = environment();
@@ -104,6 +105,33 @@ test('无关旧API不完整时，外观和另一个API仍可保存、读回与�
     assert.equal(e.calls.length, 0);
   }, seed(), { characterAuto: false, informationAuto: false,
     variable: { mode: 'extra', model: '旧不完整连接' }, phone: { mode: 'main' } });
+});
+
+test('正文同次设置保留旧默认，关闭时允许保存不完整连接并经共用配置冷开恢复', async () => {
+  assert.equal(SettingsSchema.parse({}).variable.independent, true);
+  assert.equal(SettingsSchema.parse({ variable: { mode: 'main' } }).variable.independent, true);
+  const disabled = { independent: false, apiurl: '尚未填写完的旧地址', model: '' };
+  assert.equal(validateSettings({ variable: disabled }).variable.independent, false);
+  assert.throws(() => validateSettings({ variable: { ...disabled, independent: true } }), /端点与模型/);
+  await withEnv(async e => {
+    await e.runtime.saveSettings({ variable: disabled }, 'variable');
+    assert.equal(e.runtime.settings.variable.independent, false);
+    assert.equal(e.runtime.settings.variable.apiurl, disabled.apiurl);
+    assert.equal(informationApi(e.runtime.settings).apiurl, disabled.apiurl);
+    await e.runtime.dispose();
+    e.localFiles.clear();
+    e.runtime = createRuntime();
+    await e.runtime.start();
+    assert.equal(e.runtime.settings.variable.independent, false);
+    assert.equal(e.runtime.settings.variable.apiurl, disabled.apiurl);
+    await e.runtime.saveSettings({ information: { reuseVariable: false, mode: 'main' } }, 'information');
+    assert.equal(informationApi(e.runtime.settings).mode, 'main');
+    await e.runtime.saveSettings({ variable: { ...disabled, independent: true, mode: 'main' } }, 'variable');
+    await e.runtime.reloadSettings('variable');
+    assert.equal(e.runtime.settings.variable.independent, true);
+    assert.equal(e.runtime.settings.variable.mode, 'main');
+    assert.equal(e.calls.length, 0);
+  });
 });
 
 test('旧外观快照晚保存不会覆盖新确认的API，非API保存不会复制连接字段', async () => {

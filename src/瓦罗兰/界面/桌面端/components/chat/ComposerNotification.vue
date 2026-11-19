@@ -150,7 +150,7 @@ const displayText = computed(() => {
     return '正在更新剧情变量与世界状态…';
   }
   if (props.isGenerating) {
-    return '正在生成剧情回复…';
+    return '等待正文回复…';
   }
   return props.toastMessage || '';
 });

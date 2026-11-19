@@ -16,27 +16,28 @@ export function promptConfig(
   return { user_input: text };
 }
 
-/** Prepare task facts as native user input; variable rules are read only by requestUpdate. */
+/** Prepare task facts while preserving the story's native history. */
 export async function livePromptConfig(
-  state: State, text: string, mode: 'story' | 'worker', targets?: string[],
+  state: State, text: string, mode: 'story' | 'worker' | 'inline', targets?: string[],
   scope?: { session?: string; post?: string; platform?: string },
 ) {
   const config = promptConfig(state, text, targets, scope);
   if (mode === 'story') return config;
   state = normalizeGeographicNames(state);
   promptProjections.set(config, modelState(state, scope));
-  config.overrides = {
+  if (mode === 'worker') config.overrides = {
     persona_description: '', char_description: '',
     // The task supplies its narrative/phone action. Native depth entries remain enabled.
     chat_history: { prompts: [], with_depth_entries: true },
   };
-  config.injects = ['本次执行变量更新。职责和输出契约见本轮变量规则。', informationPromptRule, disabledIdentityPrompt(state),
+  config.injects = [mode === 'worker' ? '本次执行变量更新。职责和输出契约见本轮变量规则。' :
+    '本轮在同一次回复中完成剧情正文及变量更新。正文之后按变量规则结算本轮实际发生的事实和下列授权待办。', informationPromptRule, disabledIdentityPrompt(state),
     playerMapLocationPrompt(state), worldUpdatePrompt(state), novelPrompt(state, true)]
     .filter(Boolean).map(content => ({ role: 'user' as const, position: 'in_chat' as const, depth: 0, content }));
   return config;
 }
 
-/** Read disabled entries only for this variable request; never toggle the shared worldbook around a call. */
+/** Read editable rules for the background request while retaining the saved worldbook switches. */
 export async function variableRulePrompts(): Promise<Omit<InjectionPrompt, 'id'>[]> {
   const chat = SillyTavern.getCurrentChatId(), book = getCharWorldbookNames('current').primary;
   if (!book) throw Error('角色卡未绑定世界书');

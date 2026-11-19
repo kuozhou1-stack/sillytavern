@@ -17,9 +17,9 @@ const YAML = require('yaml');
 
 const { Schema } = require('../schema.ts');
 const outputFile = path.join(__dirname, '../世界书/变量/变量输出格式.yaml');
-const { format, rule } = YAML.parse(fs.readFileSync(outputFile, 'utf8')).变量输出格式;
+const { 后台结算示例: format, rule } = YAML.parse(fs.readFileSync(outputFile, 'utf8')).变量输出格式;
 
-test('世界书的新增人物示例与空补丁均可从结构化回包解析', () => {
+test('世界书的后台示例可解析为新增人物的结构化补丁', () => {
   const commands = updateBlock(variableResponseBlock(format)).commands;
   assert.equal(commands.length, 1);
   assert.equal(commands[0].op, 'insert');
@@ -30,8 +30,7 @@ test('世界书的新增人物示例与空补丁均可从结构化回包解析',
   assert.equal(validate(JSON.parse(format)), true);
   assert.equal(typeof JSON.parse(format).JSONPatch, 'string');
   const emptyExamples = rule.flatMap(text => text.match(/\{\s*"JSONPatch"\s*:\s*"\[\s*\]"\s*\}/g) ?? []);
-  assert.equal(emptyExamples.length, 1);
-  assert.deepEqual(updateBlock(variableResponseBlock(emptyExamples[0])).commands, []);
+  assert.equal(emptyExamples.length, 0);
 });
 
 test('新认识人物可省缺省字段，旧记录改单个字段保留其他已知事实', async () => {

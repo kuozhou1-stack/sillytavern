@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { Server } from 'socket.io';
+import { packageRuntimeSource } from './打包运行源码.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const project = path.resolve(root, '../..');
 const localDist = path.join(project, 'dist/瓦罗兰');
@@ -91,9 +92,18 @@ const done = (error, stats) => {
   const inputs = fs
     .readdirSync(root, { recursive: true })
     .filter(
-      file => (/^(界面|运行|脚本)[\\/]/.test(file) && /\.(vue|ts|scss|html|json)$/.test(file)) || file === 'schema.ts',
+      file => (/^(界面|运行|脚本)[\\/]/.test(file) && /\.(vue|ts|js|scss|html|json|txt)$/.test(file)) || file === 'schema.ts',
     )
     .map(file => ({ path: file.replaceAll('\\', '/'), sha256: digest(path.join(root, file)) }));
+  if (release) {
+    try { packageRuntimeSource(project, root, outputRoot, inputs, catalogUrl); }
+    catch (sourceError) {
+      console.error(sourceError);
+      process.exitCode = 1;
+      compiler.close(() => {});
+      return;
+    }
+  }
   const outputs = fs
     .readdirSync(dist, { recursive: true })
     .filter(file => fs.statSync(path.join(dist, file)).isFile() && file !== '构建状态.json')

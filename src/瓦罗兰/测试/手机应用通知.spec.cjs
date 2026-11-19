@@ -58,7 +58,40 @@ test('保存失败明确提示且红点保留，不以界面先行清除冒充�
   const { runtime, fixture } = setup();
   runtime.commit = async () => { throw Error('合成写回失败'); };
   await fixture.view.handleOpenApp('weilan');
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(fixture.view.currentScreen.value, 'weilan');
   assert.equal(fixture.view.unread('微澜'), 1);
   assert.match(fixture.emissions[0][1], /通知已读保存失败.*合成写回失败/);
+});
+
+test('阻塞期间保留进入应用时的通知，恢复后跳过新到达或已删除的通知', async () => {
+  const { state, runtime, fixture: { view } } = setup();
+  runtime.view.canAutoRead = false;
+  state.value.手机._通知.removed = structuredClone(vue.toRaw(state.value.手机._通知.linxin));
+  let writes = 0;
+  const commit = runtime.commit;
+  runtime.commit = async fn => { writes++; return commit(fn); };
+  view.handleOpenApp('linxin');
+  state.value.手机._通知.later = structuredClone(vue.toRaw(state.value.手机._通知.linxin));
+  delete state.value.手机._通知.removed;
+  await vue.nextTick(); assert.equal(writes, 0);
+  runtime.view.canAutoRead = true;
+  await vue.nextTick(); await Promise.resolve();
+  assert.equal(writes, 1);
+  assert.equal(state.value.手机._通知.linxin.已读, true);
+  assert.equal(state.value.手机._通知.later.已读, false);
+  assert.equal(state.value.手机._通知.weilan.已读, false);
+});
+
+test('离开应用丢弃未提交通知批次，重新进入后按新批次保存', async () => {
+  const { state, runtime, fixture: { view } } = setup();
+  runtime.view.canAutoRead = false;
+  let writes = 0;
+  const commit = runtime.commit;
+  runtime.commit = async fn => { writes++; return commit(fn); };
+  view.handleOpenApp('linxin'); view.handleGoHome();
+  runtime.view.canAutoRead = true;
+  await vue.nextTick(); assert.equal(writes, 0); assert.equal(state.value.手机._通知.linxin.已读, false);
+  view.handleOpenApp('linxin'); await vue.nextTick();
+  assert.equal(writes, 1); assert.equal(state.value.手机._通知.linxin.已读, true);
 });

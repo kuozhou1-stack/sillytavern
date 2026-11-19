@@ -16,26 +16,16 @@ const boundary = `cw-message-${randomUUID()}`;
 let styleBoundary: HTMLElement | undefined;
 function render() {
   if (!container.value) return;
-  if (props.role === 'user' && /<(?:UpdateVariable|StatusPlaceHolderImpl)\b/i.test(props.content)) {
-    stopFrames.forEach(stop => stop());
-    stopFrames = [];
-    previous = undefined;
-    container.value.classList.add('cw-player-original');
-    container.value.textContent = props.content;
-    return;
-  }
-  container.value.classList.remove('cw-player-original');
   const doc = container.value.ownerDocument;
   // Keep the original chat message untouched for external scripts. Only the UI copy
-  // omits a genuine terminal protocol block and treats malformed patches as text.
+  // omits genuine protocol blocks before the native display formatter runs once.
   const visible = props.role === 'user' ? props.content : displayedNarrative(props.content);
   let html: string;
   try {
     if (!runtime) throw Error('offline');
-    if (/<UpdateVariable\b/i.test(visible)) throw Error('patch must be displayed as text');
-    ({ html } = displayedMessage(visible, props.id));
+    ({ html } = displayedMessage(visible, props.id, props.role));
   } catch (error) {
-    if (runtime && !/<UpdateVariable\b/i.test(visible)) console.warn('[瓦洛兰正文] 酒馆格式化失败', props.id, error);
+    if (runtime) console.warn('[瓦洛兰正文] 酒馆格式化失败', props.id, error);
     const safe = doc.createElement('div');
     safe.textContent = visible;
     html = safe.innerHTML.replace(/\n/g, '<br>');
@@ -61,23 +51,22 @@ function render() {
   }
   // Render widgets in the visible message, with a document boundary around their CSS.
   // Variable/protocol values are data and must never become executable widgets.
-  if (!/<UpdateVariable\b/i.test(visible)) {
-    for (const code of content.querySelectorAll<HTMLElement>('pre > code')) {
-      if (
-        code.closest('.cw-variable-status, .cw-variable-update, .rp-variable-update, [data-variable-disclosure]') ||
-        !isHtmlWidget(code)
-      )
-        continue;
-      if (props.incomplete) {
-        const pending = doc.createElement('p');
-        pending.textContent = '交互内容尚未生成完成…';
-        code.parentElement!.replaceWith(pending);
-        continue;
-      }
-      const frame = doc.createElement('iframe');
-      stopFrames.push(mountMessageFrame(frame, code.textContent ?? '', props.id));
-      code.parentElement!.replaceWith(frame);
+  for (const code of content.querySelectorAll<HTMLElement>('pre > code')) {
+    if (
+      code.closest('.cw-variable-status, .cw-variable-update, .rp-variable-update, [data-variable-disclosure]') ||
+      /<UpdateVariable\b/i.test(code.textContent ?? '') ||
+      !isHtmlWidget(code)
+    )
+      continue;
+    if (props.incomplete) {
+      const pending = doc.createElement('p');
+      pending.textContent = '交互内容尚未生成完成…';
+      code.parentElement!.replaceWith(pending);
+      continue;
     }
+    const frame = doc.createElement('iframe');
+    stopFrames.push(mountMessageFrame(frame, code.textContent ?? '', props.id));
+    code.parentElement!.replaceWith(frame);
   }
   container.value.replaceChildren(...content.childNodes);
 }
@@ -121,9 +110,6 @@ onUnmounted(() => {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-}
-:where(.cw-message-content).mes_text.cw-player-original {
-  white-space: pre-wrap;
 }
 :where(.cw-message-content).mes_text p {
   margin: 0 0 var(--cw-paragraph-margin);

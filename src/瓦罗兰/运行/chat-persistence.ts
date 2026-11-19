@@ -6,23 +6,27 @@ const cardExtra = (extra: any) => _.pickBy({ ...extra?.extra, ...extra }, (_valu
 /** Compare the card's saved text, candidates, MVU state and recovery records.
  * Other plugins' metadata does not participate in this acknowledgement.
  */
-export function chatSaveSnapshot(messages: any[], variables: Record<string, any>) {
-  return copy({
+function chatSaveProjection(messages: any[], variables: Record<string, any>) {
+  return {
     recovery: _.pickBy(variables, (_value, key) => key.startsWith('澄湾')),
     messages: messages.map(message => ({
-      text: message.mes,
+      ...(message.mes === undefined ? {} : { text: message.mes }),
       user: !!message.is_user,
       narrator: message.extra?.type === 'narrator',
       hidden: !!message.is_system,
       swipe: message.swipe_id ?? 0,
-      candidates: message.swipes ?? [message.mes],
+      candidates: message.swipes ?? [message.mes ?? null],
       states: Object.fromEntries(Object.entries(message.variables ?? {})
         .filter(([, value]) => (value as any)?.stat_data !== undefined)
         .map(([index, value]) => [index, (value as any).stat_data])),
       extra: cardExtra(message.extra),
       candidateExtra: (message.swipe_info ?? []).map(cardExtra),
     })),
-  });
+  };
+}
+
+export function chatSaveSnapshot(messages: any[], variables: Record<string, any>) {
+  return copy(chatSaveProjection(messages, variables));
 }
 
 function savedMessagesMatch(
@@ -72,11 +76,17 @@ export async function persistChat() {
     throw Error('保存期间聊天已变化，未确认原提交');
   if (!Array.isArray(saved) || !saved[0]?.chat_metadata)
     throw Error('聊天保存未确认：服务端没有返回有效聊天存档');
-  const actual = chatSaveSnapshot(saved.slice(1), saved[0].chat_metadata.variables ?? {});
-  // 手机入队/取消允许发生在原生保存等待期间；只接受该队列的完整旧值或当前值。
+  // response.json() already owns this data; only the pre-save expectation needs
+  // a detached snapshot while native saveChat is awaiting other writes.
+  const actual = chatSaveProjection(saved.slice(1), saved[0].chat_metadata.variables ?? {});
+  // 手机入队/取消可发生在等待期间；还允许原生保存捕获到纯追加过程中的完整前缀。
   const queueKey = '澄湾排队操作';
+  const beforeQueue = expected.recovery[queueKey], savedQueue = actual.recovery[queueKey];
+  const currentQueue = getVariables({ type: 'chat' })[queueKey];
+  const isPrefix = (before: unknown, after: unknown) => Array.isArray(before) && Array.isArray(after) &&
+    before.length <= after.length && before.every((item, index) => equal(item, after[index]));
   const queueMatches = equal(actual.recovery[queueKey], expected.recovery[queueKey]) ||
-    equal(actual.recovery[queueKey], getVariables({ type: 'chat' })[queueKey]);
+    equal(savedQueue, currentQueue) || (isPrefix(beforeQueue ?? [], savedQueue) && isPrefix(savedQueue, currentQueue));
   if (!queueMatches || !savedMessagesMatch(expected.messages, actual.messages) ||
       !equal(_.omit(actual.recovery, queueKey), _.omit(expected.recovery, queueKey)))
     throw Error('聊天保存未确认：服务端的正文、变量或恢复记录与本次保存不一致，请重试保存');

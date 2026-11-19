@@ -1,8 +1,12 @@
 # {{valoran_variables}}
 ---
 变量输出格式:
+  正文同次:
+    - 本轮同时生成剧情和变量时，先写正文，再在末尾输出 <UpdateVariable><JSONPatch>补丁数组</JSONPatch></UpdateVariable>。
+    - JSONPatch 内直接写 JSON 数组。正文中的说明和代码示例不作为变量更新。
+    - '同次示例：<UpdateVariable><JSONPatch>[{"op":"replace","path":"/玩家/当前状态/体力值","value":79}]</JSONPatch></UpdateVariable>'
   rule:
-    - '回复只写一个 JSON 对象，唯一字段 JSONPatch 是补丁数组序列化后的字符串。对象前后不写计划、解释、正文或代码围栏。'
+    - '本轮为后台变量结算时，回复只写一个 JSON 对象，唯一字段 JSONPatch 是补丁数组序列化后的字符串。对象前后不写计划、解释、正文或代码围栏。'
     - 只写本轮已发生的变化和变量规则授权的任务结果（含本轮生活任务）。记下计划只更新计划记录，购买、收款等到实际发生时才结算。
     - 新建记录写必填项及已有事实。只有 Schema 有默认值且本轮没有对应事实的字段才省略。已有记录只改变化的叶子字段，保留其他资料、关系、历史和程序管理字段。
     - 路径使用 JSON Pointer，以 / 分隔层级。Schema 中以 _ 开头的固定字段只读（readonly）。下例的人物 id、称呼与来源均按实际所知替换。
@@ -11,7 +15,6 @@
     - insert 用 path 和 value 新增字典键或数组项，数组末尾用 /-；已有记录按变化字段更新。
     - remove 用 path 删除变量规则允许且确已移除的键或数组项。
     - move 用 from 和 to 移动已有值，保持引用有效。
-    - '没有变化时直接返回 {"JSONPatch":"[]"}。'
-  format: |-
+  后台结算示例: |-
     {"JSONPatch":"[{\"op\":\"insert\",\"path\":\"/玩家/已知信息/已认识人物/example_person\",\"value\":{\"称呼\":\"向导\",\"来源\":{\"方式\":\"观察\"}}}]"}
 # {{valoran_variables_end}}

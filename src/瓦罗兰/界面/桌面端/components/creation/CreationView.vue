@@ -8,7 +8,6 @@
         </div>
         <div class="cw-brand-text">
           <h2 class="cw-brand-title">瓦洛兰 · 新市民建档向导</h2>
-          <span class="cw-brand-sub">瓦洛兰 · 从您的第一份档案开始</span>
         </div>
       </div>
       <div class="cw-navbar-right">
@@ -30,21 +29,24 @@
     </header>
 
     <!-- 步骤导航条 -->
-    <nav ref="stepsViewportRef" class="cw-creation-steps-bar">
+    <nav ref="stepsViewportRef" class="cw-creation-steps-bar" aria-label="建档步骤">
       <div ref="stepsTrackRef" class="cw-steps-track">
-        <div
+        <button
           v-for="s in steps"
           :key="s.step"
+          type="button"
           class="cw-step-nav-item"
           :class="{ active: currentStep === s.step, finished: currentStep > s.step }"
+          :aria-current="currentStep === s.step ? 'step' : undefined"
+          :disabled="isSubmitting"
           @click="goToStep(s.step)"
         >
-          <div class="cw-nav-num">
+          <span class="cw-nav-num">
             <SvgIcon v-if="currentStep > s.step" name="check" :size="12" />
             <span v-else>{{ s.step }}</span>
-          </div>
+          </span>
           <span class="cw-nav-label">{{ s.title }}</span>
-        </div>
+        </button>
       </div>
     </nav>
 
@@ -52,7 +54,7 @@
     <div v-if="stepError" class="cw-creation-error-banner" role="alert">
       <SvgIcon name="alertTriangle" :size="15" />
       <span class="cw-err-text">{{ stepError }}</span>
-      <button class="cw-btn-close-err" @click="stepError = ''">
+      <button type="button" class="cw-btn-close-err" aria-label="关闭提示" @click="stepError = ''">
         <SvgIcon name="close" :size="13" />
       </button>
     </div>
@@ -119,7 +121,6 @@
           :has-player-account="!!initialAccountId"
           :starting-items="startingItems"
           :locations="state.地点"
-          :submit-error="submitError"
           @go-to-step="goToStep"
         />
       </div>
@@ -811,14 +812,6 @@ async function handleFinalSubmit() {
       text-overflow: ellipsis;
     }
 
-    .cw-brand-sub {
-      font-size: 12px;
-      color: var(--cw-text-secondary);
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
   }
 
   .cw-navbar-right {
@@ -860,6 +853,10 @@ async function handleFinalSubmit() {
 
   .cw-step-nav-item {
     display: flex;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
     align-items: center;
     gap: 8px;
     cursor: pointer;
@@ -990,9 +987,6 @@ async function handleFinalSubmit() {
     }
     .cw-brand-title {
       font-size: 14px;
-    }
-    .cw-brand-sub {
-      display: none;
     }
     .cw-navbar-right {
       gap: 6px;

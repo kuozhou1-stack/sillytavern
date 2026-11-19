@@ -39,7 +39,7 @@
           :aria-disabled="actionsBlocked || undefined"
         >
           <button
-            v-if="message.isUpdatePending"
+            v-if="message.isUpdatePending && !isLatest"
             class="cw-action-btn cw-action-danger"
             title="放弃待结算正文，删除该消息及其后续全部楼层"
             @click="emit('triggerAction', { type: 'delete', message })"
@@ -128,6 +128,7 @@ import VariableStatusBar from '../shared/VariableStatusBar.vue';
 import type { StoryChangeStatus } from '../../../../运行/variable-changes';
 
 export interface ChatMessageItem {
+  editContent?: string;
   id: number;
   role: 'user' | 'assistant';
   characterName?: string;
@@ -141,6 +142,7 @@ export interface ChatMessageItem {
 const props = defineProps<{
   message: ChatMessageItem;
   actionsBlocked?: boolean;
+  isLatest?: boolean;
 }>();
 
 const emit = defineEmits<{

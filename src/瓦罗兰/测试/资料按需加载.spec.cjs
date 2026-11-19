@@ -44,12 +44,12 @@ async function withEnv(fn, initial = seed(), config = settings(), beforeStart) {
   e.selected = [];
   e.payloads = [];
   e.select = async () => selectorReply();
-  async function finalPayload(config) {
+  async function finalPayload(config, context) {
     const {promptContextText,variableRuleText}=require('../运行/prompt-context.ts');
-    const state=config.overrides?.chat_history?.with_depth_entries===false?'':promptContextText(()=>e.state());
+    const state=config.overrides?.chat_history?.with_depth_entries===false?'':context.expandPrompt('{{valoran_context}}');
     const data={messages:[{role:'system',content:'模拟酒馆预设/世界书内容'},
       ...(state?[{role:'system',content:state}]:[]),
-      ...e.rules.filter(r=>r.enabled).map(r=>({role:'system',content:variableRuleText(r.content)})).filter(r=>r.content),
+      ...e.rules.filter(r=>r.enabled).map(r=>({role:'system',content:context.expandPrompt(r.content)})).filter(r=>r.content),
       {role:'user',content:config.user_input||''},{role:'system',content:'原生预设尾部'}]};
     const nativeMessages=structuredClone(data.messages);
     await e.listeners.get('completion_settings')?.(data);
@@ -57,13 +57,14 @@ async function withEnv(fn, initial = seed(), config = settings(), beforeStart) {
     e.payloads.push({stage:e.runtime.view.phase,selection:e.runtime.view.phase==='information',messages:structuredClone(data.messages)});
     return data;
   }
-  global.generate=async config=>{
-    const data=await finalPayload(config);const final={...config,finalMessages:data.messages};
+  global.generate=async (config,context)=>{
+    const data=await finalPayload(config,context);const final={...config,finalMessages:data.messages};
     if(e.runtime.view.phase==='information'){e.selected.push(structuredClone(final));return e.select(final);}
     e.calls.push({kind:e.runtime.view.phase==='story'?'story':'update',config:structuredClone(final)});
     return structuredFixtureReply(config,await (e.runtime.view.phase==='story'?e.story(final):e.update(final)));
   };
   global.generateRaw=async()=>{throw Error('必须携带预设');};
+  e.runtime=require('../运行/host.ts').createRuntime();
   beforeStart?.(e);
   await e.runtime.start();
   try { await fn(e); } finally { await e.runtime.dispose(); }
@@ -100,12 +101,12 @@ test("资料选择只看名称与本轮输入，最终hook移除酒馆宏和预�
 
 test("正文最终状态与变量状态均裁剪，重复原始状态块不会残留全量资料（内容展开）",async()=>{
  const state=applyInformationSelection(seed(),selectorReply(['cafe'],['guild']),'turn');const before=structuredClone(state);
- const {withPromptContext,promptContextText}=require('../运行/prompt-context.ts');
- for(const purpose of ['story','variables'])await withPromptContext({purpose,state},async()=>{
-  const body=promptContextText(()=>state);assert(body.includes('CAFÉ_DETAIL'));assert(body.includes('GUILD_DETAIL'));
+ const {createPromptRequestContext,promptContextText}=require('../运行/prompt-context.ts');
+ for(const purpose of ['story','variables']){
+  const body=createPromptRequestContext({purpose,state}).expandPrompt('{{valoran_context}}');assert(body.includes('CAFÉ_DETAIL'));assert(body.includes('GUILD_DETAIL'));
   assert(!body.includes('HOME_DETAIL'));assert(!body.includes('LIBRARY_DETAIL'));
   assert.equal((body.match(/<status_current_variable>/g)||[]).length,1);
- });assert.deepEqual(state,before);
+ }assert.deepEqual(state,before);
 });
 
 test('选择输出严格校验，错误结果不能改原选择；后续展开保留本轮内容', () => {
@@ -218,7 +219,11 @@ test('原始patch保留资料加载边界，已展开记录允许整项替换或
 
 test('正文变量结算可以整项替换地点和删除组织并保存', async () => {
   await withEnv(async e => {
-    e.select = async () => selectorReply(['cafe'], ['guild']);
+    e.select = async config => {
+      e.listeners.get('stream')('资料选择的片段', config.generation_id);
+      assert.equal(e.runtime.view.streaming, '');
+      return selectorReply(['cafe'], ['guild']);
+    };
     e.story = async () => '咖啡馆已按新安排调整，原测试协会已注销。';
     e.update = async () => block([
       { op: 'replace', path: '/地点/cafe', value: { ...seed().地点.cafe, 简介: '整项替换后的资料' } },
@@ -229,6 +234,25 @@ test('正文变量结算可以整项替换地点和删除组织并保存', async
     assert.equal(Object.hasOwn(e.state().组织, 'guild'), false);
     assert.equal(e.runtime.view.error, '');
   });
+});
+
+test('自动资料请求的最近正文排除整段思考并保留字面标签示例', async () => {
+  const visible = '正文唯一标记。\n他说：“请保留 <think>对白示例</think> 这一句。”\n\n```xml\n<thinking>代码示例</thinking>\n```';
+  const archived = '<thinking>Write "the literal </thinking> token" later.\n' +
+    '<UpdateVariable><JSONPatch>[{"op":"replace","path":"/玩家/称呼","value":"格式样例"}]</JSONPatch></UpdateVariable>\n' +
+    '</thinking>\n' + visible;
+  const input = '去测试咖啡馆看 `<think>示例</think>`。';
+  await withEnv(async e => {
+    await e.runtime.send(input);
+    const sent = e.selected[0].finalMessages.find(message => message.role === 'user').content;
+    const task = JSON.parse(sent.split('\n').at(-1));
+    assert.deepEqual(task.最近正文, [{ role: 'assistant', text: visible }, { role: 'user', text: input }]);
+    assert.equal(e.messages[0].message, archived);
+  }, seed(), settings(), e => { e.messages[0].message = archived; });
+  const other = '<analysis>沿用原有的其他标记</analysis>';
+  const nested = '<THINK>嵌套<THINK>内部</THINK>仍在思考内</THINK>';
+  const control = informationSelectionPrompt(seed(), input, [{ role: 'assistant', text: nested + other }]);
+  assert.deepEqual(JSON.parse(control.user_input).最近正文, [{ role: 'assistant', text: other }]);
 });
 
 test('实际host正文与后台均携带选择结果，原生位置保留且完整存档不裁剪', async () => {

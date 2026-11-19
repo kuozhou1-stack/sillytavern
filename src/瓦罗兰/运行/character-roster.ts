@@ -76,6 +76,47 @@ export function characterSelectionContext(state: State, raw: unknown, options: C
 }
 export type CharacterSelectionContext = ReturnType<typeof characterSelectionContext>;
 
+/** Recover the imported source of an opening participant from its matching staging snapshot. */
+export function restoreOpeningCharacterSources(before: State, raw: unknown, taskId: string): State {
+  const task = before._系统.任务[taskId];
+  if (task?.类别 !== '建档' || ['失效', '取消', '已提交'].includes(task.状态) ||
+      task.提交id && before._系统.提交记录[task.提交id]) return before;
+  const library = LibrarySchema.parse(raw), revision = libraryRevision(before, library);
+  const automatic = revision.automatic;
+  if (!automatic?.opening || automatic.opening.selectionPending) return before;
+  let restored: State | undefined;
+  for (const id of automatic.opening.selectedIds) {
+    const person = before.角色[id];
+    if (!person || person._管理.来源档案id || automatic.checks[id] !== taskId) continue;
+    const matches = Object.values(library.snapshots).filter(snapshot => {
+      const sourceId = snapshot.pack.角色?._管理?.来源档案id;
+      const source = sourceId && snapshot.pack.来源档案?.[sourceId];
+      return snapshot.id === id && snapshot.saveId === before._系统.存档id &&
+        snapshot.version + 1 === person._管理.版本 &&
+        snapshot.pack.角色._管理.版本 + 1 === snapshot.version &&
+        source?.人物id === id && source.当前融入状态 !== '已融入';
+    });
+    if (!matches.length) continue;
+    const candidates = _.uniqWith(matches.map(snapshot => ({
+      sourceId: snapshot.pack.角色._管理.来源档案id as string,
+      source: snapshot.pack.来源档案[snapshot.pack.角色._管理.来源档案id] as State['_系统']['来源档案'][string],
+      recoveryNote: snapshot.pack.角色._管理.恢复说明 as string | null,
+    })), equal);
+    if (candidates.length !== 1) throw Error('开局人物存在多份不同的对应来源快照，请恢复完整建档备份后重试：' + id);
+    const { sourceId, source, recoveryNote } = candidates[0];
+    restored ??= copy(before);
+    restored._系统.来源档案[sourceId] = copy(source);
+    restored.角色[id]._管理.来源档案id = sourceId;
+    restored.角色[id]._管理.恢复说明 = recoveryNote;
+    const opening = restored._系统.任务[taskId];
+    if (!opening.目标id.includes(id)) opening.目标id.push(id);
+    opening.目标版本[id] = person._管理.版本;
+    opening.触发来源 = '玩家确认建档：整理本次启用的开局角色，并授权补全和修订适用的玩家与角色设定';
+    if (restored.角色[id].层级 === '主要') restored.角色[id]._更新循环.待处理任务id = taskId;
+  }
+  return restored ?? before;
+}
+
 function selectedCandidates(ids: readonly string[], eligible: readonly string[]) {
   const allowed = new Set(eligible);
   if (ids.some(id => !allowed.has(id))) throw Error('人物选择包含未入库或手动关闭的人物，原名单保留');
@@ -115,7 +156,8 @@ export function prepareOpeningCharacterRoster(
 ) {
   if (!before._系统.建档完成 || Object.keys(before._系统.已计轮事件).length) return null;
   const library = LibrarySchema.parse(raw), revision = libraryRevision(before, library);
-  if (revision.automatic?.opening && preferredIds === undefined) return null;
+  const previousOpening = revision.automatic?.opening;
+  if (previousOpening && preferredIds === undefined && !previousOpening.selectionPending) return null;
   const options = CharacterRosterSettingsSchema.parse(optionsInput ?? {});
   const limits = { 主要: options.majorLimit, 次要: options.minorLimit };
   const automatic = revision.automatic ? copy(revision.automatic)
@@ -168,19 +210,28 @@ export function prepareOpeningCharacterRoster(
   automatic.rotation = {};
   automatic.checks = {};
   automatic.anchor = anchor(before, options);
-  automatic.opening = { requestedIds: [...new Set([...connections, ...pinned])], selectedIds: [...selected] };
-  const prepared = prepareAutomaticLibrary(before, library, revision, selected, automatic);
-  if (preferred) {
+  automatic.opening = {
+    requestedIds: [...new Set([...connections, ...pinned])],
+    selectedIds: [...selected],
+    selectionPending: false,
+  };
+  const openingTaskId = Object.keys(before._系统.任务).find(id => {
+    const task = before._系统.任务[id];
+    return task.类别 === '建档' && ['排队', '失败'].includes(task.状态) &&
+      !(task.提交id && before._系统.提交记录[task.提交id]);
+  });
+  const prepared = prepareAutomaticLibrary(before, library, revision, selected, automatic, 'opening');
+  if (preferred || previousOpening?.selectionPending) {
     // Selection happens before opening generation; replace the unexecuted batch's targets.
     for (const [taskId, task] of Object.entries(prepared.state._系统.任务)) {
       if (task.类别 !== '建档' || !['排队', '失败'].includes(task.状态)) continue;
       task.状态 = '失效';
-      task.错误 = '开局人物已按本轮资料选择重新准备';
+      task.错误 = '开局人物已按当前选择重新准备';
       for (const person of Object.values(prepared.state.角色))
         if (person.层级 === '主要' && person._更新循环.待处理任务id === taskId) person._更新循环.待处理任务id = null;
     }
   }
-  prepared.state = planOpeningCharacters(prepared.state, [...selected], true);
+  prepared.state = planOpeningCharacters(prepared.state, [...selected], true, openingTaskId);
   const opening = Object.entries(prepared.state._系统.任务).find(([, task]) =>
     task.类别 === '建档' && activeTask(task.状态));
   if (opening) for (const id of selected) automatic.checks[id] = opening[0];

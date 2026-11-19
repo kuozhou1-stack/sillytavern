@@ -6,7 +6,7 @@ import { playerMapLocationIds, pendingPlayerMapLocations, playerMapLocationPromp
 export const openingMessage = '请根据已保存的建档资料生成开场。';
 
 /** One NPC batch and/or player profile revisions. Runtime generates opening narrative before settling this batch. */
-export function planOpeningCharacters(state: State, ids: string[], allowEmpty = false): State {
+export function planOpeningCharacters(state: State, ids: string[], allowEmpty = false, preparedTaskId?: string): State {
   const draft = copy(state);
   const targets = [...new Set(ids)].filter(
     id =>
@@ -20,7 +20,9 @@ export function planOpeningCharacters(state: State, ids: string[], allowEmpty = 
     t => t.类别 === '建档' && ['排队', '生成中', '待校验', '待提交', '失败'].includes(t.状态),
   );
   if (hasActiveTask) return draft;
-  const taskId = uid('opening');
+  // 选择名单调整继续同一未提交批次，避免每次准备生成一个失效任务。
+  const taskId = preparedTaskId ?? uid('opening');
+  const commitId = draft._系统.任务[taskId]?.提交id ?? uid('opening_commit');
   draft._系统.任务[taskId] = Schema.parse({
     _系统: {
       任务: {
@@ -36,7 +38,7 @@ export function planOpeningCharacters(state: State, ids: string[], allowEmpty = 
           楼层id: draft._系统.楼层id,
           输入数据版本: draft._系统.数据版本,
           截止时间: copy(draft.世界.开局时间),
-          提交id: uid('opening_commit'),
+          提交id: commitId,
           状态: '排队',
         },
       },
@@ -77,7 +79,7 @@ export function mergeOpeningTasks(state: State, taskId: string, retryIds: Readon
   return draft;
 }
 
-export function openingCharacterPrompt(state: State, taskId: string, withStory = false): string {
+export function openingCharacterPrompt(state: State, taskId: string, withStory: boolean | 'inline' = false): string {
   const task = state._系统.任务[taskId];
   if (task?.类别 !== '建档') throw Error('不是开局角色整理任务');
   const targets = task.目标id;
@@ -95,7 +97,7 @@ export function openingCharacterPrompt(state: State, taskId: string, withStory =
 只整理本次目标，不恢复待机角色；远处联系人不等于在场。
 ${targetText}
 初始认知、经历等若来自授权创作，来源用“授权生成/开局补全”；没有相识依据不编造玩家既往行为。开局时间仅取玩家已确认起点，未知不补日期。已明确的住所、起点、单位和常去地点可登记“玩家填写”知情来源，不自动登记他人私宅。
-${withStory ? '开场正文已经生成并显示：本次在同一个MVU更新块中结算正文确实发生的状态变化，并完成上述玩家资料补全和修订与导入角色整批整理。正文已明确的事实是本次更新依据；玩家未执行的行为不能结算。其他人物、地点、时间、手机、事件与约定仅按正文和既有规则更新，不重复生成正文。' : '只补全和修订玩家基础设定、目标人物资料及其必要的新地点。已有地点仅允许按下方清单补全玩家自设地点的空坐标，其他字段、世界时间、手机原文、事件或约定不能改写；不要输出第一段剧情、替玩家发消息或执行动作。'}新增或改动的人物地点引用必须有效；导入人物原有的未建档地点引用可沿用，必要时再创建符合世界设定的住所/工作地点，私人地点不得变成玩家默认已知地点。男性不生成私密内容，不为不适用的字段编造数据。已明确无法确定或逻辑冲突的项目可以保留未知并说明原因。
+${withStory === 'inline' ? '本轮先完成开场正文，再在末尾同一个MVU更新块中结算本轮事实，并完成上述玩家资料补全、修订与导入角色整理。其他人物、地点、时间、手机、事件与约定按本轮正文及既有规则更新。' : withStory ? '开场正文已经生成并显示：本次在同一个MVU更新块中结算正文确实发生的状态变化，并完成上述玩家资料补全和修订与导入角色整批整理。正文已明确的事实是本次更新依据；玩家未执行的行为不能结算。其他人物、地点、时间、手机、事件与约定仅按正文和既有规则更新，不重复生成正文。' : '只补全和修订玩家基础设定、目标人物资料及其必要的新地点。已有地点仅允许按下方清单补全玩家自设地点的空坐标，其他字段、世界时间、手机原文、事件或约定不能改写；不要输出第一段剧情、替玩家发消息或执行动作。'}新增或改动的人物地点引用必须有效；导入人物原有的未建档地点引用可沿用，必要时再创建符合世界设定的住所/工作地点，私人地点不得变成玩家默认已知地点。男性不生成私密内容，不为不适用的字段编造数据。已明确无法确定或逻辑冲突的项目可以保留未知并说明原因。
 ${withStory ? (pendingPlayerMapLocations(state).length ? "【开局自设地点定位】按本次玩家自设地点定位专项资料补齐地址，只更新明确授权的地图位置；已提供的地区范围无需重复生成。" : "") : playerMapLocationPrompt(state, "开局")}
 按现有世界书规定输出MVU更新块，所有下划线字段只读。`;
 }

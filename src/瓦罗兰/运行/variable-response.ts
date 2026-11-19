@@ -26,7 +26,7 @@ export const variableResponseSchema: JsonSchema = {
     properties: {
       JSONPatch: {
         type: 'string',
-        description: 'A JSON-serialized array of MVU patch operations based only on the supplied completed facts. No XML, story or explanation. Use "[]" when nothing changes.',
+        description: 'A JSON-serialized array of MVU patch operations based only on the supplied completed facts. No XML, story or explanation.',
       },
     },
     required: ['JSONPatch'],

@@ -50,7 +50,8 @@ $(() => {
     lastMessage: () => getChatMessages(-1, { include_swipes: true })[0],
     hasPending: () => {
       const saved = getVariables({ type: 'chat' });
-      return !!(saved.澄湾待更新正文 || saved.澄湾待更新手机 || saved.澄湾失败请求 || saved.澄湾待确认提交);
+      return !!(saved.澄湾待更新手机 ||
+        saved.澄湾待确认提交 && saved.澄湾待确认提交.replyFloor === undefined);
     },
     error: message => toastr.error(message),
   });

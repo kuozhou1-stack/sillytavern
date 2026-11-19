@@ -18,7 +18,7 @@ function installedEvents(e) {
     localStorage: { getItem: () => null } });
   vm.runInContext(fs.readFileSync(path.join(tavern, 'public/lib/eventemitter.js'), 'utf8')
     .replace('export { EventEmitter }', '') + '\nthis.Emitter=EventEmitter;', context);
-  const bus = new context.Emitter(), api = {}, frame = {};
+  const bus = new context.Emitter(['app_ready', 'app_initialized']), api = {}, frame = {};
   e.emitNativeSettings=data=>bus.emit(tavern_events.CHAT_COMPLETION_SETTINGS_READY,data);
   const dependencies = {
     '@/function/script': { _getButtonEvent: name => name },
@@ -97,6 +97,37 @@ test('连续正文与变量请求清理各自监听，流式正文正常且不�
     assert.equal(e.parses, 3);
   } finally { await e.runtime.dispose(); }
   assert.equal(events.total(), 1, '仅移除本卡监听，保留其他调用方的监听');
+});
+
+for (const entry of ['立即重试', '从玩家楼重新发送'])
+test(`${entry}会在保存回复前显示当前正文流，其他请求和变量分片保持隐藏`, async () => {
+  const { e, events } = setup();
+  e.presetBudget.should_stream = true;
+  await e.runtime.start();
+  try {
+    let failedId;
+    e.story = async config => { failedId = config.generation_id; throw Error('首次正文断线'); };
+    await assert.rejects(e.runtime.send('流式回复测试'), /首次正文断线/);
+    e.story = async config => {
+      assert.equal(config.should_stream, true);
+      assert.notEqual(config.generation_id, failedId);
+      await events.bus.emit(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, '旧请求分片', failedId);
+      assert.equal(e.runtime.view.streaming, '');
+      await events.bus.emit(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, '重试正文的一段', config.generation_id);
+      assert.equal(e.runtime.view.streaming, '重试正文的一段');
+      assert.deepEqual(e.messages.map(row => row.role), ['assistant', 'user']);
+      return '重试正文的一段，随后结束。';
+    };
+    e.update = async config => {
+      await events.bus.emit(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, '变量分片', config.generation_id);
+      assert.equal(e.runtime.view.streaming, '');
+      return block([]);
+    };
+    if (entry === '立即重试') await e.runtime.retry();
+    else await e.runtime.messageAction('player_send', 1);
+    assert.equal(e.messages[2].message, '重试正文的一段，随后结束。');
+    assert.equal(e.runtime.view.streaming, '');
+  } finally { await e.runtime.dispose(); }
 });
 
 for (const phase of ['story', 'update', 'phone'])
@@ -242,7 +273,7 @@ test(`${kind}入口pagehide按原回调清理，不再响应后续事件`, async
   await events.bus.emit(event); assert.equal(reloads, 1);
 });
 
-test('消息iframe句柄与卸载清理其监听，原生once缺陷继续单列', async () => {
+function messageFrameFixture() {
   const { events } = setup(), { mountMessageFrame } = require('../界面/桌面端/utils/message-frame.ts');
   const host = { addEventListener() {}, removeEventListener() {} }, handlers = {};
   const child = { addEventListener: (event, fn) => { handlers[event] = fn; } };
@@ -256,14 +287,169 @@ test('消息iframe句柄与卸载清理其监听，原生once缺陷继续单列'
     documentElement: { outerHTML: '<html></html>' } }; } };
   const unmount = mountMessageFrame(frame, '<p>fixture</p>', 2);
   host.__cwMessageFrames[frame.id](child);
+  return { events, child, handlers, unmount, host };
+}
+test('消息iframe句柄与卸载清理全部监听，包括原生once包装器', async () => {
+  const { events, child, handlers, unmount } = messageFrameFixture();
   let called = 0;
   child.eventOn('widget-active', () => called++).stop();
   await events.bus.emit('widget-active'); assert.equal(called, 0);
   for (const method of ['eventOn', 'eventMakeFirst', 'eventMakeLast', 'eventOnce']) child[method](method, () => called++);
   handlers.pagehide(); unmount();
   for (const method of ['eventOn', 'eventMakeFirst', 'eventMakeLast']) assert.equal(events.count(method), 0);
-  assert.equal(events.count('eventOnce'), 1, '原生once仍保留包装器，未修改插件来掩盖旧缺陷');
+  assert.equal(events.count('eventOnce'), 0, '原生once可按原始回调身份清理包装器');
   await events.bus.emit('eventOnce');
   assert.equal(called, 0, '已取消的子页回调不应再执行');
   assert.equal(events.total(), 0);
+});
+
+
+test('卡内消息iframe once按原函数取消并等待异步完成，并发emit只执行一次', async () => {
+  const { events, child, unmount } = messageFrameFixture();
+  let called = 0;
+  const original = () => called++;
+  child.eventOnce('cancelled', original);
+  child.eventRemoveListener('cancelled', original);
+  await events.bus.emit('cancelled');
+  assert.equal(called, 0);
+  const blocker = deferred();
+  let completed = false;
+  child.eventOnce('once', async () => { called++; await blocker.promise; completed = true; });
+  const first = events.bus.emit('once');
+  await events.bus.emit('once');
+  assert.equal(called, 1);
+  assert.equal(completed, false);
+  blocker.resolve(); await first;
+  assert.equal(completed, true);
+  assert.equal(events.count('once'), 0);
+  unmount();
+});
+
+test('消息iframe清理失败仍清理其他监听及文档桥，保留失败项供再次清理', () => {
+  const { events, child, unmount, host } = messageFrameFixture();
+  child.eventOn('bad-cleanup', () => {});
+  child.eventOn('good-cleanup', () => {});
+  const remove = global.eventRemoveListener;
+  global.eventRemoveListener = (event, callback) => {
+    if (event === 'bad-cleanup') throw Error('remove failed');
+    return remove(event, callback);
+  };
+  try {
+    assert.throws(unmount, error => error instanceof AggregateError && error.errors[0].message === 'remove failed');
+    assert.equal(events.count('bad-cleanup'), 1);
+    assert.equal(events.count('good-cleanup'), 0);
+    assert.equal(host.__cwMessageFrames, undefined);
+  } finally { global.eventRemoveListener = remove; }
+  unmount();
+  assert.equal(events.total(), 0);
+});
+
+
+test('消息iframe once在两次emit预先取得相同监听快照时只执行一次', async () => {
+  const { events, child, unmount } = messageFrameFixture();
+  const gate = deferred(); let called = 0;
+  child.eventOn('snapshot', () => gate.promise);
+  child.eventOnce('snapshot', () => called++);
+  const first = events.bus.emit('snapshot'), second = events.bus.emit('snapshot');
+  gate.resolve(); await Promise.all([first, second]);
+  assert.equal(called, 1);
+  unmount();
+});
+
+test('原生once按原函数注销仍失败，卡内包装不依赖该缺陷', async () => {
+  const { events } = setup(); let called = 0;
+  const original = () => called++;
+  events.bus.once('native-counterexample', original);
+  events.bus.removeListener('native-counterexample', original);
+  await events.bus.emit('native-counterexample');
+  assert.equal(called, 1);
+});
+
+for (const method of ['eventOn', 'eventOnce', 'eventMakeFirst', 'eventMakeLast'])
+  test(`消息iframe ${method}接收原生就绪事件的即时回放并可清理`, async () => {
+    const { events, child, unmount } = messageFrameFixture();
+    for (const event of ['app_ready', 'app_initialized']) {
+      await events.bus.emit(event, 'ready');
+      const seen = [];
+      child[method](event, value => seen.push(value));
+      assert.deepEqual(seen, ['ready']);
+      assert.equal(events.count(event), method === 'eventOnce' ? 0 : 1);
+      await events.bus.emit(event, 'again');
+      assert.deepEqual(seen, method === 'eventOnce' ? ['ready'] : ['ready', 'again']);
+    }
+    unmount();
+    assert.equal(events.total(), 0);
+  });
+
+test('消息iframe first和last移动原回调，重复on或once保持现有监听', async () => {
+  const { events, child, unmount } = messageFrameFixture();
+  const seen = [], first = () => seen.push('A'), second = () => seen.push('B');
+  const handle = child.eventOn('ordered', first);
+  child.eventOn('ordered', second);
+  child.eventOn('ordered', first);
+  child.eventOnce('ordered', first);
+  child.eventMakeLast('ordered', first);
+  await events.bus.emit('ordered');
+  assert.deepEqual(seen, ['B', 'A']);
+  seen.length = 0;
+  child.eventMakeFirst('ordered', first);
+  await events.bus.emit('ordered');
+  assert.deepEqual(seen, ['A', 'B']);
+  handle.stop();
+  seen.length = 0;
+  await events.bus.emit('ordered');
+  assert.deepEqual(seen, ['B']);
+  unmount();
+  assert.equal(events.total(), 0);
+});
+
+test('消息iframe once重排保持一次语义，同回调注销后可重新注册', async () => {
+  const { events, child, unmount } = messageFrameFixture();
+  let called = 0;
+  const callback = () => called++;
+  child.eventOnce('ordered-once', callback);
+  child.eventMakeLast('ordered-once', callback);
+  child.eventMakeFirst('ordered-once', callback);
+  await events.bus.emit('ordered-once');
+  await events.bus.emit('ordered-once');
+  assert.equal(called, 1);
+  child.eventOn('ordered-once', callback);
+  await events.bus.emit('ordered-once');
+  assert.equal(called, 2);
+  unmount();
+});
+
+test('消息iframe即时回放中注销及抛错后没有遗留监听', async () => {
+  const { events, child, unmount } = messageFrameFixture();
+  await events.bus.emit('app_ready');
+  const callback = () => child.eventRemoveListener('app_ready', callback);
+  child.eventOn('app_ready', callback);
+  assert.equal(events.count('app_ready'), 0);
+  const fail = () => { throw Error('replay failed'); };
+  assert.throws(() => child.eventOn('app_ready', fail), /replay failed/);
+  assert.equal(events.count('app_ready'), 0);
+  unmount();
+});
+
+test('消息iframe变量按顶层覆盖，删除与缩短数组不复活且返回值独立', () => {
+  const { child, unmount } = messageFrameFixture();
+  const scope = {
+    global: { shared: { from: 'global' }, globalOnly: '保留' },
+    character: { shared: { from: 'character' } },
+    chat: { shared: { from: 'chat' } },
+  };
+  const messages = [
+    { data: { stat_data: { 仓库: { 旧书: 1 }, 名单: ['甲', '乙'] }, earlierOnly: '保留' } },
+    { data: { stat_data: { 仓库: {}, 名单: ['新'] }, shared: { from: 'message' } } },
+  ];
+  global.getVariables = ({ type }) => scope[type];
+  global.getChatMessages = range => { assert.equal(range, '0-2'); return messages; };
+  const actual = child.getAllVariables();
+  assert.deepEqual(actual, { globalOnly: '保留', earlierOnly: '保留', shared: { from: 'message' },
+    stat_data: { 仓库: {}, 名单: ['新'] } });
+  actual.stat_data.名单.push('局部');
+  actual.shared.from = '局部';
+  assert.deepEqual(messages[1].data.stat_data.名单, ['新']);
+  assert.equal(messages[1].data.shared.from, 'message');
+  unmount();
 });

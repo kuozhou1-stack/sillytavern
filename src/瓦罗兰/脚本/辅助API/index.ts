@@ -3,6 +3,8 @@ import { activeContext, createRuntime, type Runtime } from '../../运行/host';
 import { Schema } from '../../schema';
 import { registerPromptMacros } from '../../运行/prompt-context';
 import { watch, type WatchStopHandle } from 'vue';
+import { loadNativeModules } from '../../运行/generation/native';
+import { createCardGeneration } from '../../运行/generation';
 
 $(() => {
   const host = window.parent as any;
@@ -66,7 +68,9 @@ $(() => {
       { timeout: Infinity },
     );
     if (!current()) return;
-    runtime = createRuntime();
+    const generation = createCardGeneration(await loadNativeModules());
+    if (!current()) return;
+    runtime = createRuntime(generation.generate, generation.stop);
     slot.runtime = runtime;
     await runtime.start();
     if (!current()) return;
@@ -77,7 +81,6 @@ $(() => {
       () => {
         void eventEmit('chengwan:runtime_changed');
       },
-      { deep: true },
     );
     void eventEmit('chengwan:runtime_changed');
     initializeGlobal('ChengwanRuntime', runtime);

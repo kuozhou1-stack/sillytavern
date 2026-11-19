@@ -750,8 +750,8 @@ function emitGroupChat(groupId: string) {
     gap: 6px;
     overflow-x: auto;
     padding-bottom: 4px;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    scrollbar-width: thin;
+    scrollbar-color: var(--cw-border-hover) transparent;
 
     .cw-contact-nav-chip {
       display: inline-flex;

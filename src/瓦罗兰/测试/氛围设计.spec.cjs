@@ -25,6 +25,7 @@ async function fixture(run,{mode='extra',preset=false,atmosphere=mood,initial=se
   return structuredFixtureReply(config,await (stage==='story'?e.story(final):e.update(final)));
  };
  global.generate=config=>invoke('generate',config);global.generateRaw=config=>invoke('generateRaw',config);
+ e.runtime=createRuntime();
  await e.runtime.start();try{await run(e);}finally{await e.runtime.dispose();}
 }
 

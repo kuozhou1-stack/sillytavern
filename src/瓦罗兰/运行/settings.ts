@@ -1,23 +1,34 @@
 import { requestBrowserLock } from './browser-lock';
 import { browserPreferenceScope, readSharedPreference, saveSharedPreference } from './shared-preferences';
 import { removeLegacyAtmosphereWorldbook } from './atmosphere';
+import { vertexConnection } from './vertex';
 
-export const ApiSettingsSchema = z.object({
-  mode: z.enum(['main', 'extra']).prefault('extra'),
+export const ApiProfileSchema = z.object({
+  name: z.string().trim().prefault(''),
   apiurl: z.string().trim().prefault(''),
   key: z.string().prefault(''),
   model: z.string().trim().prefault(''),
-  source: z.enum(['openai_compatible', 'google']).prefault('openai_compatible'),
+  source: z.enum(['openai_compatible', 'google', 'vertex']).prefault('openai_compatible'),
+  projectId: z.string().trim().prefault(''),
+  region: z.string().trim().prefault('global'),
+  vertexCredentialId: z.string().prefault(''),
+  vertexThinkingLevel: z.enum(['default', 'minimal', 'low', 'medium', 'high', 'xhigh']).prefault('default'),
+});
+export type ApiProfile = z.infer<typeof ApiProfileSchema>;
+export const ApiSettingsSchema = ApiProfileSchema.extend({
+  mode: z.enum(['main', 'extra']).prefault('extra'),
   retries: z.number().int().nonnegative().prefault(0),
+  autoFailover: z.boolean().prefault(false),
+  backups: z.array(ApiProfileSchema).prefault([]),
 });
 export type ApiSettings = z.infer<typeof ApiSettingsSchema>;
+export const VariableApiSettingsSchema = ApiSettingsSchema.extend({ independent: z.boolean().prefault(true) });
 export const InformationApiSettingsSchema = ApiSettingsSchema.extend({ reuseVariable: z.boolean().prefault(true) });
 export type ApiChannel = 'variable' | 'phone' | 'information';
 export type SettingsChannel = ApiChannel | 'atmosphere';
 export type SettingsScope = SettingsChannel | 'general';
 const apiChannels = ['variable', 'phone', 'information'] as const;
-const apiLabels = { variable: '正文变量 API', phone: '手机与奇遇 API', information: '资料选择 API' };
-const preferenceLabels = { ...apiLabels, atmosphere: '氛围设计' };
+const apiLabels = { variable: '正文变量', phone: '手机与奇遇', information: '资料选择' };
 export const AtmosphereSchema = z.string().prefault('');
 export const apiBrowserKey = (channel: ApiChannel, account: string) =>
   `valoran-v1:${encodeURIComponent(account)}:api:${channel}:v1`;
@@ -25,16 +36,22 @@ export const atmosphereBrowserKey = (account: string) => `valoran-v1:${encodeURI
 const preferenceBrowserKey = (channel: SettingsChannel, account: string) =>
   channel === 'atmosphere' ? atmosphereBrowserKey(account) : apiBrowserKey(channel, account);
 const sharedPreferenceKey = (channel: SettingsChannel) => channel === 'atmosphere' ? channel : `api-${channel}` as const;
-export const apiConnection = (api: ApiSettings): CustomApiConfig | undefined => api.mode === 'main' ? undefined : ({
+export const apiConnection = (api: ApiProfile): CustomApiConfig => api.source === 'vertex' ? vertexConnection(api) : ({
   apiurl: api.apiurl,
   key: api.key,
   model: api.model,
   source: api.source === 'google' ? 'makersuite' : 'openai',
 });
-export const isApiConfigured = (api: ApiSettings) => api.mode === 'main' || (!!api.apiurl && !!api.model);
+export const isApiConfigured = (api: ApiSettings) => api.mode === 'main' || (!!api.model && (api.source === 'vertex'
+  ? !!api.projectId && !!api.region && !!api.vertexCredentialId : !!api.apiurl));
 
-export function validateApi(api: ApiSettings, name: string, required = true) {
-  if (api.mode === 'main') return;
+function validateProfile(api: ApiProfile, name: string, required: boolean) {
+  if (api.source === 'vertex') {
+    if (!required && !api.model && !api.projectId && !api.vertexCredentialId) return;
+    if (!api.vertexCredentialId || !api.projectId || !api.region || !api.model)
+      throw Error(`请为${name}导入 Vertex 服务账号，并填写项目、区域与模型`);
+    return;
+  }
   if (!required && !api.apiurl && !api.model && !api.key) return;
   if (!api.apiurl || !api.model) throw Error(`请填写${name} API 的端点与模型`);
   let url: URL;
@@ -45,6 +62,14 @@ export function validateApi(api: ApiSettings, name: string, required = true) {
   }
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
     throw Error(`${name} API 地址无效，密钥请填在密钥栏`);
+}
+
+export function validateApi(api: ApiSettings, name: string, required = true) {
+  if (api.mode === 'main') return;
+  validateProfile(api, name, required || api.backups.length > 0);
+  for (const [index, backup] of api.backups.entries()) {
+    validateProfile(backup, `${name} · ${backup.name || '备用 ' + (index + 1)}`, true);
+  }
 }
 
 export const CharacterRosterSettingsSchema = z.object({
@@ -84,7 +109,7 @@ export const SettingsSchema = z
     characterRoster: CharacterRosterSettingsSchema.prefault({}),
     locationRoster: InformationRosterSettingsSchema.prefault({ limit: 6, rotation: 2 }),
     organizationRoster: InformationRosterSettingsSchema.prefault({ limit: 3, rotation: 1 }),
-    variable: ApiSettingsSchema.prefault({}),
+    variable: VariableApiSettingsSchema.prefault({}),
     phone: ApiSettingsSchema.prefault({}),
     information: InformationApiSettingsSchema.prefault({}),
   })
@@ -97,10 +122,8 @@ export const normalizeRuleName = (name: string) => name.replace(/\s+/g, '');
 export type Settings = z.infer<typeof SettingsSchema>;
 export function validateSettings(input: unknown): Settings {
   const value = SettingsSchema.parse(input);
-  for (const [name, api] of [
-    ['变量', value.variable],
-    ['手机与奇遇', value.phone],
-  ] as const) validateApi(api, name, false);
+  if (value.variable.independent) validateApi(value.variable, '变量', false);
+  validateApi(value.phone, '手机与奇遇', false);
   if (!value.information.reuseVariable) validateApi(value.information, '资料选择', false);
   return value;
 }
@@ -120,13 +143,16 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       try { account = await browserPreferenceScope(); }
       catch (error) { scopeWarning = '浏览器账号隔离信息读取失败，保留酒馆或旧角色卡配置：' + String(error); }
       await Promise.all((channel ? [channel] : [...apiChannels, 'atmosphere'] as const).map(async current => {
-        const label = preferenceLabels[current], messages: string[] = [];
+        const label = current === 'atmosphere' ? '氛围设计' : apiLabels[current] + ' API';
+        const messages: string[] = [];
         const schema = current === 'atmosphere' ? AtmosphereSchema
-          : current === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
+          : current === 'information' ? InformationApiSettingsSchema
+          : current === 'variable' ? VariableApiSettingsSchema : ApiSettingsSchema;
         const assign = (input: unknown) => {
           if (current === 'atmosphere') value.atmosphere = AtmosphereSchema.parse(input);
           else if (current === 'information') value.information = InformationApiSettingsSchema.parse(input);
-          else value[current] = ApiSettingsSchema.parse(input);
+          else if (current === 'variable') value.variable = VariableApiSettingsSchema.parse(input);
+          else value.phone = ApiSettingsSchema.parse(input);
         };
         let browser: unknown = null;
         if (account) try {
@@ -205,10 +231,12 @@ export function createSettingsController(assertActive: () => void = () => {}) {
       }
       else if (channel === 'atmosphere') value = { atmosphere: AtmosphereSchema.parse((input as Record<string, unknown>)?.atmosphere) };
       else if (channel) {
-        const schema = channel === 'information' ? InformationApiSettingsSchema : ApiSettingsSchema;
+        const schema = channel === 'information' ? InformationApiSettingsSchema
+          : channel === 'variable' ? VariableApiSettingsSchema : ApiSettingsSchema;
         const api = schema.parse((input as Record<string, unknown>)?.[channel]);
-        if (channel !== 'information' || !(api as Settings['information']).reuseVariable)
-          validateApi(api, apiLabels[channel], false);
+        const requiresConnection = channel === 'variable' ? (api as Settings['variable']).independent
+          : channel === 'information' ? !(api as Settings['information']).reuseVariable : true;
+        if (requiresConnection) validateApi(api, apiLabels[channel], false);
         value = { [channel]: api };
       } else value = validateSettings(input); // Existing full-settings callers retain their contract.
       const chat = SillyTavern.getCurrentChatId();

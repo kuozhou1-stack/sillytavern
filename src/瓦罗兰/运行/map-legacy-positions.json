@@ -1,0 +1,577 @@
+{
+  "riverside_riverwalk": {
+    "districtId": "riverside",
+    "positions": [
+      [
+        455,
+        310
+      ],
+      [
+        499,
+        344.286
+      ]
+    ]
+  },
+  "riverside_yunhui": {
+    "districtId": "riverside",
+    "positions": [
+      [
+        510,
+        310
+      ],
+      [
+        543.55,
+        317.5
+      ]
+    ]
+  },
+  "riverside_international_hotel": {
+    "districtId": "riverside",
+    "positions": [
+      [
+        565,
+        310
+      ],
+      [
+        550.3,
+        369.286
+      ]
+    ]
+  },
+  "riverside_jinyao_gym": {
+    "districtId": "riverside",
+    "positions": [
+      [
+        455,
+        360
+      ],
+      [
+        543.55,
+        317.5
+      ]
+    ]
+  },
+  "oldtown_old_street": {
+    "districtId": "oldtown",
+    "positions": [
+      [
+        320,
+        345
+      ],
+      [
+        347,
+        349.214
+      ]
+    ]
+  },
+  "oldtown_vegetable_market": {
+    "districtId": "oldtown",
+    "positions": [
+      [
+        375,
+        345
+      ],
+      [
+        326,
+        386.857
+      ]
+    ]
+  },
+  "oldtown_community_hall": {
+    "districtId": "oldtown",
+    "positions": [
+      [
+        430,
+        345
+      ],
+      [
+        398,
+        351.429
+      ]
+    ]
+  },
+  "oldtown_lianchi_bathhouse": {
+    "districtId": "oldtown",
+    "positions": [
+      [
+        320,
+        395
+      ],
+      [
+        341,
+        362.5
+      ]
+    ]
+  },
+  "oldtown_tingyu_courtyard": {
+    "districtId": "oldtown",
+    "positions": [
+      [
+        398,
+        320.429
+      ]
+    ]
+  },
+  "university_book_street": {
+    "districtId": "university",
+    "positions": [
+      [
+        455,
+        175
+      ],
+      [
+        474.8,
+        219.714
+      ]
+    ]
+  },
+  "university_library": {
+    "districtId": "university",
+    "positions": [
+      [
+        510,
+        175
+      ],
+      [
+        538.6,
+        219.714
+      ]
+    ]
+  },
+  "university_university": {
+    "districtId": "university",
+    "positions": [
+      [
+        565,
+        175
+      ],
+      [
+        518.3,
+        159.357
+      ]
+    ]
+  },
+  "university_student_dorms": {
+    "districtId": "university",
+    "positions": [
+      [
+        545.125,
+        164
+      ]
+    ]
+  },
+  "university_weapon_hall": {
+    "districtId": "university",
+    "positions": [
+      [
+        491.475,
+        158.429
+      ]
+    ]
+  },
+  "residential_plaza": {
+    "districtId": "residential",
+    "positions": [
+      [
+        445,
+        460
+      ],
+      [
+        464.2,
+        513.214
+      ]
+    ]
+  },
+  "residential_sports_park": {
+    "districtId": "residential",
+    "positions": [
+      [
+        500,
+        460
+      ],
+      [
+        518.2,
+        461.429
+      ]
+    ]
+  },
+  "residential_service_station": {
+    "districtId": "residential",
+    "positions": [
+      [
+        555,
+        460
+      ],
+      [
+        421,
+        509.071
+      ]
+    ]
+  },
+  "residential_jijing_club": {
+    "districtId": "residential",
+    "positions": [
+      [
+        445,
+        510
+      ],
+      [
+        503.8,
+        480.071
+      ]
+    ]
+  },
+  "residential_wen_residence": {
+    "districtId": "residential",
+    "positions": [
+      [
+        422.8,
+        457.286
+      ]
+    ]
+  },
+  "residential_cafe_street": {
+    "districtId": "residential",
+    "positions": [
+      [
+        555,
+        510
+      ],
+      [
+        449.8,
+        534.964
+      ]
+    ]
+  },
+  "residential_boxing_gym": {
+    "districtId": "residential",
+    "positions": [
+      [
+        445,
+        560
+      ],
+      [
+        503.8,
+        480.071
+      ]
+    ]
+  },
+  "market_market": {
+    "districtId": "market",
+    "positions": [
+      [
+        585,
+        355
+      ],
+      [
+        608.75,
+        384.571
+      ]
+    ]
+  },
+  "market_grocery_street": {
+    "districtId": "market",
+    "positions": [
+      [
+        640,
+        355
+      ],
+      [
+        625.025,
+        350.571
+      ]
+    ]
+  },
+  "market_craft_court": {
+    "districtId": "market",
+    "positions": [
+      [
+        695,
+        355
+      ],
+      [
+        666.1,
+        328.714
+      ]
+    ]
+  },
+  "lingyou_animal_base": {
+    "districtId": "market",
+    "positions": [
+      [
+        585,
+        405
+      ],
+      [
+        683.15,
+        393.071
+      ]
+    ]
+  },
+  "qinghe_base_sunroom": {
+    "districtId": "market",
+    "positions": [
+      [
+        640,
+        405
+      ],
+      [
+        691.675,
+        380.929
+      ]
+    ]
+  },
+  "qinghe_base_dorm_a": {
+    "districtId": "market",
+    "positions": [
+      [
+        700.2,
+        410.071
+      ]
+    ]
+  },
+  "qinghe_market_feed_store": {
+    "districtId": "market",
+    "positions": [
+      [
+        585,
+        455
+      ],
+      [
+        628.125,
+        362.714
+      ]
+    ]
+  },
+  "coast_seawall": {
+    "districtId": "coast",
+    "positions": [
+      [
+        605,
+        480
+      ],
+      [
+        698.75,
+        513.929
+      ]
+    ]
+  },
+  "coast_sports_center": {
+    "districtId": "coast",
+    "positions": [
+      [
+        660,
+        480
+      ],
+      [
+        706.625,
+        541.786
+      ]
+    ]
+  },
+  "coast_resort": {
+    "districtId": "coast",
+    "positions": [
+      [
+        715,
+        480
+      ],
+      [
+        719.75,
+        474.286
+      ]
+    ]
+  },
+  "coast_seaview_apartments": {
+    "districtId": "coast",
+    "positions": [
+      [
+        634,
+        497.857
+      ]
+    ]
+  },
+  "coast_seaview_manor": {
+    "districtId": "coast",
+    "positions": [
+      [
+        631.375,
+        453.929
+      ]
+    ]
+  },
+  "coast_yoga_house": {
+    "districtId": "coast",
+    "positions": [
+      [
+        715,
+        530
+      ],
+      [
+        683,
+        491.429
+      ]
+    ]
+  },
+  "demacia_city": {
+    "districtId": "demacia",
+    "positions": [
+      [
+        155,
+        165
+      ],
+      [
+        165.2,
+        155.286
+      ]
+    ]
+  },
+  "crownguard_estate": {
+    "districtId": "demacia",
+    "positions": [
+      [
+        225.675,
+        109
+      ]
+    ]
+  },
+  "noxus_trade_port": {
+    "districtId": "noxus",
+    "positions": [
+      [
+        795,
+        175
+      ],
+      [
+        795.85,
+        173.929
+      ]
+    ]
+  },
+  "glasc_industries": {
+    "districtId": "noxus",
+    "positions": [
+      [
+        891.4,
+        117.107
+      ]
+    ]
+  },
+  "freljord_dome": {
+    "districtId": "freljord",
+    "positions": [
+      [
+        475,
+        90
+      ],
+      [
+        497.5,
+        90.786
+      ]
+    ]
+  },
+  "kda_stadium": {
+    "districtId": "ionia",
+    "positions": [
+      [
+        830,
+        355
+      ],
+      [
+        898.025,
+        350.286
+      ]
+    ]
+  },
+  "piltover_research": {
+    "districtId": "piltover_zaun",
+    "positions": [
+      [
+        745,
+        615
+      ],
+      [
+        771.9,
+        593.429
+      ]
+    ]
+  },
+  "zaun_market": {
+    "districtId": "piltover_zaun",
+    "positions": [
+      [
+        800,
+        645
+      ],
+      [
+        763.125,
+        647.286
+      ]
+    ]
+  },
+  "break_rules_club": {
+    "districtId": "piltover_zaun",
+    "positions": [
+      [
+        745,
+        675
+      ],
+      [
+        832.35,
+        664
+      ]
+    ]
+  },
+  "bilgewater_port": {
+    "districtId": "bilgewater",
+    "positions": [
+      [
+        485,
+        650
+      ],
+      [
+        444.75,
+        622
+      ]
+    ]
+  },
+  "summer_coast": {
+    "districtId": "bilgewater",
+    "positions": [
+      [
+        540,
+        680
+      ],
+      [
+        563,
+        647
+      ]
+    ]
+  },
+  "shurima_zone": {
+    "districtId": "shurima",
+    "positions": [
+      [
+        175,
+        605
+      ],
+      [
+        211.25,
+        607.214
+      ]
+    ]
+  },
+  "targon_foothills": {
+    "districtId": "targon",
+    "positions": [
+      [
+        70,
+        390
+      ],
+      [
+        103.15,
+        403.714
+      ]
+    ]
+  }
+}

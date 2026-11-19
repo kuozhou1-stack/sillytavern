@@ -7,7 +7,7 @@ harness._compile(fs.readFileSync(file,'utf8').split('const novelGoodReply =')[0]
 const {environment,block,endpoint,Schema,copy}=harness.exports;
 const {ApiSettingsSchema}=require('../运行/settings.ts');
 const {nativePromptConfig}=require('../运行/prompts.ts');
-const {promptContextText,variableRuleText,withPromptContext}=require('../运行/prompt-context.ts');
+const {promptContextText,variableRuleText,createPromptRequestContext}=require('../运行/prompt-context.ts');
 const version=require('../运行/world-information.json').版本;
 const seed=()=>Schema.parse({_系统:{建档完成:true,资料加载:{资料版本:version}},玩家:{id:'player',姓名:'合成玩家'},
  地点:{cafe:{名称:'合成咖啡馆',简介:'SELECTED_DETAIL'},remote:{名称:'远处地点',简介:'UNSELECTED_DETAIL'}},
@@ -52,23 +52,36 @@ test('原生输入准备保留事实、端点与槽位参数，不修改原对�
 });
 test('本轮候选状态用于变量世界书，异常后恢复正常正文资料',async()=>{
  const base=seed(),draft=copy(base);draft.玩家.姓名='未提交候选';
- await assert.rejects(withPromptContext({purpose:'variables',state:draft},async()=>{
-  assert(promptContextText(()=>base).includes('未提交候选'));assert.equal(variableRuleText('规则原文'),'规则原文');
-  throw Error('合成失败');}),/合成失败/);
- assert(!promptContextText(()=>base).includes('未提交候选'));assert.equal(variableRuleText('规则原文'),'');
+ const context=createPromptRequestContext({purpose:'variables',state:draft});
+ assert(context.expandPrompt('{{valoran_context}}').includes('未提交候选'));
+ assert.equal(context.expandPrompt('# {{valoran_variables}}规则原文# {{valoran_variables_end}}'),'');
+ assert(!promptContextText(()=>base).includes('未提交候选'));assert.equal(variableRuleText('规则原文'),'规则原文');
  assert.equal(base.玩家.姓名,'合成玩家');
 });
 test('独立资料与奇遇任务不展开完整状态或变量格式',async()=>{
- for(const purpose of ['knowledge','novel'])await withPromptContext({purpose,state:seed()},async()=>{
-  assert.equal(promptContextText(()=>{throw Error('不应读取存档');}),'');assert.equal(variableRuleText('格式'),'');
- });
+ for(const purpose of ['knowledge','novel']){
+  const context=createPromptRequestContext({purpose,state:seed()});
+  assert.equal(context.expandPrompt('{{valoran_context}}'),'');
+  assert.equal(context.expandPrompt('# {{valoran_variables}}格式# {{valoran_variables_end}}'),'');
+ }
 });
-test('变量失败重试保留正文与提交身份，不重新生成正文',async()=>{
- await withRuntime({variable:configured('main')},async e=>{let fail=true;e.update=async()=>{if(fail){fail=false;throw Error('合成变量失败');}return block([]);};
- await assert.rejects(e.runtime.send('观察'),/合成变量失败/);const body=e.messages.at(-1).message,id=e.vars.澄湾待更新正文.id;
- await e.runtime.retry();assert.equal(e.messages.at(-1).message,body);assert.equal(e.calls.filter(c=>c.stage==='story').length,1);
- assert.deepEqual(Object.keys(e.state()._系统.已计轮事件),[id]);assert.equal(e.vars.澄湾待更新正文,null);
- });
+test('变量失败重试保留正文与提交身份，实际重试期间清除旧错误', async () => {
+  await withRuntime({ variable: configured('main') }, async e => {
+    e.update = async () => { throw Error('合成变量失败'); };
+    await assert.rejects(e.runtime.send('观察'), /合成变量失败/);
+    assert.match(e.runtime.view.error, /合成变量失败/);
+    const body = e.messages.at(-1).message, id = e.vars.澄湾待更新正文.id;
+    e.update = async () => {
+      assert.equal(e.runtime.view.phase, 'variables');
+      assert.equal(e.runtime.view.error, '');
+      return block([]);
+    };
+    await e.runtime.retry();
+    assert.equal(e.messages.at(-1).message, body);
+    assert.equal(e.calls.filter(c => c.stage === 'story').length, 1);
+    assert.deepEqual(Object.keys(e.state()._系统.已计轮事件), [id]);
+    assert.equal(e.vars.澄湾待更新正文, null);
+  });
 });
 
 for(const mode of ['main','extra'])for(const role of ['system','user'])test(`正文交接保留结算边界且只发送一份事实/${mode}/${role}`,async()=>{
@@ -87,7 +100,7 @@ for(const mode of ['main','extra'])for(const role of ['system','user'])test(`正
   const taskMessages=worker.finalMessages.filter(m=>m.content.includes('不是新的正文回合。'));
   assert.equal(taskMessages.length,1,'完整职责只由本次读取的变量规则提供一份');
   assert.equal(taskMessages[0].role,role,'沿用变量格式条目的原生角色');
-  const example=require('yaml').parse(formatEntry.content).变量输出格式.format;
+  const example=require('yaml').parse(formatEntry.content).变量输出格式.后台结算示例;
   assert(taskMessages[0].content.includes(example),'实际发出的结算提示应包含已安装世界书的示例');
   const patchString=JSON.parse(example).JSONPatch;
   assert.equal(typeof patchString,'string');

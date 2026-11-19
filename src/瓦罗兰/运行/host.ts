@@ -3,7 +3,7 @@ import { phoneBudget } from './phone-budget';
 import { normalizePhoneRecordPatches } from './model-phone-patch';
 import { phoneRequestIdentity, type PhoneRequestIdentity, type PhoneRequestState, type PhoneRequestStatus, type PhoneActionResult } from './phone-request';
 import { finalizeWorld, normalizeWorldAnchorPatches, restoreWorldAnchors } from './world';
-import { reactive } from 'vue';
+import { reactive, toRaw } from 'vue';
 import { sha256 } from './browser-crypto';
 import { requestBrowserLock, type BrowserLock } from './browser-lock';
 import { livePromptConfig, nativePromptConfig, variableRulePrompts } from './prompts';
@@ -39,9 +39,10 @@ import {
 } from './core';
 
 import { SettingsSchema, createSettingsController, validateApi, apiConnection, informationApi, type ApiSettings, type SettingsChannel, type SettingsScope } from './settings';
+import { ApiProviderError } from './generation/provider-error';
 import { atmospherePrompt } from './atmosphere';
 import { stripProtocol, storedNarrative, updateBlock, protocolJson } from './message-protocol';
-import { withPromptContext, preparePromptWorldbook } from './prompt-context';
+import { createPromptRequestContext, preparePromptWorldbook, type PromptRequestContext } from './prompt-context';
 import { PatchArraySyntaxError, variableResponseBlock, variableResponseSchema, type VariableReplyFormat } from './variable-response';
 import { withPromptInstructions, promptProjections } from './model-history';
 import { savedChanges, storyChangeStatus, type StorySettlement } from './variable-changes';
@@ -50,8 +51,8 @@ import { legacyStoryReplay } from './story-backup';
 import { CandidateIdentityError, isCommittedCandidate } from './committed-candidate';
 import { assertMvuCommandResult } from './mvu-schema';
 import { persistChat } from './chat-persistence';
-import { LIBRARY_KEY, LibrarySchema, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
-import { prepareCharacterRoster, prepareOpeningCharacterRoster, characterSelectionContext } from './character-roster';
+import { LIBRARY_KEY, LibrarySchema, libraryRevision, libraryView, prepareLibraryCommand, exportManagedCharacter, type LibraryCommand, type LibraryView } from './character-library';
+import { prepareCharacterRoster, prepareOpeningCharacterRoster, restoreOpeningCharacterSources, characterSelectionContext } from './character-roster';
 import { createProfile, initialConnectionIds } from './creation';
 import { assertDisabledUnchanged, taskHasActiveTargets } from './character-activity';
 import { applyNovelAction, refreshNovelSystem, type NovelAction } from './novel-system';
@@ -65,8 +66,8 @@ export type { PhoneRequestIdentity, PhoneRequestState, PhoneRequestStatus, Phone
 // Tavern logs event-listener exceptions without rejecting parseMessage. Keep the
 // rejection on that exact candidate so a rolled-back update cannot look successful.
 const rejectedMvuCandidates = new WeakMap<Mvu.MvuData, unknown>();
-async function parseCandidate(text: string, envelope: Mvu.MvuData) {
-  const { commands } = updateBlock(text);
+async function parseCandidate(text: string, envelope: Mvu.MvuData, fromStory = false) {
+  const { commands } = updateBlock(text, fromStory);
   const base = copy(envelope);
   // 旧存档只在候选快照内补新分组，不改活动楼层，也不放宽只读字段校验。
   if (!Object.hasOwn(base.stat_data, '奇遇系统')) base.stat_data.奇遇系统 = Schema.parse({}).奇遇系统;
@@ -155,7 +156,8 @@ function variableRetryPrompt(issue: VariableUpdateRequest['retryIssue']) {
   return '';
 }
 
-export function createRuntime() {
+export function createRuntime(generateRequest: (config: GenerateConfig, context?: PromptRequestContext) => Promise<unknown> = generate,
+  stopRequest: (id: string) => unknown = id => stopGenerationById(id)) {
   // Keep the original callback: Helper's returned stop handle loses this mapping.
   function listen<T extends EventType>(event: T, listener: ListenerType[T]): EventOnReturn {
     eventOn(event, listener);
@@ -169,8 +171,10 @@ export function createRuntime() {
     messages: [] as any[],
     busy: false,
     updating: false,
+    generationId: null as string | null,
     error: '',
     canResend: false,
+    canAutoRead: false,
     loadError: '',
     loading: false,
     loadPhase: '' as '' | 'read' | 'worldbook' | 'recovery',
@@ -180,8 +184,9 @@ export function createRuntime() {
     operation: '',
     phase: '',
     updates: [] as UpdateReceipt[],
-    queued: [] as { id: string; label: string; kind: string }[],
-    recoverable: [] as { id: string; label: string; kind: string; preview: string }[],
+    activeNovelTarget: null as NovelRefreshTarget | null,
+    queued: [] as { id: string; label: string; kind: string; target?: NovelRefreshTarget }[],
+    recoverable: [] as { id: string; label: string; kind: string; preview: string; target?: NovelRefreshTarget }[],
     phoneRequest: null as PhoneRequestState | null,
   });
   let errorSource: 'candidate' | 'operation' | 'source' = 'operation';
@@ -212,7 +217,7 @@ export function createRuntime() {
   const settings = reactive(SettingsSchema.parse(getVariables({ type: 'character' }).澄湾设置));
   const settingsController = createSettingsController(requireWriter);
   let disposed = false;
-  let generationId: string | null = null;
+  let receivedStory = '';
   let cancelled = false;
   let epoch = 0;
   let requestSource: MessageSource | undefined;
@@ -243,9 +248,19 @@ export function createRuntime() {
     source: MessageSourceSchema,
   });
   type Intent = z.infer<typeof IntentSchema>;
-  const restored = z.array(IntentSchema).safeParse(getVariables({ type: 'chat' }).澄湾排队操作 ?? []);
-  let intents: Intent[] = restored.success ? restored.data : [];
-  if (!restored.success) setError('待发送操作记录损坏，请检查聊天备份；不会自动执行');
+  let intents: Intent[] = [];
+  function restoreIntents() {
+    const restored = z.array(IntentSchema).safeParse(getVariables({ type: 'chat' }).澄湾排队操作 ?? []);
+    if (!restored.success) {
+      // The last parsed queue is no longer authoritative after a failed manual reread.
+      // Invalidate only that memory view; leave the saved value available for repair.
+      intents = [];
+      updateQueueView();
+      throw Error('待发送操作记录损坏，原记录已保留；请修复聊天备份后重新读取', { cause: restored.error });
+    }
+    intents = restored.data;
+    updateQueueView();
+  }
   const scheduled = new Set<string>();
   const submittedPhoneIdentities = new WeakMap<Intent, PhoneRequestIdentity>();
   const updateQueueView = () => {
@@ -255,6 +270,7 @@ export function createRuntime() {
         id: i.id,
         label: i.label,
         kind: i.kind,
+        ...(i.kind === 'novel' && { target: i.target }),
         preview: i.text ?? i.action?.text ?? blockText(i.action?.blocks ?? []),
       }));
   };
@@ -266,8 +282,13 @@ export function createRuntime() {
       else if (!view.error) view.phase = '';
     }
     view.operation = active?.kind ?? '';
-    view.queued = waiting.filter(i => !i.background).map(i => ({ id: i.key, label: i.label, kind: i.kind }));
+    view.activeNovelTarget = active?.kind === 'novel' ? intents.find(item => item.id === active.key)?.target ?? null : null;
+    view.queued = waiting.filter(i => !i.background).map(i => ({
+      id: i.key, label: i.label, kind: i.kind,
+      ...(i.kind === 'novel' && { target: intents.find(item => item.id === i.key)?.target }),
+    }));
     updateQueueView();
+    updateReadAvailability();
   });
   updateQueueView();
   function requireWriter() {
@@ -371,6 +392,7 @@ export function createRuntime() {
   let pending: (VariableUpdateRequest & {
     context: Context;
     text: string;
+    reply?: string;
     envelope: Mvu.MvuData;
     replyFloor?: number;
     replySwipe?: number;
@@ -381,6 +403,7 @@ export function createRuntime() {
     prepared?: { envelope: Mvu.MvuData; settlement: StorySettlement };
     replay?: CommitReplay;
     revisionVersion?: number;
+    editingOriginal?: { text: string; commitId: string };
   }) | null = getVariables({ type: 'chat' }).澄湾待更新正文 ?? null;
   let failedSend: {
     context: Context;
@@ -422,7 +445,8 @@ export function createRuntime() {
   }
   async function narrativeRequest(p: NonNullable<typeof pending>) {
     return { id: p.id, context: p.context, source: p.source, intent: p.intent, openingTaskId: p.openingTaskId,
-      replay: p.replay, revisionVersion: p.revisionVersion,
+      mode: p.mode, reply: p.reply,
+      replay: p.replay, revisionVersion: p.revisionVersion, editingOriginal: p.editingOriginal,
       narrativeHash: await sha256(new TextEncoder().encode(stripProtocol(p.text))) };
   }
   async function matchesNarrativeHash(hash: string, narrative: string, floor: number) {
@@ -455,7 +479,8 @@ export function createRuntime() {
   }
   async function parseUpdate(text: string, envelope: Mvu.MvuData, channel: string, operation: VariableUpdateRequest, format?: VariableReplyFormat) {
     try {
-      return await parseCandidate(format === undefined ? text : variableResponseBlock(text, format), envelope);
+      return await parseCandidate(format === undefined ? text : variableResponseBlock(text, format), envelope,
+        operation === pending && pending.mode === 'main');
     } catch (error) {
       // Keep the actual response and stack in the chat, outside stat_data/prompts.
       // A retry may request a new response, but must not erase the failed evidence.
@@ -471,6 +496,12 @@ export function createRuntime() {
         },
       });
       console.error('[瓦洛兰变量解析] 已保存原始回复与堆栈', { channel, id }, error);
+      if (operation === pending && pending.mode === 'main' && error instanceof SyntaxError) {
+        const recovery = pending.replyFloor === undefined
+          ? '本次回复已保留，变量更新格式错误，正文楼层尚未建立。请取消本次待办后重新生成。'
+          : '正文已保存，变量更新格式错误，尚未完成结算。请编辑本楼修正变量块，保存后点击“立即重试”。';
+        throw new SyntaxError(recovery + error.message, { cause: error });
+      }
       throw error;
     }
   }
@@ -500,6 +531,20 @@ export function createRuntime() {
     },
   });
   const settledTexts = new Map<string, { commitId?: string; text: string }>();
+  function updateReadAvailability() {
+    view.canAutoRead = !disposed && !!writerLock && !view.readOnly &&
+      SillyTavern.getCurrentChatId() === boundChat && !!view.data && !view.loading && !view.loadError &&
+      !view.busy && !view.updating && !pending && !pendingPhone && !failedSend &&
+      !scheduler.active && !scheduler.waiting && !intents.length &&
+      !getVariables({ type: 'chat' }).澄湾待确认提交;
+    if (view.canAutoRead) {
+      try { view.canAutoRead = !firstUnsettledNarrative(); }
+      catch (error) {
+        view.canAutoRead = false;
+        setLoadError(error);
+      }
+    }
+  }
   function refreshMessages() {
     if (disposed || SillyTavern.getCurrentChatId() !== boundChat) return;
     const last = getLastMessageId();
@@ -563,6 +608,7 @@ export function createRuntime() {
           id: m.message_id,
           role: m.role,
           content: archived[m.message_id]?.mes ?? '',
+          editContent: pendingSelected && pending?.mode === 'main' ? pending.reply : undefined,
           isIncomplete: !!extra.cw_incomplete,
           isUpdatePending,
           variableUpdate,
@@ -584,8 +630,10 @@ export function createRuntime() {
     try {
       const c = activeContext();
       const chatVariables = getVariables({ type: 'chat' });
-      view.data = normalizeRuntimeWorld(Schema.parse(service.host.read(c.floor).stat_data));
-      view.characterLibrary = libraryView(view.data, chatVariables[LIBRARY_KEY]);
+      const data = normalizeRuntimeWorld(Schema.parse(service.host.read(c.floor).stat_data));
+      if (!equal(toRaw(view.data), data)) view.data = data;
+      const characterLibrary = libraryView(data, chatVariables[LIBRARY_KEY]);
+      if (!equal(toRaw(view.characterLibrary), characterLibrary)) view.characterLibrary = characterLibrary;
       view.managementPending = !!chatVariables.澄湾待确认提交?.rollbackOnFailure;
       const updates = chatVariables.澄湾更新回执;
       view.updates = Array.isArray(updates)
@@ -600,20 +648,59 @@ export function createRuntime() {
         setError('');
       }
       updateResendState();
+      updateReadAvailability();
       return true;
     } catch (e) {
       setLoadError(e);
       return false;
     }
   }
-  async function saveSettings(input: unknown = copy(settings), channel?: SettingsScope) {
+  let promptWorldbookPending = true;
+  let variableSettingsWork: Promise<unknown> = Promise.resolve();
+  // Keep the saved mode and its two worldbook entries in order. Generation runs after this short setup.
+  function inVariableSettingsOrder<T>(run: () => Promise<T>): Promise<T> {
+    const next = variableSettingsWork.then(run, run);
+    variableSettingsWork = next;
+    return next;
+  }
+  async function syncPromptWorldbook() {
+    promptWorldbookPending = true;
+    await preparePromptWorldbook(!settings.variable.independent, requireWriter);
+    promptWorldbookPending = false;
+  }
+  async function saveSettings(input: unknown, channel?: SettingsScope) {
     requireWriter();
-    if ((view.busy || view.updating) && channel !== 'atmosphere') throw Error('请等待当前请求完成或停止后保存设置');
-    const { value, warning } = await settingsController.save(input, channel);
+    const appearance = ['theme', 'font', 'fontSize', 'scale', 'lineHeight', 'letterSpacing', 'paragraphSpacing'];
+    const appearanceOnly = channel === 'general' && !!input && typeof input === 'object' &&
+      Object.keys(input).every(key => appearance.includes(key));
+    if ((view.busy || view.updating) && channel !== 'atmosphere' && !appearanceOnly)
+      throw Error('请等待当前请求完成或停止后保存设置');
+    let result: Awaited<ReturnType<typeof settingsController.save>>;
+    try {
+      result = await settingsController.save(input, channel);
+    } catch (error) {
+      if (channel === 'general' && input && typeof input === 'object') {
+        try {
+          requireWriter();
+          const actual = SettingsSchema.parse(getVariables({ type: 'character' }).澄湾设置);
+          for (const key of Object.keys(input) as (keyof typeof settings)[]) {
+            if (key in actual) Object.assign(settings, { [key]: actual[key] });
+          }
+        } catch (readError) {
+          console.error('[瓦洛兰设置] 保存失败后读取当前设置失败', readError);
+          throw Object.assign(Error('设置保存未确认，读取当前设置失败：' + String(readError), { cause: error }),
+            { settingsUnconfirmed: true });
+        }
+      }
+      throw error;
+    }
+    const { value, warning } = result;
     requireWriter();
     // Independent forms may finish in either order; only adopt the saved channel.
     Object.assign(settings, value);
     view.settingsWarning = warning;
+    if (!channel || channel === 'variable')
+      await syncPromptWorldbook();
     return warning;
   }
   async function reloadSettings(channel?: SettingsChannel) {
@@ -623,9 +710,12 @@ export function createRuntime() {
     requireWriter();
     if (channel === 'atmosphere') settings.atmosphere = value.atmosphere;
     else if (channel === 'information') settings.information = value.information;
+    else if (channel === 'variable') settings.variable = value.variable;
     else if (channel) settings[channel] = value[channel];
     else Object.assign(settings, value);
     view.settingsWarning = warning;
+    if (!channel || channel === 'variable')
+      await syncPromptWorldbook();
     return warning;
   }
   function readAlertMemory(): Record<string, boolean> {
@@ -637,7 +727,9 @@ export function createRuntime() {
   }
   async function commit(mutate: (s: State) => void | State, id = uid('commit')) {
     requireWriter();
-    if (view.busy || view.updating || pending || pendingPhone || view.managementPending) throw Error('请等待当前任务完成或恢复未确认提交后重试');
+    if (view.busy || view.updating || pending || pendingPhone || failedSend ||
+        getVariables({ type: 'chat' }).澄湾待确认提交 || firstUnsettledNarrative())
+      throw Error('请等待当前任务完成或恢复未确认提交后重试');
     view.updating = true;
     try {
       await service.commit(activeContext(), id, s => planTasks(refreshNovelSystem(mutate(s) || s)));
@@ -707,14 +799,23 @@ export function createRuntime() {
       const submissionId = payload.submissionId ?? uid('creation');
       if (!before._系统.提交记录[submissionId]) {
         const created = createProfile(before, payload);
+        const selectionPending = settings.characterAuto && settings.informationAuto;
         const prepared = prepareOpeningCharacterRoster(created, getVariables({ type: 'chat' })[LIBRARY_KEY],
-          settings.characterRoster, initialConnectionIds(payload), settings.characterAuto && settings.informationAuto ? [] : undefined);
-        if (prepared) await patchChat({ [LIBRARY_KEY]: prepared.library });
+          settings.characterRoster, initialConnectionIds(payload), selectionPending ? [] : undefined);
+        if (prepared) {
+          prepared.revision.automatic!.opening!.selectionPending = selectionPending;
+          await patchChat({ [LIBRARY_KEY]: prepared.library });
+        }
         assertContext(expected, activeContext());
         await service.commit(expected, submissionId, () => planTasks(refreshNovelSystem(prepared?.state ?? created)), true);
       }
       refresh();
-      return { active: Object.keys(view.data!.角色).length, waiting: Object.values(view.characterLibrary!.meta).filter(person => !person.enabled).length };
+      const opening = libraryRevision(view.data!, LibrarySchema.parse(getVariables({ type: 'chat' })[LIBRARY_KEY])).automatic?.opening;
+      return {
+        active: Object.keys(view.data!.角色).length,
+        waiting: Object.values(view.characterLibrary!.meta).filter(person => !person.enabled).length,
+        selectionPending: opening?.selectionPending === true,
+      };
     } catch (error) {
       setError(error);
       refresh();
@@ -722,6 +823,7 @@ export function createRuntime() {
     } finally { view.updating = false; }
   }
   async function scheduleOpeningCharacters() {
+    if (settings.characterAuto && settings.informationAuto) return;
     const expected = activeContext(), before = Schema.parse(service.host.read(expected.floor).stat_data);
     const prepared = prepareOpeningCharacterRoster(before, getVariables({ type: 'chat' })[LIBRARY_KEY], settings.characterRoster);
     if (!prepared) return;
@@ -773,9 +875,7 @@ export function createRuntime() {
     const quotas = { 地点: settings.locationRoster, 组织: settings.organizationRoster };
     const config = informationSelectionPrompt(before, input, source.filter(item => item.role !== 'system'),
       { quotas, characters: chooseCharacters ? characters : undefined });
-    config.custom_api = apiConnection(api);
-    const reply = await request(config, before,
-      true, api.retries, 'knowledge');
+    const reply = await requestExtra(config, before, api, 'knowledge');
     assertContext(expected, activeContext());
     assertMessageSource(source);
     const selection = parseInformationSelection(reply, !!chooseCharacters);
@@ -802,22 +902,23 @@ export function createRuntime() {
     await service.commit(expected, uid('information_selection'), () => selected);
     refresh();
   }
-  async function requestOnce(config: GenerateConfig, state: State, extra = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
-    generationId = uid('generation');
+  async function requestOnce(config: GenerateConfig, state: State, extra = false, purpose: 'variables' | 'novel' | 'knowledge' = 'variables', inlineVariables = false) {
+    const id = uid('generation');
+    view.generationId = id;
     const startedEpoch = epoch;
     try {
       requireWriter();
       view.phase = purpose === 'knowledge' ? 'information' : purpose === 'novel' ? 'novel' : extra ? 'variables' : 'story';
-      const native = extra ? nativePromptConfig(config) : { user_input: config.user_input ?? '' };
+      const native = extra || inlineVariables ? nativePromptConfig(config) : { user_input: config.user_input ?? '' };
       const injects = extra && purpose === 'variables' ? await variableRulePrompts() : [];
       const atmosphere = atmospherePrompt(settings.atmosphere);
       if (atmosphere) injects.push(atmosphere);
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
-      const result = await withPromptContext({ purpose: extra ? purpose : 'story', state,
-        projection: extra ? promptProjections.get(config) : undefined }, () => generate({
-          ...native, ...(injects.length ? { injects } : {}), generation_id: generationId!,
+      const result = await generateRequest({
+          ...native, ...(injects.length ? { injects } : {}), generation_id: id,
           should_stream: extra ? false : getPreset('in_use').settings.should_stream,
-        }));
+        }, createPromptRequestContext({ purpose: inlineVariables ? 'inline' : extra ? purpose : 'story', state,
+          projection: extra || inlineVariables ? promptProjections.get(config) : undefined }));
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
       requireWriter();
       view.phase = 'validating';
@@ -826,29 +927,43 @@ export function createRuntime() {
       if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
       return result;
     } finally {
-      generationId = null;
+      view.generationId = null;
     }
   }
-  async function request(config: GenerateConfig, state: State, extra = false, attempts = 0, purpose: 'variables' | 'novel' | 'knowledge' = 'variables') {
-    let error: unknown;
-    for (let index = 0; index <= attempts; index++) {
-      if (cancelled || disposed) throw Error('生成已取消');
-      try {
-        return await requestOnce(config, state, extra, purpose);
-      } catch (e) {
-        error = e;
-        if (cancelled || disposed) throw e;
-        if (index < attempts) await new Promise(r => setTimeout(r, 2000));
+  async function requestExtra(config: GenerateConfig, state: State, api: ApiSettings, purpose: 'variables' | 'novel' | 'knowledge') {
+    const profiles = api.mode === 'main' ? [undefined] : [api, ...(api.autoFailover ? api.backups : [])];
+    const canSwitch = profiles.length > 1;
+    const source = canSwitch || api.retries ? messageSource() : undefined;
+    const context = source ? activeContext() : undefined;
+    const startedEpoch = epoch;
+    for (let round = 0; ; round++) {
+      for (const [index, profile] of profiles.entries()) {
+        if (cancelled || disposed || startedEpoch !== epoch) throw Error('生成已取消或上下文已变化');
+        if (source && context && (round || index)) {
+          requireWriter();
+          assertContext(context, activeContext());
+          assertMessageSource(source, undefined, purpose === 'novel');
+        }
+        config.custom_api = profile ? apiConnection(profile) : undefined;
+        try {
+          return await requestOnce(config, state, true, purpose);
+        } catch (error) {
+          if (cancelled || disposed || startedEpoch !== epoch || (error as Error)?.name === 'AbortError') throw error;
+          if (canSwitch && !(error instanceof ApiProviderError)) throw error;
+          if (index === profiles.length - 1 && round === api.retries) {
+            if (!canSwitch) throw error;
+            throw Error(`已尝试全部 ${profiles.length} 个 API，最后一个连接「${profile!.name || profile!.model}」失败：${(error as Error).message}`, { cause: error });
+          }
+        }
       }
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
-    throw error;
   }
   async function requestUpdate(config: GenerateConfig, api: ApiSettings, name: string, state: State) {
     validateApi(api, name);
     console.info('[瓦洛兰变量更新] 开始请求', name);
-    config.custom_api = apiConnection(api);
     config.json_schema = variableResponseSchema;
-    return request(config, state, true, api.retries);
+    return requestExtra(config, state, api, 'variables');
   }
   async function requestScopedUpdate(
     before: State, envelope: Mvu.MvuData, makeConfig: (state: State) => Promise<GenerateConfig>,
@@ -894,8 +1009,14 @@ export function createRuntime() {
   async function storeStoryProgress(p: NonNullable<typeof pending>, complete = false) {
     const records = getVariables({ type: 'chat' });
     const matchingFailure = records.澄湾失败请求?.id === p.id;
+    const receipt = complete && p.openingTaskId
+      ? taskReceipt(Schema.parse(p.envelope.stat_data), Schema.parse(service.host.read(p.replyFloor!).stat_data), p.openingTaskId, p.replyFloor!)
+      : undefined;
     await patchChat({
       澄湾待更新正文: complete ? null : p,
+      ...(receipt ? { 澄湾更新回执: [...(Array.isArray(records.澄湾更新回执) ? records.澄湾更新回执 : []).filter(r =>
+        r.commitId !== receipt.commitId &&
+        (r.floor !== p.replyFloor || p.envelope.stat_data._系统.任务[r.taskId]?.类别 !== '建档')), receipt] } : {}),
       ...(complete && records.澄湾待确认提交?.commitId === p.id ? { 澄湾待确认提交: null } : {}),
       ...(matchingFailure ? { 澄湾失败请求: null } : {}),
       ...(complete && p.replay ? { 澄湾正文重放: {
@@ -938,19 +1059,41 @@ export function createRuntime() {
     if (cancelled || disposed) throw Error('更新已取消');
     view.updating = true;
     const startedEpoch = epoch;
+    let before = Schema.parse(p.envelope.stat_data);
+    if (p.openingTaskId) {
+      const restored = restoreOpeningCharacterSources(before, getVariables({ type: 'chat' })[LIBRARY_KEY], p.openingTaskId);
+      if (restored !== before) {
+        const next = { ...p, envelope: { ...p.envelope, stat_data: restored } };
+        delete next.prepared;
+        const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
+        // 旧候选遗漏导入目标，修正基线与撤销该候选的确认记录须同时保存。
+        await patchChat({
+          澄湾待更新正文: next,
+          ...(journal?.commitId === p.id ? { 澄湾待确认提交: null } : {}),
+        });
+        Object.assign(p, next);
+        delete p.prepared;
+        before = restored;
+      }
+    }
     if (p.prepared) {
       await savePreparedNarrative(p, p.prepared, startedEpoch);
       return;
     }
-    let before = Schema.parse(p.envelope.stat_data);
     const taskIds = [...new Set([...pendingUpdateTasks(before), ...(p.openingTaskId ? [p.openingTaskId] : [])])];
-    const userText = [...p.source].reverse().find(m => m.role === 'user' &&
-      (p.replyFloor === undefined || m.id < p.replyFloor))?.text ?? '';
+    const replyFloor = p.replyFloor;
+    const preceding = replyFloor === undefined ? p.source.at(-1) : p.source.find(m => m.id === replyFloor - 1);
+    let input = '';
+    if (preceding?.role === 'user') {
+      input = `本轮玩家输入（未在正文实现的行动不算已发生）：\n${preceding.text}\n\n`;
+    } else if (preceding?.role === 'assistant' && preceding.continuationStart) {
+      input = '本轮操作：继续剧情，没有新增玩家输入。\n\n';
+    }
     // Use the player's prompt regexes for the handoff too. Stored/displayed text
     // remains intact; hidden model thinking must not become settlement facts.
     const narrative = stripProtocol(formatAsTavernRegexedString(p.text, 'ai_output', 'prompt', { depth: 0 }));
     if (!narrative) throw Error('主模型回复没有可交接的正文；已保留原始回复，变量 API 未调用');
-    const instruction = `正文已经完整输出。结算已完成正文及本次授权的后台生活、维护任务；未实现的玩家意图不算已发生，不续写面向玩家的正文。\n本轮玩家输入（未在正文实现的行动不算已发生）：\n${userText}\n\n本轮已完成正文（事实资料）：\n${narrative}`;
+    const instruction = `正文已经完整输出。结算已完成正文及本次授权的后台生活、维护任务；未实现的玩家意图不算已发生，不续写面向玩家的正文。\n${input}本轮已完成正文（事实资料）：\n${narrative}`;
     const retryHint = informationRetryHint(p.id);
     if (settings.informationAuto) {
       // Completed narrative supplies explicit IDs/names. Expand those existing
@@ -968,9 +1111,13 @@ export function createRuntime() {
       // input from facts alone loses the boundary between settlement and story.
       return withUpdateTasks(await livePromptConfig(state, instruction, 'worker'), state, taskIds);
     };
-    console.info('[瓦洛兰正文变量] 交接正文', { floor: p.replyFloor, characters: narrative.length });
-    const settled = await requestScopedUpdate(before, p.envelope, makeUpdateConfig, settings.variable, '正文变量', p,
-      async state => { p.envelope = { ...p.envelope, stat_data: state }; await savePending(); });
+    if (p.mode === 'main') view.phase = 'validating';
+    console.info('[瓦洛兰正文变量] 结算正文', { floor: p.replyFloor, characters: narrative.length, mode: p.mode });
+    const settled = p.mode === 'main'
+      ? { before, text: p.reply ?? p.text,
+          parsed: await parseUpdate(p.reply ?? p.text, { ...p.envelope, stat_data: before }, '正文同次变量', p) }
+      : await requestScopedUpdate(before, p.envelope, makeUpdateConfig, settings.variable, '正文变量', p,
+          async state => { p.envelope = { ...p.envelope, stat_data: state }; await savePending(); });
     before = settled.before;
     const { text: updateText, parsed } = settled;
     if (!parsed) throw Error('MVU 未返回解析结果，保留正文以重试');
@@ -1035,8 +1182,7 @@ export function createRuntime() {
   ) {
     view.phase = 'saving';
     const { envelope, settlement } = prepared;
-    const candidate = envelope.stat_data as State, floor = settlement.floor, replySwipe = settlement.swipe;
-    const before = Schema.parse(p.envelope.stat_data);
+    const floor = settlement.floor, replySwipe = settlement.swipe;
     let message = storedNarrative(p.text);
     assertContext(p.context, activeContext());
     assertMessageSource(p.source, p.replyFloor);
@@ -1082,13 +1228,6 @@ export function createRuntime() {
     requireWriter();
     if (activeContext().floor !== floor || activeContext().swipe !== replySwipe)
       throw Error('保存期间候选变化，保留待恢复记录');
-    if (p.openingTaskId) {
-      const receipt = taskReceipt(before, candidate, p.openingTaskId, floor);
-      const old = getVariables({ type: 'chat' }).澄湾更新回执;
-      await patchChat({
-        澄湾更新回执: [...(Array.isArray(old) ? old : []).filter(r => r.commitId !== receipt.commitId), receipt],
-      });
-    }
     await storeStoryProgress(p, true);
     setError('');
     refresh();
@@ -1100,18 +1239,40 @@ export function createRuntime() {
     submissionId = uid('round'),
     opening = false,
     onSent?: () => void,
-    continuation = false,
-    originalSource?: MessageSource,
+    { continuation = false, originalSource, newInput = false }: {
+      continuation?: boolean; originalSource?: MessageSource; newInput?: boolean;
+    } = {},
   ) {
     requireWriter();
+    const expectedEpoch = epoch;
     const savedSource = continuation ? storySource(originalSource ?? messageSource(), submissionId, true) : originalSource;
     if (!view.busy && !view.updating) await restoreOrphanedNarrative();
     if (!pending && firstUnsettledNarrative()) throw Error(view.error || '待结算正文尚未恢复，请先处理该楼层');
     if (!text.trim() || view.busy || view.updating || pending || pendingPhone || view.managementPending) throw Error('输入为空或仍有待处理更新');
-    if (!opening) validateApi(settings.variable, '正文变量');
-    view.busy = true;
-    cancelled = false;
+    const mode = await inVariableSettingsOrder(async () => {
+      requireWriter();
+      try {
+        if (promptWorldbookPending) await syncPromptWorldbook();
+        if (!opening && settings.variable.independent) validateApi(settings.variable, '正文变量');
+      } catch (error) {
+        // A new unsent input still belongs to the composer. A restored or already-saved input keeps its ID.
+        if (newInput && expectedEpoch === epoch && !disposed && SillyTavern.getCurrentChatId() === boundChat) {
+          try {
+            await persistIntents([submissionId]);
+          } catch (cleanupError) {
+            throw Error(`${error}。正文待办移除未确认：${cleanupError}。请在正文待办中恢复或移除该项。`, { cause: cleanupError });
+          }
+        }
+        throw error;
+      }
+      requireWriter();
+      if (expectedEpoch !== epoch) throw Error('正文准备期间操作已停止或上下文已变化');
+      view.busy = true;
+      cancelled = false;
+      return settings.variable.independent ? 'extra' : 'main';
+    });
     view.streaming = '';
+    receivedStory = '';
     setError('');
     sourceChange = undefined;
     requestSource = undefined;
@@ -1193,17 +1354,23 @@ export function createRuntime() {
       assertMessageSource(requestSource);
       refresh();
       const storyState = Schema.parse(envelope.stat_data);
-      const reply = await request({ user_input: continuation ? text : '' }, storyState);
+      const storyInput = continuation ? text : '';
+      const config = mode === 'main'
+        ? withUpdateTasks(await livePromptConfig(storyState, storyInput, 'inline'), storyState,
+            [...new Set([...pendingUpdateTasks(storyState), ...(openingTaskId ? [openingTaskId] : [])])], true)
+        : { user_input: storyInput };
+      const reply = await requestOnce(config, storyState, false, 'variables', mode === 'main');
       assertContext(context, activeContext());
       assertMessageSource(requestSource);
       pending = {
         context,
         envelope,
-        text: reply,
+        text: mode === 'main' ? storedNarrative(reply, true) : reply,
+        ...(mode === 'main' ? { reply } : {}),
         id: submissionId,
         intent,
         source: requestSource,
-        mode: 'extra',
+        mode,
         openingTaskId,
       };
       await storeStoryProgress(pending);
@@ -1215,7 +1382,7 @@ export function createRuntime() {
       view.phase = 'story-save';
       const floor = getLastMessageId() + 1;
       await createMessages(
-        [{ role: 'assistant', message: storedNarrative(reply), extra: { cw_update_pending: true, cw_story_request: origin } }],
+        [{ role: 'assistant', message: storedNarrative(pending.text), extra: { cw_update_pending: true, cw_story_request: origin } }],
         { refresh: 'affected' },
       );
       replyFloor = floor;
@@ -1263,9 +1430,15 @@ export function createRuntime() {
           : `。本轮正文曾写入第 ${replyFloor} 楼，请检查当前楼层和候选。`));
         throw new StaleStoryRequestError(view.error, { cause: sourceChange });
       }
+      if (mode === 'main' && !pending && receivedStory.trim() && !disposed &&
+          SillyTavern.getCurrentChatId() === context.chat) {
+        pending = { context, envelope, text: storedNarrative(receivedStory, true), reply: receivedStory,
+          id: submissionId, intent, source: requestSource ?? savedSource ?? messageSource(), mode, openingTaskId };
+        await storeStoryProgress(pending);
+      }
       setError(cancelled
         ? pending
-          ? '正文已保存，变量尚未结算；请点击重试'
+          ? mode === 'main' ? '已保留收到的正文和变量回包，请检查本楼并补齐变量块后重试，或重新生成本楼' : '正文已保存，变量尚未结算；请点击重试'
           : '生成已停止；已发送的玩家消息可用“重试”继续'
         : e);
       if (!pending && SillyTavern.getCurrentChatId() === context.chat) {
@@ -1342,6 +1515,7 @@ export function createRuntime() {
       await restoreOrphanedNarrative();
       if (!pending && firstUnsettledNarrative()) throw Error(view.error || '待结算正文尚未恢复，请先处理该楼层');
       if (pending) {
+        setError('');
         // Old chats may contain several saved replies with no settlement. Each
         // reply receives its own previous-floor baseline and one atomic commit.
         do {
@@ -1365,8 +1539,7 @@ export function createRuntime() {
           failedSend.id,
           failedSend.opening,
           undefined,
-          failedSend.continuation ?? failedSend.id?.startsWith('continue_'),
-          failedSend.source,
+          { continuation: failedSend.continuation ?? failedSend.id?.startsWith('continue_'), originalSource: failedSend.source },
         );
       } else {
         const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
@@ -1427,15 +1600,75 @@ export function createRuntime() {
     cancelled = true;
     epoch++;
     view.streaming = '';
-    if (view.phoneRequest && view.busy) view.phoneRequest.status = 'stopping';
+    if (view.phoneRequest && view.busy) view.phoneRequest = { ...view.phoneRequest, status: 'stopping' };
     scheduler.cancelWaiting('已停止；尚未发送的操作保留供手动恢复');
   }
   function stop() {
     cancelCurrentGeneration();
-    if (generationId) stopGenerationById(generationId);
+    if (view.generationId) stopRequest(view.generationId);
+  }
+  async function closeRecovery(ids: string[], clearFailure = false) {
+    const records = getVariables({ type: 'chat' });
+    const patch: Record<string, unknown> = {};
+    for (const key of ['澄湾待更新正文', '澄湾待更新手机', '澄湾失败请求']) {
+      if (ids.includes(records[key]?.id)) patch[key] = null;
+    }
+    if (clearFailure) patch.澄湾失败请求 = null;
+    const journal = records.澄湾待确认提交;
+    if (journal && ids.includes(journal.commitId)) {
+      if (journal.replyFloor === undefined && journal.rollbackOnFailure) {
+        const { floor, swipe } = journal.context;
+        const row = floor <= getLastMessageId() ? getChatMessages(floor, { include_swipes: true })[0] : undefined;
+        const envelope = row?.swipes_data[swipe];
+        // 进程可能在候选保存后、失败回滚前关闭。只撤回仍完整匹配本次候选的原分支。
+        if (envelope && equal(envelope.stat_data, journal.candidate)) {
+          const restored = { ...envelope, stat_data: JSON.parse(journal.context.fingerprint) };
+          const swipes_data = row!.swipes_data;
+          swipes_data[swipe] = restored;
+          await setMessages([{ message_id: floor, swipes_data }], { refresh: 'affected' });
+          if (!equal(getChatMessages(floor, { include_swipes: true })[0]?.swipes_data[swipe], restored))
+            throw Error('放弃请求时原候选回滚读回失败，保留恢复记录');
+        }
+      }
+      patch.澄湾待确认提交 = null;
+    }
+    await patchChat(patch, ids);
+    if (pending && ids.includes(pending.id)) pending = null;
+    if (pendingPhone && ids.includes(pendingPhone.id)) pendingPhone = null;
+    if (clearFailure || failedSend?.id && ids.includes(failedSend.id)) failedSend = null;
+  }
+  async function cancelEditedStory(p: NonNullable<typeof pending>) {
+    const floor = p.replyFloor!, swipe = p.replySwipe ?? 0;
+    const row = getChatMessages(floor)[0], extra = messageExtra(row);
+    const oldCommit = extra.cw_story_settlements?.[String(swipe)]?.commitId;
+    const cached = settledTexts.get(`${floor}:${swipe}`);
+    const original = p.editingOriginal ?? (cached && cached.commitId === oldCommit && oldCommit
+      ? { text: cached.text, commitId: oldCommit } : undefined);
+    if (!original || original.commitId !== oldCommit ||
+        !isCommittedCandidate(row?.data?.stat_data, floor, swipe) ||
+        !row.data.stat_data._系统.提交记录[original.commitId]) return false;
+    if (!sameReplyNarrative(p.text, row.message, floor) && !sameReplyNarrative(original.text, row.message, floor))
+      throw Error('待撤回正文已变化，请先保存最新编辑');
+    const restoredExtra = { ...extra };
+    delete restoredExtra.cw_story_request;
+    delete restoredExtra.cw_update_pending;
+    try {
+      await writeStoryCandidate(floor, swipe, original.text, restoredExtra);
+      await closeRecovery([p.id]);
+    } catch (error) {
+      // 保留可再次撤回的编辑及原文依据，避免确认失败后只能删除正文。
+      await writeStoryCandidate(floor, swipe, p.text, extra);
+      setError(error);
+      refresh();
+      throw error;
+    }
+    setError('');
+    refresh();
+    return true;
   }
   async function discardPending() {
     requireWriter();
+    requireLoaded();
     if (view.busy || view.updating) {
       stop();
       return;
@@ -1450,7 +1683,8 @@ export function createRuntime() {
       return;
     }
     if (pending?.replyFloor !== undefined) {
-      setError('正文已保存，不能跳过变量结算。请重试；如需放弃，请从消息菜单删除这段正文及后续楼层。');
+      if (await cancelEditedStory(pending)) return;
+      setError('这段正文缺少可撤回的已结算原文。请继续编辑或重试变量结算，也可从消息菜单重新生成或删除。');
       refresh();
       return;
     }
@@ -1471,14 +1705,24 @@ export function createRuntime() {
     const swipe = getChatMessages(id, { include_swipes: true })[0].swipe_id;
     const previous = pending?.replyFloor === id && (pending.replySwipe ?? 0) === swipe ? pending : undefined;
     if (!previous && edited.data?.stat_data?._系统?.楼层id !== id) return false;
-    const text = replacement ?? edited.message;
     const extra = messageExtra(edited);
+    const mode = previous?.mode ?? extra.cw_story_request?.mode ?? (settings.variable.independent ? 'extra' : 'main');
+    const reply = replacement ?? edited.message;
+    const text = storedNarrative(reply, mode === 'main');
     const oldCommit = extra.cw_story_settlements?.[String(swipe)]?.commitId;
     const cached = settledTexts.get(`${id}:${swipe}`);
     // 原生事件在存档已被改写后触发，原文取自同一候选的待办或已结算版本。
     const before = previous?.text ?? (cached?.commitId === oldCommit ? cached?.text : undefined);
+    // 旧版可能已把原文登记成待结算编辑，重复保存也应结束这次可撤回的编辑。
+    if (previous?.editingOriginal && previous.editingOriginal.commitId === oldCommit &&
+        (mode !== 'main' || reply === text) &&
+        sameAssistantFloorText(previous.editingOriginal.text, text, id)) {
+      if (view.busy || view.updating) stop();
+      if (await cancelEditedStory(previous)) return true;
+    }
     // 原生编辑已经写入。桌面显式恢复到已结算原文时，调用方仍需保存替换文本。
-    if (before !== undefined && sameAssistantFloorText(before, text, id)) return replacement === undefined;
+    if (before !== undefined && sameAssistantFloorText(before, text, id) &&
+        (mode !== 'main' || reply === previous?.reply || reply === text)) return replacement === undefined;
     if (view.busy || view.updating) stop();
     const context = activeContext(id - 1);
     let replay: CommitReplay | undefined;
@@ -1527,11 +1771,16 @@ export function createRuntime() {
       ? previous.id : uid('edited_round');
     const next: NonNullable<typeof pending> = {
       context, envelope: copy(service.host.read(context.floor)), text, id: idToSettle,
-      source: storySource(messageSource().filter(m => m.id !== id), idToSettle), replyFloor: id, replySwipe: swipe, mode: 'extra',
+      source: storySource(messageSource().filter(m => m.id !== id), idToSettle), replyFloor: id, replySwipe: swipe, mode,
+      ...(mode === 'main' ? { reply } : {}),
       openingTaskId: previous?.openingTaskId ?? edited.data?.stat_data?._系统?.提交记录?.[oldCommit]?.任务id ?? undefined,
       intent: previous?.intent ?? (priorMessage?.role === 'user' ? messageExtra(priorMessage).cw_use_intent : undefined),
       replay,
       revisionVersion: previous?.revisionVersion ?? edited.data?.stat_data?._系统?.数据版本,
+      editingOriginal: previous?.editingOriginal ?? (oldCommit && cached && cached.commitId === oldCommit
+        ? { text: cached.text, commitId: oldCommit }
+        : !previous && replacement !== undefined && oldCommit && !extra.cw_update_pending
+          ? { text: edited.message, commitId: oldCommit } : undefined),
     };
     extra.cw_story_request = await narrativeRequest(next);
     extra.cw_update_pending = true;
@@ -1545,24 +1794,80 @@ export function createRuntime() {
     refresh();
     return true;
   }
+  let changingMessages = false;
+  async function closeChangedRecovery(start?: number, replacedInput?: number) {
+    const changedSource = (source: MessageSource | undefined) => {
+      if (replacedInput !== undefined && source?.at(-1)?.id === replacedInput) return true;
+      try { assertMessageSource(source, undefined, true); return false; }
+      catch (error) {
+        if (!(error instanceof MessageSourceError)) throw error;
+        return true;
+      }
+    };
+    const changedReply = (floor: number, swipe: number) => {
+      if (start !== undefined) return floor >= start;
+      if (floor > getLastMessageId()) return true;
+      return getChatMessages(floor, { include_swipes: true })[0]?.swipe_id !== swipe;
+    };
+    const ids: string[] = [];
+    const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
+    if (pending && (pending.replyFloor !== undefined && changedReply(pending.replyFloor, pending.replySwipe ?? 0) ||
+        changedSource(pending.source))) ids.push(pending.id);
+    const changedFailed = !!failedSend && changedSource(failedSend.source);
+    if (changedFailed && failedSend?.id) ids.push(failedSend.id);
+    if (pendingPhone && (changedReply(pendingPhone.context.floor, pendingPhone.context.swipe) ||
+        changedSource(pendingPhone.source))) ids.push(pendingPhone.id);
+    for (const intent of intents) if (changedSource(intent.source)) ids.push(intent.id);
+    if (journal && (ids.includes(journal.commitId) || (journal.replyFloor !== undefined
+      ? changedReply(journal.replyFloor, Number(journal.candidate?._系统?.候选回复id))
+      : changedReply(journal.context.floor, journal.context.swipe) ||
+        changedFailed && preparationJournalMatchesFailure(journal)))) ids.push(journal.commitId);
+    for (const id of ids) scheduler.cancel(id, '原楼层或候选已变更');
+    await closeRecovery([...new Set(ids)], changedFailed);
+    return ids.length > 0 || changedFailed;
+  }
   async function messageAction(action: string, id: number, text?: string) {
     requireWriter();
     if (view.busy || view.updating) throw Error('请先停止当前生成');
+    if (action === 'swipe') {
+      const journal = getVariables({ type: 'chat' }).澄湾待确认提交;
+      if (pendingPhone || journal && journal.replyFloor === undefined)
+        throw Error('请先重试或取消当前手机与管理操作，再切换候选');
+      const target = Number(text), row = getChatMessages(id, { include_swipes: true })[0];
+      if (!Number.isSafeInteger(target) || !isCommittedCandidate(row?.swipes_data[target]?.stat_data, id, target))
+        throw Error('此旧候选没有已结算变量，不能作为当前分支');
+      if (pending && pending.replyFloor === id && pendingAlreadyCommitted(pending)) await finishPending();
+      else if (pending?.replyFloor === id && pending.editingOriginal) await cancelEditedStory(pending);
+      changingMessages = true;
+      try {
+        await setMessages([{ message_id: id, swipe_id: target }], { refresh: 'affected' });
+        await closeChangedRecovery();
+        await saveChat();
+      } finally { changingMessages = false; }
+      setError('');
+      refresh();
+      return;
+    }
     if (action === 'continue') {
       if (pending || pendingPhone || failedSend) throw Error('请先重试或取消待处理请求');
       if (getChatMessages(-1)[0]?.message_id !== id || activeContext().floor !== id)
         throw Error('只能从当前已结算的最新助手楼层继续');
-      await send('接续上一段剧情，不重复已写内容。', false, undefined, uid('continue'), false, undefined, true);
+      await send('接续上一段剧情，不重复已写内容。', false, undefined, uid('continue'), false, undefined, { continuation: true });
       return;
     }
-    if (!['edit', 'delete'].includes(action)) validateApi(settings.variable, '正文变量');
+    if (!['edit', 'delete'].includes(action) && settings.variable.independent) validateApi(settings.variable, '正文变量');
     const old = action === 'edit' ? getChatMessages(id)[0] : undefined;
+    if (old?.role === 'assistant' && text !== undefined && text !== old.message &&
+        await recordEditedStory(id, text)) return;
     const message = old?.role === 'assistant' ? storedNarrative(text ?? '') : text ?? '';
     if (old && (text === undefined || old.message === message || old.message === text)) {
+      if (text !== undefined && old.role === 'assistant' && pending?.editingOriginal &&
+          await recordEditedStory(id, message)) return;
       await saveChat();
       return;
     }
     if (old?.role === 'assistant' && sameAssistantFloorText(old.message, message, id)) {
+      if (pending?.editingOriginal && await recordEditedStory(id, message)) return;
       await setMessages([{ message_id: id, message }], { refresh: 'affected' });
       refresh();
       await saveChat();
@@ -1577,28 +1882,28 @@ export function createRuntime() {
     } else {
       if (id === 0) throw Error('第 0 层为界面容器，请在新聊天中重新建档');
       epoch++;
-      scheduler.cancelWaiting('楼层已删除，旧排队操作失效');
-      if (pending || pendingPhone || failedSend || intents.length) {
-        await patchChat({
-          澄湾待更新正文: null,
-          澄湾待更新手机: null,
-          澄湾失败请求: null,
-        }, intents.map(item => item.id));
-        pending = null;
-        pendingPhone = null;
-        failedSend = null;
-      }
       const start = action === 'player_send' ? id + 1 : id;
+      if (pending?.replyFloor !== undefined && pending.replyFloor >= start && pendingAlreadyCommitted(pending))
+        await finishPending();
       const remove = Array.from({ length: Math.max(0, getLastMessageId() - start + 1) }, (_, offset) => start + offset);
-      await deleteMessages(remove, { refresh: 'affected' });
+      changingMessages = true;
+      try {
+        await deleteMessages(remove, { refresh: 'affected' });
+        await closeChangedRecovery(start, action === 'player_send' ? id : undefined);
+      } finally { changingMessages = false; }
       setError('');
       if (action !== 'delete') {
         refresh();
         await saveChat();
         const latest = getChatMessages(-1)[0];
         if (latest?.role === 'assistant')
-          await send('接续上一段剧情，不重复已写内容。', false, undefined, uid('continue'), false, undefined, true);
-        else await send(latest?.message ?? '', false, messageExtra(latest).cw_use_intent);
+          await send('接续上一段剧情，不重复已写内容。', false, undefined, uid('continue'), false, undefined, { continuation: true });
+        else {
+          const state = view.data!;
+          const opening = !Object.keys(state._系统.已计轮事件).length &&
+            Object.values(state._系统.任务).some(task => task.类别 === '建档' && ['排队', '失败'].includes(task.状态));
+          await send(latest?.message ?? '', false, messageExtra(latest).cw_use_intent, uid('round'), opening);
+        }
         return;
       }
     }
@@ -1657,21 +1962,30 @@ export function createRuntime() {
         if (!alreadyCommitted) {
           validateApi(settings.phone, '手机');
           await prepareWorldInformation();
-          // Dispatch validates active recipients before the combined selector sees the candidate action.
-          await scheduleCharacters('', action);
         }
         assertPhoneWritable();
         const context = activeContext(),
           envelope = copy(service.host.read(context.floor));
+        const before = Schema.parse(envelope.stat_data), source = messageSource();
+        const roster = !alreadyCommitted && settings.characterAuto
+          ? prepareCharacterRoster(before, getVariables({ type: 'chat' })[LIBRARY_KEY], '', action, settings.characterRoster)
+          : null;
+        // 在草稿里先调度私信对象，再检查投递资格。当前楼的活动名单随手机结果一起提交。
+        const draft = alreadyCommitted ? before : applyPhoneAction(roster ? planTasks(roster.state) : before, action);
+        if (roster) {
+          // 草稿和后续资料选择都要能从角色库读取这一版；原楼仍指向原版本。
+          await patchChat({ [LIBRARY_KEY]: roster.library });
+          assertPhoneWritable();
+          assertContext(context, activeContext());
+          assertMessageSource(source);
+        }
         pendingPhone = operation = {
           context,
           id: submissionId,
           envelope,
-          // A retained queue entry can outlive its pending record. Rebuild only its
-          // acknowledgement context; never apply the already-committed action again.
-          draft: alreadyCommitted ? Schema.parse(envelope.stat_data) : applyPhoneAction(Schema.parse(envelope.stat_data), action),
+          draft,
           action: copy(action),
-          source: messageSource(),
+          source,
         };
         await savePhone();
       }
@@ -1845,8 +2159,7 @@ export function createRuntime() {
         const state = Schema.parse(service.host.read(context.floor).stat_data);
         const config = novelRefreshPrompt(state, target);
         console.info('[瓦洛兰奇遇] 开始刷新', target);
-        config.custom_api = apiConnection(settings.phone);
-        const text = await request(config, state, true, settings.phone.retries, 'novel');
+        const text = await requestExtra(config, state, settings.phone, 'novel');
         assertNovelWritable();
         view.updating = true;
         view.phase = 'saving';
@@ -1920,7 +2233,8 @@ export function createRuntime() {
     const existing = scheduler.get(item.id);
     if (existing) return existing;
     scheduled.add(item.id);
-    if (!intents.some(i => i.id === item.id)) intents.push(item);
+    const isNew = !intents.some(i => i.id === item.id);
+    if (isNew) intents.push(item);
     const persisted = saveIntents();
     // Catch immediately; execution still awaits and propagates the persistence failure.
     void persisted.catch(() => {});
@@ -1952,7 +2266,8 @@ export function createRuntime() {
         else {
           if (pending || pendingPhone || failedSend) throw Error('有尚未完成的操作，请先重试或取消');
           if (item.kind === 'story')
-            await send(item.text ?? '', !savedInput && item.append !== false, item.intent, item.id, item.opening, onSent);
+            await send(item.text ?? '', !savedInput && item.append !== false, item.intent, item.id, item.opening, onSent,
+              { newInput: isNew && !savedInput && item.append !== false });
           else if (item.action) phoneResult = await phoneAction(copy(item.action), item.id);
           else throw Error('手机操作记录缺少内容');
         }
@@ -2069,17 +2384,22 @@ export function createRuntime() {
     updateResendState();
   }
   const listeners: EventOnReturn[] = [];
-  function recoverablePreparationJournal(journal: any, current?: Context) {
-    if (!failedSend?.id || !journal) return false;
+  function preparationJournalMatchesFailure(journal: any) {
+    if (!failedSend?.id || !journal?.context) return false;
     const roster = journal.rollbackOnFailure && ['character_roster_', 'opening_roster_'].some(prefix =>
       String(journal.commitId).startsWith(prefix));
     const information = String(journal.commitId).startsWith('information_selection_') &&
       journal.candidate?._系统?.资料加载?.选择依据 === 'story:' + failedSend.id;
-    if (!roster && !information) return false;
+    return (roster || information) &&
+      ['chat', 'floor', 'swipe', 'branch'].every(key => failedSend!.context[key as keyof Context] === journal.context[key]) &&
+      (equal(failedSend.context, journal.context) || equal(JSON.parse(failedSend.context.fingerprint), journal.candidate));
+  }
+  function recoverablePreparationJournal(journal: any, current?: Context) {
+    if (!preparationJournalMatchesFailure(journal)) return false;
     const actual = current ?? activeContext();
-    const original = equal(failedSend.context, journal.context);
+    const original = equal(failedSend!.context, journal.context);
     if (original && equal(actual, journal.context)) return true;
-    return (original || equal(failedSend.context, actual)) &&
+    return (original || equal(failedSend!.context, actual)) &&
       ['chat', 'floor', 'swipe', 'branch'].every(key => actual[key as keyof Context] === journal.context[key]) &&
       equal(service.host.read(actual.floor).stat_data, journal.candidate);
   }
@@ -2187,15 +2507,17 @@ export function createRuntime() {
       context,
       envelope: copy(service.host.read(context.floor)),
       text: last.message,
+      reply: original.reply,
       id: original.id,
       intent: IntentSchema.shape.intent.parse(original.intent),
       source,
       replyFloor: last.message_id,
       replySwipe,
-      mode: 'extra',
+      mode: original.mode ?? 'extra',
       openingTaskId: original.openingTaskId,
       replay: original.replay,
       revisionVersion: original.revisionVersion,
+      editingOriginal: original.editingOriginal,
     };
     await savePending();
     setError('已找回待结算正文，请点击重试完成变量更新');
@@ -2218,14 +2540,16 @@ export function createRuntime() {
     view.loadError = '';
     view.loadPhase = '';
     if (previousError && view.error === previousError) setError('');
-    let phase: 'worldbook' | 'recovery' = 'worldbook';
+    let phase: 'read' | 'worldbook' | 'recovery' = 'read';
     try {
+      restoreIntents();
       if (!refresh()) return;
       if (view.managementPending) setError('角色管理保存尚未确认，请点击重试；恢复快照已独立保留');
+      phase = 'worldbook';
       if (!view.readOnly) {
         await settingsController.recoverLegacyRules();
         requireWriter();
-        await preparePromptWorldbook(requireWriter);
+        await inVariableSettingsOrder(syncPromptWorldbook);
       }
       if (!view.readOnly) await settingsController.removeLegacyAtmosphere();
       if (disposed || SillyTavern.getCurrentChatId() !== boundChat) return;
@@ -2265,6 +2589,7 @@ export function createRuntime() {
       if (!disposed && SillyTavern.getCurrentChatId() === boundChat) setLoadError(error, phase);
     } finally {
       view.loading = false;
+      updateReadAvailability();
     }
   }
   async function start() {
@@ -2308,14 +2633,44 @@ export function createRuntime() {
     if (disposed || SillyTavern.getCurrentChatId() !== boundChat) return;
     listeners.push(
       listen(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, id) => {
-        if (!cancelled && !disposed && id === generationId && view.operation === 'story' && !view.updating) view.streaming = text;
+        // 重试与楼层菜单也会发起正文请求，队列操作类型不能决定分片属于哪个通道。
+        if (!cancelled && !disposed && view.generationId && id === view.generationId && view.phase === 'story') {
+          receivedStory = text;
+          view.streaming = text;
+        }
       }),
     );
     listeners.push(listen(tavern_events.GENERATION_STOPPED, (id?: string) => {
       // Helper includes its generation id; native Tavern's global stop has none.
-      if (generationId && (id === undefined || id === generationId)) cancelCurrentGeneration();
+      if (view.generationId && (id === undefined || id === view.generationId)) cancelCurrentGeneration();
+    }));
+    const mvuBaselines = new WeakMap<Mvu.MvuData, Mvu.MvuData>();
+    listeners.push(listen(Mvu.events.BEFORE_MESSAGE_UPDATE, context => {
+      if (SillyTavern.getCurrentChatId() !== boundChat) return;
+      // This event belongs to MVU's automatic message save. Public parseMessage calls
+      // only prepare candidates and must retain their own results.
+      const baseline = mvuBaselines.get(context.variables);
+      mvuBaselines.delete(context.variables);
+      const baseVersion = baseline?.stat_data?._系统?.数据版本;
+      if (baseVersion === undefined) return;
+      const managedStory = getChatMessages('0-' + getLastMessageId(), {
+        role: 'assistant', include_swipes: true,
+      }).find(message => {
+        const extra = messageExtra({ extra: message.swipes_info[message.swipe_id] });
+        const version = extra.cw_story_settlements?.[String(message.swipe_id)]?.baseVersion
+          ?? extra.cw_story_request?.context?.version;
+        return message.swipes[message.swipe_id] === context.message_content && version === baseVersion;
+      });
+      if (!managedStory) return;
+      const saved = managedStory.swipes_data[managedStory.swipe_id];
+      const data = saved?.stat_data ? saved : baseline;
+      // The Runtime owns settlement for these floors. Restore its saved envelope,
+      // including pending baselines, before MVU writes its automatic candidate.
+      for (const key of Object.keys(context.variables)) delete context.variables[key];
+      Object.assign(context.variables, copy(data));
     }));
     listeners.push(listen(Mvu.events.VARIABLE_UPDATE_ENDED, (next, old) => {
+      mvuBaselines.set(next, old);
       if (!old?.stat_data || !next?.stat_data) return;
       try { assertDisabledUnchanged(Schema.parse(old.stat_data), Schema.parse(next.stat_data)); }
       catch (error) {
@@ -2354,7 +2709,7 @@ export function createRuntime() {
       Mvu.events.VARIABLE_UPDATE_ENDED,
     ])
       listeners.push(
-        listen(event as any, () => {
+        listen(event as any, async () => {
           if (event === tavern_events.MESSAGE_UPDATED && requestSource) {
             try {
               assertMessageSource(requestSource, undefined, true);
@@ -2365,19 +2720,16 @@ export function createRuntime() {
             }
           }
           if (event === tavern_events.MESSAGE_SWIPED || event === tavern_events.MESSAGE_DELETED) {
+            if (changingMessages) return;
             epoch++;
             stop();
-            const obsolete = intents.map(item => item.id);
-            if (!view.readOnly && (pending || pendingPhone || failedSend || obsolete.length))
-              void patchChat({
-                澄湾待更新正文: null, 澄湾待更新手机: null, 澄湾失败请求: null,
-              }, obsolete).catch(setError);
-            pending = null;
-            pendingPhone = null;
-            failedSend = null;
-            if (view.readOnly) {
-              intents = [];
-              updateQueueView();
+            if (!view.readOnly) {
+              try {
+                const closed = await closeChangedRecovery();
+                if (closed && !pending && !pendingPhone && !failedSend && !getVariables({ type: 'chat' }).澄湾待确认提交)
+                  setError('');
+              }
+              catch (error) { setError(error); }
             }
           }
           refresh();
@@ -2431,8 +2783,10 @@ export function createRuntime() {
     discardPending: () => foreground('recovery', discardPending, 'discard'),
     messageAction: (action: string, id: number, text?: string) =>
       foreground('local', () => messageAction(action, id, text), `message:${action}:${id}`),
-    saveSettings,
-    reloadSettings,
+    saveSettings: (input: unknown = copy(settings), channel?: SettingsScope) =>
+      !channel || channel === 'variable' ? inVariableSettingsOrder(() => saveSettings(input, channel)) : saveSettings(input, channel),
+    reloadSettings: (channel?: SettingsChannel) =>
+      !channel || channel === 'variable' ? inVariableSettingsOrder(() => reloadSettings(channel)) : reloadSettings(channel),
     phoneAction: (action: PhoneAction, onRequest?: (identity: PhoneRequestIdentity) => void): Promise<PhoneActionResult> => {
       try {
         return submit('phone', { action }, undefined, onRequest);

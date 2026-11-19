@@ -28,7 +28,7 @@
         type="button"
         class="cw-btn cw-btn-danger cw-status-btn"
         :disabled="!canStop && !isGenerating && !isUpdatingVariables"
-        :title="isUpdatingVariables ? '停止当前变量更新' : '停止当前生成'"
+        :title="isUpdatingVariables ? '停止当前变量更新' : '停止当前操作'"
         @click="(canStop || isGenerating || isUpdatingVariables) && emit('stopGeneration')"
       >
         <SvgIcon name="stop" :size="14" />
@@ -94,9 +94,8 @@ const isFocused = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const placeholderText = computed(() => {
-  if (props.isGenerating) return '正在生成回复…可点击右侧停止按钮';
-  if (props.isUpdatingVariables) return '正在更新变量…';
   if (props.updateFailed) return '请求未完成，请在上方的通知中重试或取消…';
+  if (props.isGenerating || props.isUpdatingVariables || props.canStop) return '本次操作结束后可继续输入';
   return '输入行动或对话...（Enter 发送，Shift+Enter 换行）';
 });
 

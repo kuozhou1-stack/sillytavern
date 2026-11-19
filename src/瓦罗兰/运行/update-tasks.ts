@@ -21,7 +21,7 @@ export function pendingUpdateTasks(state: State) {
     .map(([id]) => id);
 }
 
-export function withUpdateTasks(config: GenerateConfig, state: State, ids: string[]): GenerateConfig {
+export function withUpdateTasks(config: GenerateConfig, state: State, ids: string[], inline = false): GenerateConfig {
   const result = config;
   const descriptions: string[] = [];
   const sources = new Map<string, Record<string, any>>();
@@ -47,7 +47,7 @@ export function withUpdateTasks(config: GenerateConfig, state: State, ids: strin
       task.类别 === '摘要'
         ? archivePrompt(state, id)
         : task.类别 === '建档'
-          ? openingCharacterPrompt(state, id, true).replace(
+          ? openingCharacterPrompt(state, id, inline ? 'inline' : true).replace(
               '开场正文已经生成并显示',
               '本次正文或手机交互已提供事实依据',
             )

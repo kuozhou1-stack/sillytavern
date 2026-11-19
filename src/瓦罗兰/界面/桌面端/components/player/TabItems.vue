@@ -42,7 +42,6 @@
     <div v-else class="cw-empty-backdrop">
       <SvgIcon name="backpack" :size="36" class="cw-empty-icon" />
       <div class="cw-empty-title">该分类下暂无物品</div>
-      <div class="cw-empty-desc">当前随身背包与物品栏在此分类中没有任何收录。</div>
       <button v-if="currentCategory !== 'all'" class="cw-btn cw-btn-ghost cw-btn-xs cw-empty-action" @click="currentCategory = 'all'">
         查看全部物品 ({{ rawItems.length }})
       </button>

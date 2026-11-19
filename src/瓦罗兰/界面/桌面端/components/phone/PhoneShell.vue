@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted } from 'vue';
+import { ref, computed, inject, watch, onBeforeUnmount } from 'vue';
 import { RuntimeKey, type Runtime } from '../../../../运行/host';
 import { phoneNotificationPlatform } from '../../../../运行/phone';
 import { managePhone } from '../../../../运行/phone-management';
@@ -167,16 +167,60 @@ const emit = defineEmits<{
   (e: 'feedback', msg: string): void;
 }>();
 
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    emit('close');
-  }
-}
-onMounted(() => window.addEventListener('keydown', handleKeydown));
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
-
 const currentScreen = ref<'home' | 'linxin' | 'weilan' | 'map' | 'settings' | 'detail'>('home');
 const screenHistory = ref<string[]>(['home']);
+let pendingNotifications: { screen: string; ids: string[] } | null = null;
+let savingNotifications = false;
+
+watch(
+  [currentScreen, () => runtime?.view.canAutoRead],
+  ([screen], [previousScreen]) => {
+    if (screen !== previousScreen) {
+      const platform = screen === 'linxin' ? '邻信' : screen === 'weilan' ? '微澜' : null;
+      // Keep the entry snapshot while writes are blocked, including only this app's reminders.
+      pendingNotifications = platform
+        ? {
+            screen,
+            ids: Object.entries(props.phoneData?._通知 ?? {})
+              .filter(([, notice]: [string, any]) =>
+                !notice.已读 && phoneNotificationPlatform({ 手机: props.phoneData }, notice) === platform,
+              )
+              .map(([id]) => id),
+          }
+        : null;
+    }
+    void acknowledgeNotifications();
+  },
+  { flush: 'sync' },
+);
+onBeforeUnmount(() => { pendingNotifications = null; });
+
+async function acknowledgeNotifications() {
+  const batch = pendingNotifications;
+  if (!runtime?.view.canAutoRead || !batch || savingNotifications || batch.screen !== currentScreen.value) return;
+  const notices = runtime.view.data?.手机._通知 ?? {};
+  const ids = batch.ids.filter(id => notices[id] && !notices[id].已读);
+  if (!ids.length) {
+    pendingNotifications = null;
+    return;
+  }
+  savingNotifications = true;
+  try {
+    await runtime.commit(state => {
+      for (const id of ids) {
+        const notice = state.手机._通知[id];
+        if (notice && !notice.已读) state = managePhone(state, 'readNotification', id);
+      }
+      return state;
+    });
+    if (pendingNotifications === batch) pendingNotifications = null;
+  } catch (e) {
+    emit('feedback', '通知已读保存失败：' + String(e));
+  } finally {
+    savingNotifications = false;
+    if (pendingNotifications && pendingNotifications !== batch) void acknowledgeNotifications();
+  }
+}
 
 const statusTime = computed(() => {
   const t = props.worldTime;
@@ -185,26 +229,10 @@ const statusTime = computed(() => {
   return `${pad(t.时)}:${pad(t.分)}`;
 });
 
-async function handleOpenApp(appName: 'home' | 'linxin' | 'weilan' | 'map' | 'settings' | 'detail') {
+function handleOpenApp(appName: 'home' | 'linxin' | 'weilan' | 'map' | 'settings' | 'detail') {
   if (currentScreen.value !== appName) {
     screenHistory.value.push(appName);
     currentScreen.value = appName;
-  }
-  const platform = appName === 'linxin' ? '邻信' : appName === 'weilan' ? '微澜' : null;
-  if (!platform || !runtime) return;
-  // Acknowledge this app's existing reminders, not unread messages inside conversations.
-  // Capture IDs at entry so a queued save cannot dismiss reminders arriving afterwards.
-  const ids = Object.entries(props.phoneData?._通知 ?? {})
-    .filter(([, n]: [string, any]) => !n.已读 && phoneNotificationPlatform({ 手机: props.phoneData }, n) === platform)
-    .map(([id]) => id);
-  if (!ids.length) return;
-  try {
-    await runtime.commit(state => {
-      for (const id of ids) state = managePhone(state, 'readNotification', id);
-      return state;
-    });
-  } catch (e) {
-    emit('feedback', '通知已读保存失败：' + String(e));
   }
 }
 

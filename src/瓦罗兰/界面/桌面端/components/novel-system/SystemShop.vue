@@ -15,17 +15,7 @@
         </div>
       </div>
       <div class="cw-banner-right">
-        <button
-          type="button"
-          class="cw-btn cw-btn-secondary cw-btn-sm cw-shop-refresh-btn"
-          data-action="refresh-shop"
-          :disabled="props.disabled || props.refreshDisabled"
-          title="通过手机与奇遇 API 生成新品，保留购买记录与累计限购"
-          @click="emit('refresh')"
-        >
-          <SvgIcon name="refreshCw" :size="14" :class="{ 'cw-spin': props.refreshing }" />
-          <span>{{ props.refreshing ? '生成中…' : '刷新商店' }}</span>
-        </button>
+        <slot name="refresh" />
         <button
           type="button"
           class="cw-btn cw-btn-secondary cw-inventory-btn"
@@ -253,12 +243,9 @@ const props = defineProps<{
   novelState: State['奇遇系统'];
   disabled?: boolean;
   pendingId?: string | null;
-  refreshDisabled?: boolean;
-  refreshing?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'refresh'): void;
   (e: 'buy', goodId: string): void;
   (e: 'openInventory'): void;
 }>();
@@ -366,39 +353,6 @@ function handleBuy(good: SystemGood) {
   gap: 8px;
   flex-wrap: wrap;
   flex-shrink: 0;
-}
-
-.cw-shop-refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 34px;
-  min-width: 96px;
-  padding: 0 14px;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--cw-border);
-  background: var(--cw-bg-card);
-  color: var(--cw-text-primary);
-  border-radius: var(--cw-radius-sm, 6px);
-  box-shadow: var(--cw-shadow-sm);
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    border-color: var(--cw-accent);
-    color: var(--cw-accent);
-    background: var(--cw-bg-card-hover);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
 }
 
 .cw-inventory-btn {
@@ -870,6 +824,11 @@ function handleBuy(good: SystemGood) {
 }
 
 @media (max-width: 720px) {
+  .cw-banner-right {
+    align-self: flex-end;
+    justify-content: flex-end;
+  }
+
   .cw-shop-banner {
     flex-direction: column;
     align-items: flex-start;

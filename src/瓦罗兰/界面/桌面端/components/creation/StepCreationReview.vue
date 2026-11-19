@@ -7,12 +7,6 @@
       </p>
     </div>
 
-    <!-- 提交失败错误提示条 -->
-    <div v-if="submitError" class="cw-alert-banner cw-alert-danger">
-      <SvgIcon name="alertTriangle" :size="16" />
-      <span>{{ submitError }}（已填写内容保留，可修正后重试）</span>
-    </div>
-
     <div class="cw-review-sections">
       <!-- 1. 基本身份与外貌特征 -->
       <div class="cw-review-card">
@@ -108,7 +102,7 @@
           </div>
           <div class="cw-r-item">
             <span class="cw-k">常驻片区：</span>
-            <span class="cw-v">{{ districtName }} ({{ player.片区id || '未选' }})</span>
+            <span class="cw-v">{{ districtName }}</span>
           </div>
           <div class="cw-r-item cw-r-full">
             <span class="cw-k">住处环境描述：</span>
@@ -294,7 +288,6 @@ const props = withDefaults(
     hasPlayerAccount?: boolean;
     startingItems?: any[];
     locations?: Record<string, any>;
-    submitError?: string;
   }>(),
   {
     relations: () => ({}),
@@ -753,21 +746,6 @@ const filteredStandbyCharacters = computed(() => {
     font-size: 11px;
     color: var(--cw-text-secondary);
     line-height: 1.5;
-  }
-}
-
-.cw-alert-banner {
-  padding: 10px 14px;
-  border-radius: var(--cw-radius-sm);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-
-  &.cw-alert-danger {
-    background: rgba(192, 57, 43, 0.1);
-    border: 1px solid rgba(192, 57, 43, 0.3);
-    color: var(--cw-danger);
   }
 }
 

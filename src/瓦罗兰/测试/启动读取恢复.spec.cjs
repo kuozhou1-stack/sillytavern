@@ -1,6 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const fs = require('node:fs');
+const Module = require('node:module');
+const ts = require('typescript');
 const { environment, copy, deferred, until } = require('./修复宿主.cjs');
 
 async function boot(options = {}) {
@@ -28,8 +31,24 @@ async function boot(options = {}) {
   global.eventEmit = async () => {};
   global.errorCatched = fn => (...args) => { task = fn(...args); return task; };
   const entry = path.join(__dirname, '../脚本/辅助API/index.ts');
-  delete require.cache[require.resolve(entry)];
-  require(entry);
+  // Loader and factory are explicit host boundaries. The entry and Runtime execute unchanged.
+  const nativeModules = { fixture: true };
+  const generation = { generate: global.generate, stop: global.stopGenerationById };
+  const compiled = new Module(entry, module);
+  compiled.filename = entry;
+  compiled.paths = Module._nodeModulePaths(path.dirname(entry));
+  const originalRequire = compiled.require.bind(compiled);
+  compiled.require = specifier => {
+    if (specifier === '../../运行/generation/native') return { loadNativeModules: async () => nativeModules };
+    if (specifier === '../../运行/generation') return { createCardGeneration(modules) {
+      assert.equal(modules, nativeModules);
+      return generation;
+    } };
+    return originalRequire(specifier);
+  };
+  compiled._compile(ts.transpileModule(fs.readFileSync(entry, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+  }).outputText, entry);
   return { e, host, original, task: () => task, reads: () => reads,
     recover() { failing = false; }, releaseMvu() { mvuGate.resolve(); }, releaseFloor() { floorReady = true; },
     async close() { onHide?.(); await host.__chengwanService?.runtime?.dispose(); await e.runtime.dispose(); } };

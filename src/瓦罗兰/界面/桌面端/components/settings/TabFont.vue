@@ -1,12 +1,5 @@
 <template>
   <div class="cw-tab-pane cw-settings-font-pane">
-    <div class="cw-callout cw-callout-info cw-font-notice">
-      <SvgIcon name="info" :size="15" class="cw-callout-icon" />
-      <div class="cw-callout-body">
-        <p>定制阅读正文字体、字号与全局界面缩放比例。正文字号仅调整楼层正文阅读大小；整体缩放按百分比调整整个前端视口。</p>
-      </div>
-    </div>
-
     <!-- 字体选择卡片 -->
     <div class="cw-set-card">
       <h4 class="cw-set-title">
@@ -15,11 +8,13 @@
       </h4>
 
       <div class="cw-font-options-grid">
-        <div
+        <button
+          type="button"
           v-for="f in fontOptions"
           :key="f.key"
           class="cw-font-opt-item"
           :class="{ active: currentFont === f.key }"
+          :aria-pressed="currentFont === f.key"
           @click="selectFont(f.key)"
         >
           <span class="cw-font-sample" :style="{ fontFamily: f.sampleFont }">瓦洛兰</span>
@@ -27,7 +22,7 @@
             <span class="cw-font-name">{{ f.name }}</span>
             <span v-if="currentFont === f.key" class="cw-badge">使用中</span>
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -36,7 +31,7 @@
       <div class="cw-slider-header">
         <div class="cw-slider-label">
           <span class="cw-set-title">正文阅读字号</span>
-          <span class="cw-sub-note">以 px 为基准，仅调整楼层对话正文大小</span>
+          <span class="cw-sub-note">应用于楼层正文</span>
         </div>
         <span class="cw-slider-val-badge">{{ fontSize }} px</span>
       </div>
@@ -46,6 +41,7 @@
         <input
           v-model.number="fontSize"
           type="range"
+          aria-label="正文阅读字号"
           min="13"
           max="24"
           step="1"
@@ -65,7 +61,7 @@
       <input v-model.number="letterSpacing" class="cw-range-slider" type="range" min="-0.05" max="0.2" step="0.01" aria-label="正文字间距" @input="emit('changeLetterSpacing', letterSpacing)" />
       <label class="cw-slider-header">段落间距 <span>{{ paragraphSpacing.toFixed(1) }} em</span></label>
       <input v-model.number="paragraphSpacing" class="cw-range-slider" type="range" min="0" max="2" step="0.1" aria-label="正文段落间距" @input="emit('changeParagraphSpacing', paragraphSpacing)" />
-      <button class="cw-btn cw-btn-ghost cw-btn-xs" @click="resetTypography">恢复默认排版</button>
+      <button type="button" class="cw-btn cw-btn-secondary cw-btn-xs" @click="resetTypography">恢复默认排版</button>
     </div>
 
     <!-- 动态排版实时预览卡片 (解决问题 19) -->
@@ -73,9 +69,8 @@
       <div class="cw-preview-card-header">
         <h4 class="cw-set-title">
           <SvgIcon name="eye" :size="15" />
-          <span>正文排版实时动态预览</span>
+          <span>正文预览</span>
         </h4>
-        <span class="cw-preview-badge">实时效果</span>
       </div>
       <div
         class="cw-typography-preview-box"
@@ -87,17 +82,17 @@
         }"
       >
         <h5 class="cw-preview-scene-title" :style="{ marginBottom: `${paragraphSpacing * 0.6}em` }">
-          上海中央广场 · 午后微风
+          皮尔特沃夫科研街区 · 午后
         </h5>
         <p class="cw-preview-narrative" :style="{ marginBottom: `${paragraphSpacing}em` }">
-          阳光穿过梧桐叶，街角咖啡店打开了白色遮阳棚。地铁到站的提示声从路口传来，骑车的人沿着街道经过，空气中弥漫着烘焙糕点的甜香。
+          风掀起报摊上的一角晚报。街对面的学徒踮起脚，把修好的钟拨回三点。
         </p>
         <div class="cw-preview-dialogue" :style="{ marginBottom: `${paragraphSpacing}em` }">
           <span class="cw-preview-speaker">朋友：</span>
-          <span class="cw-preview-speech">“今天的天气真舒坦，要不要去虹泉路韩国街看看新到的手作饰品？”</span>
+          <span class="cw-preview-speech">“走桥上吧。从那儿能看见新装的升降机。”</span>
         </div>
         <p class="cw-preview-aside" :style="{ marginBottom: `${paragraphSpacing * 0.5}em` }">
-          （她微微转过头，金色的眼眸中闪烁着狡黠与好奇的光芒，等待着您的回应。）
+          她收好零钱，等你跟上。
         </p>
       </div>
     </div>
@@ -117,6 +112,7 @@
         <input
           v-model.number="uiScale"
           type="range"
+          aria-label="整体界面缩放"
           min="80"
           max="125"
           step="5"
@@ -136,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import SvgIcon from '../icons/SvgIcon.vue';
 
 const props = withDefaults(
@@ -173,6 +169,18 @@ const uiScale = ref(props.initialUiScale);
 const lineHeight = ref(props.initialLineHeight);
 const letterSpacing = ref(props.initialLetterSpacing);
 const paragraphSpacing = ref(props.initialParagraphSpacing);
+watch(
+  () => [props.initialFont, props.initialFontSize, props.initialUiScale, props.initialLineHeight,
+    props.initialLetterSpacing, props.initialParagraphSpacing] as const,
+  ([font, size, scale, height, spacing, paragraph]) => {
+    currentFont.value = font;
+    fontSize.value = size;
+    uiScale.value = scale;
+    lineHeight.value = height;
+    letterSpacing.value = spacing;
+    paragraphSpacing.value = paragraph;
+  },
+);
 function resetTypography() {
   lineHeight.value = 1.8; letterSpacing.value = 0.02; paragraphSpacing.value = 0.8;
   emit('changeLineHeight', lineHeight.value);
@@ -227,15 +235,6 @@ function setQuickScale(val: number) {
     justify-content: space-between;
     margin-bottom: 8px;
 
-    .cw-preview-badge {
-      font-size: 11px;
-      padding: 1px 8px;
-      border-radius: var(--cw-radius-full);
-      background: var(--cw-accent-bg);
-      border: 1px solid var(--cw-accent-border);
-      color: var(--cw-accent);
-      font-weight: 500;
-    }
   }
 
   .cw-typography-preview-box {
@@ -313,6 +312,8 @@ function setQuickScale(val: number) {
   }
 
   .cw-font-opt-item {
+    font: inherit;
+    text-align: left;
     padding: 12px 14px;
     border-radius: var(--cw-radius);
     background: var(--cw-bg-card-subtle);

@@ -30,7 +30,7 @@ const { copy } = require(root + '/运行/core.ts');
 const { prepareLibraryCommand, LibrarySchema, libraryView } = require(root + '/运行/character-library.ts');
 const { validateModel } = require(root + '/运行/core.ts');
 const { pendingUpdateTasks, withUpdateTasks } = require(root + '/运行/update-tasks.ts');
-const { lifeUpdates } = require('./生活更新夹具.cjs');
+const { lifeUpdates, requestState } = require('./生活更新夹具.cjs');
 const { stripProtocol, storedNarrative, updateBlock } = require(root + '/运行/message-protocol.ts');
 const { parseAndValidateCharacterJson } = require(root + '/界面/桌面端/utils/char_importer.ts');
 const { displayedMessage } = require(root + '/界面/桌面端/utils/message-display.ts');
@@ -293,17 +293,18 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     e.mutations.push({ kind: 'delete', refresh: options?.refresh });
     e.messages = e.messages.filter((_, i) => !ids.includes(i));
   };
-  async function finalConfig(config) {
+  async function finalConfig(config, context) {
     const { promptContextText, variableRuleText } = require('../运行/prompt-context.ts');
+    const expand = context?.expandPrompt ?? (text => text.replace('{{valoran_context}}', () => promptContextText(() => e.state())));
     const depthEntries = config.overrides?.chat_history?.with_depth_entries !== false;
     const data = { custom_prompt_post_processing: 'strict', messages: [
       { role: 'system', content: '模拟原生世界书/预设' },
       ...(depthEntries ? [
         ...[...e.rules, ...e.atmosphereEntries].filter(entry => entry.enabled)
           .map(({ position, content, name }) => ({ role: position?.role ?? 'system',
-            content: name.startsWith('[mvu_update]') ? variableRuleText(content.replace(/^# \{\{valoran_variables\}\}\r?\n|^# \{\{valoran_variables_end\}\}\r?\n?/gm,'')) : content }))
+            content: expand(content) }))
           .filter(entry => entry.content.trim()),
-        ...[promptContextText(() => e.state())].filter(Boolean).map(content => ({ role: 'system', content })),
+        ...[expand('{{valoran_context}}')].filter(Boolean).map(content => ({ role: 'system', content })),
       ] : []),
       ...[...(config.injects ?? []), ...(config.ordered_prompts ?? []), ...(config.overrides?.chat_history?.prompts ?? [])]
         .filter(p => typeof p === 'object').map(({ role, content }) => ({ role, content })),
@@ -314,8 +315,8 @@ function environment(initial = seed(), settings = { characterAuto: false, variab
     if (e.stops.includes(config.generation_id)) throw Error('模拟已取消请求');
     return { ...config, finalMessages: copy(data.messages) };
   }
-  global.generate = async config => {
-    const final = await finalConfig(config);
+  global.generate = async (config, context) => {
+    const final = await finalConfig(config, context);
     const stage = e.runtime.view.phase;
     e.calls.push({ kind: stage === 'story' ? 'story' : 'update', stage, config: copy(final) });
     return structuredFixtureReply(config, await (stage === 'story' ? e.story(final) : e.update(final)));
@@ -734,6 +735,7 @@ test('刷新失败保留原内容与已有恢复队列，手动重试成功后�
     await assert.rejects(e.runtime.novelRefresh('shop'), /模拟连接失败/);
     assert.deepEqual(e.state().奇遇系统, before);
     assert.equal(e.runtime.view.recoverable.length, 1);
+    assert.equal(e.runtime.view.recoverable[0].target, 'shop');
     e.update = async () => novelGoodReply();
     await e.runtime.retry();
     assert.equal(e.calls.length, 2);
@@ -1243,12 +1245,17 @@ test('正文完成才请求变量 API，先显示正文，忽略主模型夹带�
 test('MVU 把旧变量复制到待结算楼层且嵌套 extra 时，仍只以已提交楼层为基线', async () => {
   const e = environment();
   e.copyMvuOnReply = true;
-  const update = deferred();
-  e.update = () => update.promise;
+  const update = deferred(), entered = deferred();
+  e.update = () => { entered.resolve(); return update.promise; };
   await e.runtime.start();
+  const sending = e.runtime.send('继续');
+  // Observe rejection immediately and drain this operation before restoring the test host.
+  const finished = sending.then(() => ({ ok: true }), error => ({ error }));
   try {
-    const sending = e.runtime.send('继续');
-    await until(() => e.calls.some(c => c.kind === 'update'));
+    await Promise.race([entered.promise, finished.then(result => {
+      if (result.error) throw result.error;
+      throw Error('正文发送已结束，但没有进入变量请求');
+    })]);
     assert.equal(e.messages.at(-1).swipe_info[0].extra.cw_update_pending, true);
     assert.equal(e.runtime.view.messages.at(-1).isUpdatePending, true);
     assert.equal(activeContext().floor, 0);
@@ -1259,6 +1266,8 @@ test('MVU 把旧变量复制到待结算楼层且嵌套 extra 时，仍只以已
     assert.equal(e.calls.filter(c => c.kind === 'update').length, 1);
     assert.equal(e.messages.at(-1).swipe_info[0].cw_update_pending, undefined);
   } finally {
+    update.resolve(block([]));
+    await finished;
     await e.runtime.dispose();
   }
 });
@@ -1297,7 +1306,7 @@ test('取消已保存正文仍保留恢复记录并阻止跨过未结算楼层',
     await e.runtime.discardPending();
     assert.equal(e.vars.澄湾待更新正文.replyFloor, 2);
     assert.equal(e.messages[2].extra.cw_update_pending, true);
-    assert.match(e.runtime.view.error, /不能跳过变量结算/);
+    assert.match(e.runtime.view.error, /缺少可撤回的已结算原文/);
     const calls = e.calls.length;
     await assert.rejects(e.runtime.send('第二轮'), /尚未完成的操作|待处理更新/);
     assert.equal(e.calls.length, calls);
@@ -1703,8 +1712,8 @@ test('原生编辑最新助手正文后，重试按前一已提交楼层重新�
   await withEnv(async e => {
     await e.runtime.send('第一轮');
     e.messages[2].message = '编辑后的正文';
-    e.listeners.get('edited')(2);
-    await until(() => e.vars.澄湾待更新正文?.replyFloor === 2);
+    await e.listeners.get('edited')(2);
+    assert.equal(e.vars.澄湾待更新正文?.replyFloor, 2);
     assert.equal(activeContext().floor, 0);
     e.update = async () => block([patch('/玩家/年龄', 29)]);
     await e.runtime.retry();
@@ -1724,8 +1733,8 @@ test('编辑既有候选分支只重结算选中候选，保留候选编号', as
     assistant.swipes = [assistant.message, '另一个候选的编辑正文'];
     assistant.swipes_data = [copy(assistant.data), copy(assistant.data)];
     assistant.message = assistant.swipes[1];
-    e.listeners.get('edited')(2);
-    await until(() => e.vars.澄湾待更新正文?.replySwipe === 1);
+    await e.listeners.get('edited')(2);
+    assert.equal(e.vars.澄湾待更新正文?.replySwipe, 1);
     e.update = async () => block([patch('/玩家/年龄', 31)]);
     await e.runtime.retry();
     assert.equal(e.messages.length, 3);
@@ -1990,7 +1999,7 @@ test('手机遗漏世界时钟但生成未来回复时不保存；重试完整�
 test('手机可独立使用，正文变量端点为空不阻塞手机操作', async () => {
   await withEnv(
     async e => {
-      e.update = async () => block(lifeUpdates(e.state()));
+      e.update = async () => block(lifeUpdates(requestState(e)));
       await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
       assert.equal(e.calls.length, 1);
       assert.equal(e.calls[0].config.custom_api.model, 'phone');
@@ -2156,7 +2165,7 @@ test('Google 映射和携带预设仍使用手机独立端点与同一规则', a
   await withEnv(
     async e => {
       const remote = publicPerson(e.state().角色.remote);
-      e.update = async () => block(lifeUpdates(e.state()));
+      e.update = async () => block(lifeUpdates(requestState(e)));
       await e.runtime.phoneAction({ kind: 'refresh', id: 'chat' });
       assert.equal(e.calls.length, 1);
       const call = e.calls[0];
@@ -2220,7 +2229,7 @@ test('开局调度：建档171人后只发送地点相关和明确联系的3人�
   await withEnv(async e => {
     const payload = openingRosterPayload();
     const saved = await e.runtime.createProfile(payload);
-    assert.deepEqual(saved, { active: 3, waiting: 168 });
+    assert.deepEqual(saved, { active: 3, waiting: 168, selectionPending: false });
     assert.equal(e.calls.length, 0, '本地选人不调用模型');
     assert.deepEqual(Object.keys(e.state().角色), ['m01', 'm119', 'n00']);
     const opening = Object.values(e.state()._系统.任务).find(t => t.类别 === '建档' && t.状态 === '排队');
@@ -2277,7 +2286,7 @@ test('开局调度：前端桥接在建档保存期间锁定，保存后即时�
       await until(() => saving);
       assert.equal(frontend.runtime.view.updating, true);
       persist.resolve();
-      assert.deepEqual(await operation, { active: 3, waiting: 168 });
+      assert.deepEqual(await operation, { active: 3, waiting: 168, selectionPending: false });
       assert.equal(frontend.runtime.view.updating, false);
       assert.equal(frontend.runtime.view.data._系统.建档完成, true);
       assert.equal(Object.keys(frontend.runtime.view.data.角色).length, 3);
@@ -2335,7 +2344,7 @@ test('开局调度：建档保存失败回滚，快照独立保留，恢复后�
     assert(e.vars.澄湾待确认提交.rollbackOnFailure);
     SillyTavern.saveChat = async () => { e.saveDisk(); };
     await e.runtime.retry();
-    assert.deepEqual(await e.runtime.createProfile(payload), { active: 3, waiting: 168 });
+    assert.deepEqual(await e.runtime.createProfile(payload), { active: 3, waiting: 168, selectionPending: false });
     assert.equal(Object.keys(e.vars.澄湾角色库.snapshots).length, 168);
     assert.equal(e.vars.澄湾待确认提交, null);
     e.update = async () => block([patch('/角色/m01/年龄', 30)]);
@@ -3244,7 +3253,7 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
   await withEnv(async e => {
     const rosters = [];
     const capture = async config => {
-      const people = e.state().角色;
+      const state = requestState(e), people = state.角色;
       assert.equal(Object.values(people).filter(p => p.层级 === '主要').length, 6);
       assert.equal(Object.values(people).filter(p => p.层级 === '次要').length, 3);
       const extra = !!config.custom_api;
@@ -3254,7 +3263,7 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
       await e.listeners.get('completion_settings')?.({ messages });
       if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
       const text = JSON.stringify(messages);
-      const revision = e.vars.澄湾角色库.revisions[e.state()._系统.角色库版本];
+      const revision = e.vars.澄湾角色库.revisions[state._系统.角色库版本];
       for (const id of Object.keys(revision.disabled)) assert(!text.includes('ROSTER_PRIVATE_' + id), id);
       assert(!text.includes('characterRoster')); assert(!text.includes('majorRotation'));
       assert(!text.includes('rotationIds')); assert(!text.includes('snapshots'));
@@ -3263,7 +3272,7 @@ test('自动调度：自定义6+3预算与3+2每轮轮换传入宿主，正文�
       if (!extra) rosters.push(Object.keys(people));
     };
     e.story = async config => { await capture(config); return '本轮只是观察环境。'; };
-    e.update = async config => { await capture(config); return block(lifeUpdates(e.state())); };
+    e.update = async config => { await capture(config); return block(lifeUpdates(requestState(e))); };
     await e.runtime.send('观察环境');
     await e.runtime.send('继续观察环境');
     assert.equal(rosters[1].filter(id => id.startsWith('m') && !rosters[0].includes(id)).length, 3);
@@ -3284,19 +3293,19 @@ test('自动调度：正文、变量和手机最终请求均为6+3，关闭完�
       const nativeMessages = copy(messages);
       await e.listeners.get('completion_settings')?.({ messages });
       if (!config.custom_api) assert.deepEqual(messages, nativeMessages, '正文原生世界书状态与消息角色不被重写');
-      const text = JSON.stringify(messages), people = Object.values(e.state().角色);
+      const state = requestState(e), text = JSON.stringify(messages), people = Object.values(state.角色);
       assert.equal(people.filter(p => p.层级 === '主要').length, 6);
       assert.equal(people.filter(p => p.层级 === '次要').length, 3);
       const library = LibrarySchema.parse(e.vars.澄湾角色库);
-      const revision = library.revisions[e.state()._系统.角色库版本];
+      const revision = library.revisions[state._系统.角色库版本];
       for (const id of Object.keys(revision.disabled)) assert(!text.includes('ROSTER_PRIVATE_' + id), id);
-      for (const id of Object.keys(e.state().角色)) assert(text.includes('ROSTER_PRIVATE_' + id), id);
+      for (const id of Object.keys(state.角色)) assert(text.includes('ROSTER_PRIVATE_' + id), id);
       assert(!text.includes('manualOff')); assert(!text.includes('snapshots')); assert(!text.includes('澄湾角色库'));
       assert.equal((text.match(/<status_current_variable>/g) ?? []).length, 1);
       final.push(extra ? config.custom_api.model : 'story');
     };
     e.story = async config => { await capture(config); return '玩家观察了当前环境，未与远处人物互动。'; };
-    e.update = async config => { await capture(config); return block(lifeUpdates(e.state())); };
+    e.update = async config => { await capture(config); return block(lifeUpdates(requestState(e))); };
     await e.runtime.send('观察环境');
     const roster = e.vars.澄湾角色库.revisions[e.state()._系统.角色库版本].automatic;
     assert.equal(Object.keys(roster.checks).length, 9);
@@ -3346,15 +3355,18 @@ test('自动调度：活动名单保存失败回滚，快照仍可恢复，重�
   }, automaticRosterSeed(), automaticSettings());
 });
 
-test('自动调度：手机操作前名单保存失败，重试先恢复名单且只发送一次手机消息', async () => {
+test('自动调度：手机草稿保存失败时名单未提交，重试只发送一次手机消息', async () => {
   await withEnv(async e => {
-    e.update = async () => block(lifeUpdates(e.state()));
+    e.update = async () => block(lifeUpdates(requestState(e)));
     const original = copy(e.state());
-    SillyTavern.saveChat = async () => { if (!e.messages[0].data.stat_data.角色.m29) throw Error('自动名单保存失败');  e.saveDisk(); };
-    await assert.rejects(e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '轮换后的问候' }), /自动名单保存失败/);
+    SillyTavern.saveChat = async () => { if (e.vars.澄湾待更新手机) throw Error('手机草稿保存失败'); e.saveDisk(); };
+    await assert.rejects(e.runtime.phoneAction({ kind: 'send', id: 'chat', text: '轮换后的问候' }), /手机草稿保存失败/);
     assert.deepEqual(e.state(), original);
     assert.equal(e.calls.length, 0);
-    assert(e.vars.澄湾待确认提交.rollbackOnFailure);
+    assert(!e.vars.澄湾待确认提交);
+    const draft = e.vars.澄湾待更新手机.draft;
+    assert(draft.角色.n19);
+    assert(e.vars.澄湾角色库.revisions[draft._系统.角色库版本]);
     SillyTavern.saveChat = async () => { e.saveDisk(); };
     await e.runtime.retry();
     assert.equal(e.calls.length, 1);

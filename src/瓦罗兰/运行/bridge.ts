@@ -27,6 +27,7 @@ export function connectRuntime(remote: Runtime) {
       unavailable = true;
       view.readOnly = true;
       view.canResend = false;
+      view.canAutoRead = false;
       view.error = '后台脚本尚未就绪，请检查辅助API脚本是否启用';
       return;
     }
@@ -64,6 +65,12 @@ export function connectRuntime(remote: Runtime) {
   };
   // Commands remain bound to the one background writer; frontend snapshots are read-only projections.
   // Publish changes immediately instead of waiting for the background poll.
+  if (remote.saveSettings) {
+    runtime.saveSettings = (input, channel) => invoke(() => remote.saveSettings(input, channel));
+  }
+  if (remote.reloadSettings) {
+    runtime.reloadSettings = channel => invoke(() => remote.reloadSettings(channel));
+  }
   if (remote.manageCharacters) {
     runtime.manageCharacters = command => invoke(() => remote.manageCharacters(command));
   }

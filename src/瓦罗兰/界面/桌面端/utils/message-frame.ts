@@ -1,4 +1,5 @@
 import { randomUUID } from '../../../运行/browser-crypto';
+import { klona } from 'klona';
 
 type WidgetWindow = Window & typeof globalThis & Record<string, any>;
 type FrameHost = Window & { __cwMessageFrames?: Record<string, (child: WidgetWindow) => void> };
@@ -8,7 +9,15 @@ export function mountMessageFrame(frame: HTMLIFrameElement, html: string, messag
   const id = `cw-regex-${messageId}-${randomUUID()}`;
   const owner = frame.ownerDocument;
   const host = owner.defaultView as FrameHost;
-  const listeners: EventOnReturn[] = [];
+  type Listener = { event: string; callback: (...args: any[]) => any; wrapped: (...args: any[]) => any; stop: () => void };
+  const listeners = new Set<Listener>();
+  const clearListeners = () => {
+    const errors: unknown[] = [];
+    for (const listener of listeners) {
+      try { listener.stop(); } catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, '消息界面事件监听清理失败');
+  };
   let observer: ResizeObserver | undefined;
   let active = true;
   let resizeRequest = 0;
@@ -52,29 +61,53 @@ export function mountMessageFrame(frame: HTMLIFrameElement, html: string, messag
     child.getCurrentMessageId = () => messageId;
     child.getIframeName = () => id;
     child.getAllVariables = () =>
-      _.merge(
+      klona(Object.assign(
         {},
         getVariables({ type: 'global' }),
         getVariables({ type: 'character' }),
         getVariables({ type: 'chat' }),
         ...getChatMessages(`0-${messageId}`).map(message => message.data),
-      );
-    child.eventOn = (...args: Parameters<typeof eventOn>) => {
-      eventOn(...args);
-      const listener = { stop: () => eventRemoveListener(...args) };
-      listeners.push(listener);
-      return listener;
-    };
-    for (const register of ['eventOnce', 'eventMakeFirst', 'eventMakeLast'] as const) {
-      child[register] = (...args: Parameters<typeof eventOn>) => {
-        (window as WidgetWindow)[register](...args);
-        const listener = { stop: () => eventRemoveListener(...args) };
-        listeners.push(listener);
+      ));
+    for (const method of ['eventOn', 'eventOnce', 'eventMakeFirst', 'eventMakeLast'] as const) {
+      child[method] = (event: string, callback: (...args: any[]) => any) => {
+        const existing = [...listeners].find(listener => listener.event === event && listener.callback === callback);
+        if (existing) {
+          if (method === 'eventMakeFirst' || method === 'eventMakeLast')
+            (window as WidgetWindow)[method](event, existing.wrapped);
+          return existing;
+        }
+        let invoked = false;
+        const listener: Listener = {
+          event, callback,
+          wrapped: (...args: any[]) => {
+            if (!active || !listeners.has(listener) || invoked) return;
+            if (method === 'eventOnce') {
+              invoked = true;
+              listener.stop();
+            }
+            return callback(...args);
+          },
+          stop: () => {
+            if (!listeners.has(listener)) return;
+            eventRemoveListener(event, listener.wrapped);
+            listeners.delete(listener);
+          },
+        };
+        const register = method === 'eventOnce' || method === 'eventOn' ? eventOn : (window as WidgetWindow)[method];
+        // Tavern may replay APP_READY synchronously from inside registration.
+        listeners.add(listener);
+        try { register(event, listener.wrapped); }
+        catch (error) { listener.stop(); throw error; }
         return listener;
       };
     }
+    child.eventRemoveListener = (event: string, callback: (...args: any[]) => any) => {
+      for (const listener of listeners) {
+        if (listener.event === event && listener.callback === callback) listener.stop();
+      }
+    };
     child.errorCatched = errorCatched;
-    child.addEventListener('pagehide', () => listeners.forEach(listener => listener.stop()), { once: true });
+    child.addEventListener('pagehide', () => { active = false; clearListeners(); }, { once: true });
   };
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const base = doc.createElement('base');
@@ -110,10 +143,10 @@ export function mountMessageFrame(frame: HTMLIFrameElement, html: string, messag
     active = false;
     observer?.disconnect();
     cancelAnimationFrame(resizeRequest);
-    listeners.forEach(listener => listener.stop());
     frame.removeEventListener('load', loaded);
     host.removeEventListener('message', onResizeMessage);
     delete host.__cwMessageFrames?.[id];
     if (host.__cwMessageFrames && !Object.keys(host.__cwMessageFrames).length) delete host.__cwMessageFrames;
+    clearListeners();
   };
 }

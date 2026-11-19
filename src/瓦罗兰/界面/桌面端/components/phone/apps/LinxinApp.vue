@@ -17,9 +17,6 @@
         >
           <SvgIcon name="refreshCw" :size="18" />
         </button>
-        <button v-if="currentTab === 'moments'" class="cw-btn-icon" title="发朋友圈" @click="triggerNewMoment">
-          <SvgIcon name="image" :size="18" />
-        </button>
         <button
           v-if="activeChatId && currentTab !== 'directory' && currentTab !== 'groups'"
           class="cw-btn-icon"
@@ -394,14 +391,6 @@
               <span class="cw-section-subtitle">
                 {{ appsTab === 'pending' ? '待处理申请' : '全部申请记录' }} ({{ displayedApplications.length }})
               </span>
-              <button
-                v-if="appsTab !== 'add'"
-                type="button"
-                class="cw-btn-quick-add-link"
-                @click="appsTab = 'add'"
-              >
-                + 添加朋友
-              </button>
             </div>
 
             <div v-if="displayedApplications.length > 0" class="cw-apps-list">
@@ -798,7 +787,7 @@ const vRead = {
   },
 };
 const readTimer = setInterval(async () => {
-  if (!isActive || !runtime || runtime.view.busy || runtime.view.updating || !seen.size) return;
+  if (!isActive || !runtime?.view.canAutoRead || !seen.size) return;
   const ids = [...seen].filter(id => state.value.手机.原文.消息[id]);
   seen.clear();
   const unread = ids.filter(
@@ -1347,9 +1336,9 @@ async function manage(op: string, id: string, value?: string) {
 
 function startEditPost(post: any) {
   // 简易编辑
-  const val = window.prompt('编辑动态内容（原版本保留）：', post.content);
-  if (val !== null && val.trim()) {
-    manage('editPost', post.id, val.trim());
+  const val = window.prompt('编辑动态内容（原版本保留）：', post.editableText);
+  if (val !== null && val !== post.editableText) {
+    manage('editPost', post.id, val);
   }
 }
 </script>
@@ -2463,15 +2452,7 @@ function startEditPost(post: any) {
       margin: 0;
     }
 
-    .cw-btn-quick-add-link {
-      background: none;
-      border: none;
-      color: #07c160;
-      font-size: 11.5px;
-      cursor: pointer;
-      font-weight: 500;
-      &:hover { text-decoration: underline; }
-    }
+
   }
 
   .cw-apps-list {

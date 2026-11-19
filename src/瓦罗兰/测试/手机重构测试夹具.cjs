@@ -62,7 +62,7 @@ function component(relative, state, runtime, props = {}, additions = {}) {
   return { view: context.module.exports, source, emissions };
 }
 function runtimeFor(state, requests = []) {
-  return { view: { busy: false, updating: false },
+  return { view: vue.reactive({ busy: false, updating: false, canAutoRead: true, get data() { return state.value; } }),
     async commit(fn) { state.value = Schema.parse(fn(structuredClone(vue.toRaw(state.value)))); },
     async phoneAction(a) { requests.push(a); } };
 }

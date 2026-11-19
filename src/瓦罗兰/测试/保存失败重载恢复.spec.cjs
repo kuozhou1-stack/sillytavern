@@ -9,7 +9,7 @@ harness._compile(fs.readFileSync(fixture, 'utf8').split('const goods =')[0] +
 const { environment, seed, copy, block, patch, endpoint, useInstalledSave, persistChat, deferred, until } = harness.exports;
 const { createRuntime } = require('../运行/host.ts');
 const { Schema } = require('../schema.ts');
-const { lifeUpdates } = require('./生活更新夹具.cjs');
+const { lifeUpdates, requestState } = require('./生活更新夹具.cjs');
 const { arrayReply } = require('./结构化回包夹具.cjs');
 
 async function reload(e, fromDisk = false) {
@@ -257,7 +257,7 @@ for (const format of [undefined, 'structured', 'structured-v2']) test(`只有手
 
 test('手机名单第一阶段快照保存失败，无journal时仍可从原排队操作直接重试', async () => {
   const e = environment(rosterSeed(), automatic); await e.runtime.start(); let fault = true;
-  e.update = async () => block(lifeUpdates(e.state()));
+  e.update = async () => block(lifeUpdates(requestState(e)));
   useInstalledSave(e, () => {
     if (fault && e.vars.澄湾角色库 && !e.vars.澄湾待确认提交) { fault = false; return 'http'; }
     return false;
@@ -272,6 +272,52 @@ test('手机名单第一阶段快照保存失败，无journal时仍可从原排�
     assert(e.state()._系统.提交记录[id]);
     assert.equal(e.calls.length, 1);
     assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 1);
+  } finally { await e.runtime.dispose(); }
+});
+
+test('手机刷新缺少本平台账号时，活动楼和角色库均保持原样', async () => {
+  const e = environment(rosterSeed(), automatic); await e.runtime.start();
+  try {
+    const floor = copy(e.messages[0].data), library = e.vars.澄湾角色库;
+    await assert.rejects(e.runtime.phoneAction({ kind: 'refresh', platform: '微澜', text: '微澜发现' }), /请先建立本平台的玩家账号/);
+    assert.deepEqual(e.messages[0].data, floor);
+    assert.deepEqual(e.vars.澄湾角色库, library);
+    assert(!e.vars.澄湾待更新手机);
+    assert.equal(e.calls.length, 0);
+  } finally { await e.runtime.dispose(); }
+});
+
+for (const recover of [false, true]) test('手机请求失败后保留原楼名单，重开' + (recover ? '重试只提交一次' : '取消后仍保留原名单'), async () => {
+  const e = environment(rosterSeed(), automatic); await e.runtime.start();
+  try {
+    const floor = copy(e.messages[0].data);
+    const send = { kind: 'send', id: 'chat', text: '手机草稿内的唯一一句' };
+    e.update = async () => { throw Error('手机上游拒绝请求'); };
+    await assert.rejects(e.runtime.phoneAction(send), /手机上游拒绝请求/);
+    const pending = copy(e.vars.澄湾待更新手机);
+    assert.deepEqual(pending.envelope, floor);
+    assert.deepEqual(e.messages[0].data, floor);
+    assert.notDeepEqual(Object.keys(pending.draft.角色), Object.keys(floor.stat_data.角色));
+    assert(e.vars.澄湾角色库.revisions[pending.draft._系统.角色库版本]);
+    await reload(e, true);
+    assert.deepEqual(e.messages[0].data, floor);
+    assert.deepEqual(e.vars.澄湾待更新手机.draft, pending.draft);
+    if (recover) {
+      e.update = async () => block(lifeUpdates(requestState(e)));
+      const result = await e.runtime.retry();
+      assert.equal(result.id, pending.id);
+      const state = e.messages[0].data.stat_data;
+      assert.equal(state._系统.角色库版本, pending.draft._系统.角色库版本);
+      assert.deepEqual(Object.keys(state.角色), Object.keys(pending.draft.角色));
+      assert.deepEqual(Object.keys(state.手机.原文.消息), Object.keys(pending.draft.手机.原文.消息));
+      assert.deepEqual(Object.keys(state._系统.已计轮事件), [pending.id]);
+      assert.deepEqual(Object.keys(state._系统.提交记录), [pending.id]);
+    } else {
+      await e.runtime.cancelQueued(pending.id);
+      assert.deepEqual(e.messages[0].data, floor);
+    }
+    assert(!e.vars.澄湾待更新手机);
+    assert.deepEqual(e.vars.澄湾排队操作, []);
   } finally { await e.runtime.dispose(); }
 });
 

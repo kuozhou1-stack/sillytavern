@@ -9,36 +9,21 @@
 
     <!-- 开启上限与轮换人数配额配置 -->
     <section class="cw-roster-card">
-      <div class="cw-card-header-bar">
-        <div class="cw-card-title-group">
-          <div class="cw-title-icon-badge">
-            <SvgIcon name="sliders" :size="16" />
-          </div>
-          <div class="cw-title-texts">
-            <h4 class="cw-card-title">角色资料配额与轮换名额</h4>
-            <span class="cw-card-subtitle">限制本轮开启资料的数量；开启资料不代表角色已经在场</span>
-          </div>
+      <div class="cw-card-title-group">
+        <span class="cw-title-icon-badge"><SvgIcon name="sliders" :size="16" /></span>
+        <div class="cw-title-texts">
+          <h4 class="cw-card-title">角色资料配额</h4>
+          <span class="cw-card-subtitle">开启的资料供 AI 参考，角色是否在场由剧情决定。</span>
         </div>
-
-        <details class="cw-roster-help-details">
-          <summary class="cw-help-summary">
-            <SvgIcon name="info" :size="13" />
-            <span>调度规则说明</span>
-          </summary>
-          <div class="cw-help-content">
-            <div class="cw-help-item">
-              <span class="cw-help-bullet">·</span>
-              <p><strong>轮换机制</strong>：轮换人数为 0 时停止主动轮换。配置将在下一次正文或手机互动前自动执行；单轮重试不重复换人。</p>
-              <p>同时开启自动角色调度与自动资料选择时，同一轮资料选择会结合场景、玩家背景、当前行动和最近剧情挑选人物，再向正文展开完整资料。轮候名单提供待机人物的候选机会，不强制人物出场。</p>
-              <p>开局先保存完整档案和相识关系，再按本轮选择准备人物，不按目录前几名补位。关闭自动资料选择时沿用本地关系、地理和队列调度。</p>
-            </div>
-            <div class="cw-help-item">
-              <span class="cw-help-bullet">·</span>
-              <p><strong>保留策略</strong>：在场、正文明确点名及手机互动中的人物优先绝对保留；当前互动人数超限时暂时保留全体参与者。</p>
-            </div>
-          </div>
-        </details>
       </div>
+      <details class="cw-roster-help-details">
+        <summary class="cw-help-summary">配额与轮换规则</summary>
+        <div class="cw-help-content">
+          <p>每轮轮换人数为 0 时停止主动换人。更改在下一次正文或手机互动前生效，同轮重试沿用名单。</p>
+          <p>同时开启自动资料选择时，AI 按场景、行动和近期剧情选人。关闭后按人物关系、地理和轮候名单调度。</p>
+          <p>正在互动、在场或正文点名的人物优先保留，当前参与者可能超过配额。</p>
+        </div>
+      </details>
 
       <form @submit.prevent="save">
         <fieldset :disabled="saving || autoSaving || !runtime" class="cw-roster-fieldset">
@@ -55,14 +40,14 @@
                     {{ group.tier }}角色席位
                   </span>
                   <span class="cw-current-quota-tag">
-                    当前活跃: {{ active[group.tier].length }} / {{ draft[group.limit] }} 席
+                    已开启 {{ active[group.tier].length }} / {{ draft[group.limit] }} 席
                   </span>
                 </div>
               </div>
 
               <div class="cw-quota-inputs-row">
                 <div class="cw-quota-field">
-                  <label class="cw-field-label">资料开启上限人数</label>
+                  <label class="cw-field-label">资料开启上限</label>
                   <div class="cw-number-input-wrap">
                     <input
                       v-model.number="draft[group.limit]"
@@ -73,12 +58,12 @@
                       class="cw-number-input"
                       :aria-label="`${group.tier}角色开启上限`"
                     />
-                    <span class="cw-input-unit">人上限</span>
+                    <span class="cw-input-unit">人</span>
                   </div>
                 </div>
 
                 <div class="cw-quota-field">
-                  <label class="cw-field-label">单轮轮换步长</label>
+                  <label class="cw-field-label">每轮最多轮换</label>
                   <div class="cw-number-input-wrap">
                     <input
                       v-model.number="draft[group.rotation]"
@@ -104,7 +89,7 @@
             <div class="cw-action-btns">
               <button
                 type="button"
-                class="cw-btn cw-btn-ghost cw-btn-sm"
+                class="cw-btn cw-btn-secondary cw-btn-sm"
                 :disabled="!dirty"
                 @click="reset"
               >
@@ -142,20 +127,12 @@
           </div>
           <div class="cw-title-texts">
             <h4 class="cw-card-title">当前开启的人物资料</h4>
-            <span class="cw-card-subtitle">显示当前载入交互上下文的人物；是否在场以实际剧情为准</span>
+            <span class="cw-card-subtitle">下一次正文或手机互动前更新名单</span>
           </div>
         </div>
 
         <span class="cw-badge cw-badge-accent cw-total-roster-badge">
           主要 {{ active.主要.length }} 人 · 次要 {{ active.次要.length }} 人
-        </span>
-      </div>
-
-      <!-- 结构化提示条替代大段平铺文字 -->
-      <div class="cw-info-callout">
-        <SvgIcon name="info" :size="14" class="cw-callout-icon" />
-        <span class="cw-callout-text">
-          名单随正文及手机互动自动结算，新创建角色将在下一次互动前自动归入配额整理。
         </span>
       </div>
 
@@ -270,7 +247,6 @@ async function save() {
     await runtime.saveSettings({ characterRoster: parsed.data }, 'general');
     draft.value = klona(saved.value);
     notice.value = '角色调度配置已保存，将在下一次正文或手机互动前生效。';
-    emit('feedback', notice.value);
   } catch (cause) {
     error.value = String(cause);
   } finally {
@@ -401,7 +377,7 @@ async function save() {
   font-weight: 700;
 }
 
-.cw-help-item p {
+.cw-help-content p {
   margin: 0;
 }
 

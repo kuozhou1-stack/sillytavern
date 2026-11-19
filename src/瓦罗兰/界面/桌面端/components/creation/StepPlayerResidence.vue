@@ -13,35 +13,23 @@
         <SvgIcon name="home" :size="16" />
         <span>居所与常驻生活区</span>
       </h4>
-      <p class="cw-box-subtitle">选择您常驻活动的核心片区，并描述您的具体居所与起居环境。</p>
-
-      <div class="cw-districts-grid">
-        <div
-          v-for="d in districts"
-          :key="d.id"
-          class="cw-district-card"
-          :class="{ active: draft.片区id === d.id }"
-          @click="selectDistrict(d.id)"
-        >
-          <div class="cw-dist-top">
-            <span class="cw-dist-name">{{ d.name }}</span>
-            <span class="cw-badge cw-badge-sm">{{ d.role }}</span>
-          </div>
-          <p class="cw-dist-desc">{{ d.desc }}</p>
+      <fieldset class="cw-district-field">
+        <legend class="cw-label">常驻片区（选填）</legend>
+        <div class="cw-districts-grid">
+          <label v-for="d in districts" :key="d.id" class="cw-district-card" :class="{ active: draft.片区id === d.id }">
+            <input v-model="draft.片区id" type="radio" name="creation-district" :value="d.id" />
+            <span class="cw-dist-text">
+              <strong class="cw-dist-name">{{ d.name }}</strong>
+              <span class="cw-dist-desc">{{ d.role }}</span>
+            </span>
+          </label>
         </div>
-      </div>
-
-      <div class="cw-form-grid" style="margin-top: 14px">
-        <div class="cw-form-item cw-item-full">
-          <label class="cw-label">起居住处环境描述：</label>
-          <input
-            v-model="draft.住处描述"
-            placeholder="例如：艺文居住区里一间朝东的小公寓，窗外能看见沿街树影与轻轨线"
-            class="cw-input"
-          />
-          <span class="cw-hint">起居环境文字描写，供剧情描写您的日常生活，不会与公共地图地点 ID 混淆。</span>
-        </div>
-      </div>
+        <button v-if="draft.片区id" type="button" class="cw-clear-district" @click="draft.片区id = ''">清除片区选择</button>
+      </fieldset>
+      <label class="cw-home-description">
+        <span class="cw-label">住处环境</span>
+        <textarea v-model="draft.住处描述" rows="2" placeholder="例如：朝东的小公寓，窗外能看见沿街树影与轻轨线" class="cw-input"></textarea>
+      </label>
     </div>
 
     <!-- 模块 2：开场时空与具体地点 -->
@@ -335,10 +323,6 @@ function removeItemRow(idx: number) {
 }
 
 const districts = cityDistricts;
-
-function selectDistrict(distId: string) {
-  draft.value.片区id = distId;
-}
 </script>
 
 <style scoped lang="scss">
@@ -346,6 +330,7 @@ function selectDistrict(distId: string) {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  container-type: inline-size;
 }
 
 .cw-step-header {
@@ -397,58 +382,44 @@ function selectDistrict(distId: string) {
   }
 }
 
+.cw-district-field {
+  min-width: 0;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+  legend { padding: 0; }
+}
 .cw-districts-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr));
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .cw-district-card {
+  position: relative;
   padding: 10px 12px;
-  border-radius: var(--cw-radius);
+  border-radius: var(--cw-radius-sm);
   border: 1px solid var(--cw-border);
   background: var(--cw-bg-surface);
   cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    border-color: var(--cw-accent);
-  }
-
+  &:hover, &.active { border-color: var(--cw-accent); }
+  &:has(input:focus-visible) { outline: 2px solid var(--cw-accent); outline-offset: 2px; }
   &.active {
-    border-color: var(--cw-accent);
     background: var(--cw-accent-bg);
   }
-
-  .cw-dist-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-
-    .cw-dist-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--cw-text-primary);
-    }
-  }
-
-  .cw-dist-desc {
-    margin: 0;
-    font-size: 11px;
-    color: var(--cw-text-secondary);
-    line-height: 1.4;
-  }
+  input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .cw-dist-text { display: grid; gap: 3px; }
+  .cw-dist-name { color: var(--cw-text-primary); font-size: 13px; line-height: 1.4; }
+  .cw-dist-desc { color: var(--cw-text-secondary); font-size: 12px; line-height: 1.5; }
 }
+.cw-clear-district { margin-top: 6px; padding: 3px 0; border: 0; background: none; color: var(--cw-accent); font: inherit; font-size: 12px; cursor: pointer; }
+.cw-home-description { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--cw-border); }
+.cw-home-description textarea { resize: vertical; line-height: 1.5; font-family: inherit; }
 
 .cw-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 16px;
 
   .cw-form-item {
@@ -625,12 +596,8 @@ function selectDistrict(distId: string) {
   }
 }
 
-@media (max-width: 640px) {
+@container (max-width: 545px) {
   .cw-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .cw-districts-grid {
     grid-template-columns: 1fr;
   }
 
@@ -641,22 +608,16 @@ function selectDistrict(distId: string) {
 
     .cw-item-card {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       padding: 10px;
       background: var(--cw-bg-surface);
       border: 1px solid var(--cw-border);
       border-radius: var(--cw-radius);
-      position: relative;
-
-      .cw-col-name {
-        grid-column: 1 / -1;
-      }
-
       .cw-col-action {
-        position: absolute;
-        top: 6px;
-        right: 6px;
+        grid-column: 1 / -1;
+        width: auto;
+        justify-content: flex-end;
       }
 
       .cw-mobile-col-lbl {

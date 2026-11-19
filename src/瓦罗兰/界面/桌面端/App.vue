@@ -250,6 +250,7 @@
         :current-line-height="lineHeight"
         :current-letter-spacing="letterSpacing"
         :current-paragraph-spacing="paragraphSpacing"
+        :appearance-unconfirmed="appearanceUnconfirmed"
         @close="closeModal"
         @change-theme="t => (currentTheme = t)"
         @change-font="f => (currentFont = f)"
@@ -258,6 +259,7 @@
         @change-line-height="v => (lineHeight = v)"
         @change-letter-spacing="v => (letterSpacing = v)"
         @change-paragraph-spacing="v => (paragraphSpacing = v)"
+        @reload-appearance="reloadAppearance"
         @feedback="showToast"
       />
 
@@ -339,23 +341,64 @@ const uiScale = ref(runtime?.settings.scale ?? 100);
 const lineHeight = ref(runtime?.settings.lineHeight ?? 1.8);
 const letterSpacing = ref(runtime?.settings.letterSpacing ?? 0.02);
 const paragraphSpacing = ref(runtime?.settings.paragraphSpacing ?? 0.8);
-watch([currentTheme, currentFont, fontSize, uiScale, lineHeight, letterSpacing, paragraphSpacing], async () => {
+const currentAppearance = computed(() => ({
+  theme: currentTheme.value,
+  font: currentFont.value,
+  fontSize: fontSize.value,
+  scale: uiScale.value,
+  lineHeight: lineHeight.value,
+  letterSpacing: letterSpacing.value,
+  paragraphSpacing: paragraphSpacing.value,
+}));
+let appearanceSubmission = 0;
+let pendingAppearanceSaves = 0;
+const appearanceUnconfirmed = ref(false);
+function syncAppearance() {
   if (!runtime) return;
-  const candidate = {
-    theme: currentTheme.value,
-    font: currentFont.value,
-    fontSize: fontSize.value,
-    scale: uiScale.value,
-    lineHeight: lineHeight.value,
-    letterSpacing: letterSpacing.value,
-    paragraphSpacing: paragraphSpacing.value,
-  };
+  currentTheme.value = runtime.settings.theme;
+  currentFont.value = runtime.settings.font;
+  fontSize.value = runtime.settings.fontSize;
+  uiScale.value = runtime.settings.scale;
+  lineHeight.value = runtime.settings.lineHeight;
+  letterSpacing.value = runtime.settings.letterSpacing;
+  paragraphSpacing.value = runtime.settings.paragraphSpacing;
+}
+watch(currentAppearance, async candidate => {
+  if (!runtime) return;
+  const submission = ++appearanceSubmission;
+  if (!appearanceUnconfirmed.value && !pendingAppearanceSaves && Object.entries(candidate).every(
+    ([key, value]) => runtime.settings[key as keyof typeof candidate] === value,
+  )) return;
+  pendingAppearanceSaves++;
   try {
     await runtime.saveSettings(candidate, 'general');
+    if (submission === appearanceSubmission) appearanceUnconfirmed.value = false;
+  } catch (e) {
+    // A failed older batch must not replace a newer appearance draft.
+    if (submission === appearanceSubmission && _.isEqual(candidate, currentAppearance.value)) {
+      appearanceUnconfirmed.value = !!(e as { settingsUnconfirmed?: boolean } | null)?.settingsUnconfirmed;
+      if (!appearanceUnconfirmed.value) syncAppearance();
+    }
+    showToast(String(e));
+  } finally {
+    pendingAppearanceSaves--;
+  }
+});
+async function reloadAppearance() {
+  if (!runtime) return;
+  const submission = appearanceSubmission;
+  const draft = currentAppearance.value;
+  try {
+    await runtime.reloadSettings();
+    if (submission === appearanceSubmission && _.isEqual(draft, currentAppearance.value)) {
+      syncAppearance();
+      appearanceUnconfirmed.value = false;
+      showToast('已重新读取保存的外观设置');
+    }
   } catch (e) {
     showToast(String(e));
   }
-});
+}
 const composer = ref<HTMLElement>();
 const composerHeight = ref(100);
 useResizeObserver(composer, ([entry]) => {
@@ -467,6 +510,12 @@ function dismissToast() {
   toastMessage.value = null;
   toastIsGenerationProgress.value = false;
 }
+function showOperationError(error: unknown) {
+  const message = String(error);
+  const visibleError = !notificationOverlay.value && runtime?.view.error;
+  if (visibleError && (visibleError === message || (error as Error)?.message === visibleError)) return;
+  showToast(message);
+}
 
 // 普通反馈保留至手动关闭；只有明确标记的进度提示随生成结束退出。
 watch(isGenerating, (generating, wasGenerating) => {
@@ -481,7 +530,7 @@ async function execute(operation: () => Promise<unknown>, success?: string) {
     await operation();
     if (success) showToast(success);
   } catch (e) {
-    showToast(String(e));
+    showOperationError(e);
   }
 }
 async function handleCreationFinish(payload: any) {
@@ -493,7 +542,9 @@ async function handleCreationFinish(payload: any) {
   } else {
     const roster = await runtime.createProfile(payload);
     showToast(
-      `建档已保存，开局启用 ${roster.active} 名角色，${roster.waiting} 名进入待机轮转；正在生成开场正文。`,
+      roster.selectionPending
+        ? '建档已保存，人物资料已入库，正在选择开场人物并生成正文。'
+        : `建档已保存，开局启用 ${roster.active} 名角色，${roster.waiting} 名进入待机轮转；正在生成开场正文。`,
       true,
     );
   }
@@ -602,7 +653,7 @@ async function handleSendMessage(content: string, done?: (saved: boolean) => voi
   try {
     await runtime.send(content, true, undefined, () => done?.(true));
   } catch (e) {
-    showToast(String(e));
+    showOperationError(e);
     done?.(false);
   }
 }
@@ -648,14 +699,16 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 
 const desktopRoot = ref<HTMLElement>();
 let releaseModalFocus: (() => void) | undefined;
+let keyboardWindow: Window | null = null;
 onMounted(() => {
   if (desktopRoot.value) releaseModalFocus = installModalFocus(desktopRoot.value);
-  window.addEventListener('keydown', handleGlobalKeydown);
+  keyboardWindow = desktopRoot.value?.ownerDocument.defaultView ?? null;
+  keyboardWindow?.addEventListener('keydown', handleGlobalKeydown);
 });
 
 onBeforeUnmount(() => {
   releaseModalFocus?.();
-  window.removeEventListener('keydown', handleGlobalKeydown);
+  keyboardWindow?.removeEventListener('keydown', handleGlobalKeydown);
 });
 </script>
 <style scoped lang="scss">

@@ -1,6 +1,78 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { block, createRuntime, deferred, endpoint, until, withEnv } = require('./修复宿主.cjs');
+const { Schema, block, createRuntime, deferred, endpoint, until, withEnv } = require('./修复宿主.cjs');
+
+test('玩家亲自发送“继续”时，普通结算和编辑重算都交接这条玩家输入', async () => withEnv(async e => {
+  await e.runtime.send('继续');
+  const actual = '本轮玩家输入（未在正文实现的行动不算已发生）：\n继续\n\n本轮已完成正文';
+  assert.ok(e.calls.at(-1).config.user_input.includes(actual));
+  await e.runtime.messageAction('edit', 2, '改正后的普通正文');
+  await e.runtime.retry();
+  assert.ok(e.calls.at(-1).config.user_input.includes(actual));
+}));
+
+test('旧失败请求仅保存续写标志时，冷开重试仍按续写交接', async () => withEnv(async e => {
+  await e.runtime.send('带上雨伞');
+  e.story = async () => { throw Error('模拟正文中断'); };
+  await assert.rejects(e.runtime.messageAction('continue', 2), /模拟正文中断/);
+  await e.runtime.dispose();
+  const failed = e.vars.澄湾失败请求;
+  assert.equal(failed.continuation, true);
+  delete failed.id;
+  for (const entry of failed.source) delete entry.continuationStart;
+  e.saveDisk();
+  e.runtime = createRuntime();
+  await e.runtime.start();
+  e.story = async () => '天色暗了下来。';
+  await e.runtime.retry();
+  const input = e.calls.at(-1).config.user_input;
+  assert.ok(input.includes('本轮操作：继续剧情，没有新增玩家输入。'));
+  assert.ok(!input.includes('本轮玩家输入（'));
+  assert.equal(e.messages.filter(m => m.role === 'user').length, 1);
+}));
+
+test('物品操作后的续写、旧楼层回执恢复和编辑重算不会把已执行的操作重交变量模型', async () => {
+  const initial = Schema.parse({ _系统: { 建档完成: true }, 玩家: { id: 'player',
+    物品栏: { water: { 类别: '消耗品', 数量: 1 } } } });
+  await withEnv(async e => {
+    const action = '喝一份随身饮水';
+    e.story = async () => '饮水喝完了。';
+    e.update = async () => block([
+      { op: 'remove', path: '/玩家/物品栏/water' },
+      { op: 'insert', path: '/事件/drink', value: { 事实: '喝了一份水', 关联记录id: ['water'] } },
+    ]);
+    await e.runtime.send(action, true, { itemId: 'water', amount: 1 });
+    assert.ok(e.calls.at(-1).config.user_input.includes('本轮玩家输入（未在正文实现的行动不算已发生）：\n' + action));
+    assert.equal(e.state().玩家.物品栏.water, undefined);
+    e.story = async () => '店员走到了门口。';
+    e.update = async () => { throw Error('模拟续写结算中断'); };
+    await assert.rejects(e.runtime.messageAction('continue', 2), /模拟续写结算中断/);
+    const live = e.calls.at(-1).config.user_input;
+    assert.ok(live.includes('本轮操作：继续剧情，没有新增玩家输入。'));
+    assert.ok(!live.includes(action));
+
+    await e.runtime.dispose();
+    delete e.vars.澄湾待更新正文;
+    const original = e.messages[3].extra.cw_story_request;
+    for (const entry of original.source) delete entry.continuationStart;
+    e.runtime = createRuntime();
+    await e.runtime.start();
+    e.update = async () => block([]);
+    await e.runtime.retry();
+    assert.equal(e.calls.at(-1).config.user_input, live);
+    assert.equal(e.state().玩家.物品栏.water, undefined);
+    assert.equal(Object.keys(e.state()._系统.已计轮事件).length, 2);
+
+    for (const edited of ['店员在门口停下。', '店员在门口等人。']) {
+      await e.runtime.messageAction('edit', 3, edited);
+      await e.runtime.retry();
+      const handoff = e.calls.at(-1).config.user_input;
+      assert.ok(!handoff.includes('本轮玩家输入（'));
+      assert.ok(!handoff.includes(action));
+      assert.ok(handoff.includes('本轮已完成正文（事实资料）：\n' + edited));
+    }
+  }, initial);
+});
 
 test('继续剧情期间可改更早的助手楼，同一候选的续写起点改写则拒绝旧正文', async () => {
   for (const editedFloor of [0, 2]) await withEnv(async e => {

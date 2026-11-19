@@ -21,7 +21,7 @@
     <div class="cw-knowledge-summary-bar" aria-label="资料与调度全局统计" aria-live="polite">
       <div class="cw-summary-chip">
         <SvgIcon name="users" :size="13" />
-        <span>主要角色 <strong>{{ majorActiveCount }}</strong> 席活跃 (共 {{ totalActiveCount }} 人)</span>
+        <span>角色已开启 <strong>{{ totalActiveCount }}</strong> 人</span>
       </div>
       <div class="cw-summary-divider"></div>
       <div class="cw-summary-chip">
@@ -47,14 +47,12 @@
       <TabWorldInformation
         v-show="currentSubTab === 'locations'"
         kind="地点"
-        @feedback="msg => emit('feedback', msg)"
       />
 
       <!-- 3. 组织调度 (kind 严格受外层 Tab 驱动，无内层混杂切换) -->
       <TabWorldInformation
         v-show="currentSubTab === 'organizations'"
         kind="组织"
-        @feedback="msg => emit('feedback', msg)"
       />
     </div>
   </div>
@@ -150,9 +148,6 @@ onMounted(() => {
 const state = computed(() => runtime?.view.data);
 
 // 统计数据：主要角色活跃席位、地点与组织已展开数
-const majorActiveCount = computed(() =>
-  Object.values(state.value?.角色 ?? {}).filter(r => r.层级 === '主要').length,
-);
 const totalActiveCount = computed(() =>
   Object.keys(state.value?.角色 ?? {}).length,
 );

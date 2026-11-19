@@ -1,0 +1,1246 @@
+{
+  "node": "v24.16.0",
+  "catalogUrl": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@e56c3a87cad64649c1ac09a3309c97e49f15fb61/%E6%BE%84%E6%B9%BE%E6%97%A5%E5%B8%B8/releases/0.7.0-20261001/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json",
+  "files": [
+    {
+      "path": "@types/function/audio.d.ts",
+      "sha256": "02c7ace1acbb1949037aca6f2156e4f109212dd6b9642a63d06934316b24c908",
+      "bytes": 4072
+    },
+    {
+      "path": "@types/function/builtin.d.ts",
+      "sha256": "cc2d1006b92c6ab07266ea38271f5355a07195cb68417243446a30194aa73a8d",
+      "bytes": 2766
+    },
+    {
+      "path": "@types/function/character.d.ts",
+      "sha256": "5ce1ab959d6b77e084f3b3c39aba412e1d1209adc9286a13dd2bc86ab7eb3654",
+      "bytes": 7234
+    },
+    {
+      "path": "@types/function/chat_message.d.ts",
+      "sha256": "302930d6cc697321d0e1514d096dcd272a465fbc418f2190b41ddcffafc19327",
+      "bytes": 9679
+    },
+    {
+      "path": "@types/function/displayed_message.d.ts",
+      "sha256": "fec1e5463e931e788c787d2a7263e24570ae42429ba04f4648779afe9a161bb1",
+      "bytes": 3026
+    },
+    {
+      "path": "@types/function/extension.d.ts",
+      "sha256": "8f465ba49481eec9786526e90c58321d7e4ae813b9732a77b64e51e64274593c",
+      "bytes": 3513
+    },
+    {
+      "path": "@types/function/file.d.ts",
+      "sha256": "386d747e0ce643e74dc7af7d62ef6a4ef4895f496e7160fdb2367b89c4e97681",
+      "bytes": 1438
+    },
+    {
+      "path": "@types/function/generate.d.ts",
+      "sha256": "cdc46ae5ee4aafc37c97382bcbdcc867cb6db52a080fa99fa10e8400e1480a09",
+      "bytes": 19775
+    },
+    {
+      "path": "@types/function/global.d.ts",
+      "sha256": "d80f189038ab1aba7385764f629760fe7c7c8f0436024f06cbb52c39c2daabdd",
+      "bytes": 1169
+    },
+    {
+      "path": "@types/function/import_raw.d.ts",
+      "sha256": "436bd0f69cc9f1633389172fed30258eb402c9a9af45eef12411a2aa4cbffaa9",
+      "bytes": 2252
+    },
+    {
+      "path": "@types/function/index.d.ts",
+      "sha256": "76f9f6ab0a965f7947c3178965d3ba716f97362400bd48841d6260e4405c7bda",
+      "bytes": 8717
+    },
+    {
+      "path": "@types/function/inject.d.ts",
+      "sha256": "315bbd3329cea8fe269e1d396948bd98f5c916787d9bd8c4f8cd0359015d71b0",
+      "bytes": 1464
+    },
+    {
+      "path": "@types/function/lorebook.d.ts",
+      "sha256": "da35836080d2d95a63b7217f9c2550d29e843ec33012953a0fc3b296799c7883",
+      "bytes": 2204
+    },
+    {
+      "path": "@types/function/lorebook_entry.d.ts",
+      "sha256": "e47a25ec0daa12124ef6304ee49f93ab23353673295c5da046a9aa1c0538555d",
+      "bytes": 2545
+    },
+    {
+      "path": "@types/function/macro_like.d.ts",
+      "sha256": "0b9bd09646f2e2692f51dbfdd9eade9c0efbb10f092d86de5ed681a1972eda0b",
+      "bytes": 863
+    },
+    {
+      "path": "@types/function/persona.d.ts",
+      "sha256": "edcc00eff62629c2029a2d618ef5b3550939d3aad4fd16a231e51951304dfa26",
+      "bytes": 5341
+    },
+    {
+      "path": "@types/function/preset.d.ts",
+      "sha256": "442ee5198e2135ad4fb3e689fbeeac1458f6c813dfc8a60e3d1e00157e0a5ea5",
+      "bytes": 13672
+    },
+    {
+      "path": "@types/function/raw_character.d.ts",
+      "sha256": "0a0d9923bf01a52f57475588d5d50ac3a8343ef23bb39ab05b0416b7313ca1b0",
+      "bytes": 3604
+    },
+    {
+      "path": "@types/function/script.d.ts",
+      "sha256": "85212926bc42224ae82ffca2dd86063cdc351863b3ae2e18ef407026e9b263d9",
+      "bytes": 2446
+    },
+    {
+      "path": "@types/function/slash.d.ts",
+      "sha256": "773543ca4ac5e231e7ba8dc1d22c779f980755bf57601b946369b63a718c4285",
+      "bytes": 1208
+    },
+    {
+      "path": "@types/function/tavern_regex.d.ts",
+      "sha256": "dbc165d9ff73feb12abd5868f7dc7b42be9b865267be3014b429b97e3ed84673",
+      "bytes": 4572
+    },
+    {
+      "path": "@types/function/util.d.ts",
+      "sha256": "12ad465ff717f86b259bb49cf32cc915fa938b3f632a980192edbea19419fd2b",
+      "bytes": 1233
+    },
+    {
+      "path": "@types/function/variables.d.ts",
+      "sha256": "45bc282ef55a070edcd6d659313f609fe38dae0650897c2fcf9243b00041ce1b",
+      "bytes": 7404
+    },
+    {
+      "path": "@types/function/version.d.ts",
+      "sha256": "f512d3d436b96ccd1b17a4c67e6ac2912cd4b1121d8a9ce02315b9593667e0b7",
+      "bytes": 169
+    },
+    {
+      "path": "@types/function/worldbook.d.ts",
+      "sha256": "81f4ffd6127c82e70d4694896f0fd31c59ff49a084bfe41e76ac649dcaf27cd9",
+      "bytes": 12231
+    },
+    {
+      "path": "@types/iframe/event.d.ts",
+      "sha256": "33deb24c14916ff0958898b7890ab69bd584d33261297dc0a57448011760cd8e",
+      "bytes": 21830
+    },
+    {
+      "path": "@types/iframe/exported.ejstemplate.d.ts",
+      "sha256": "55dc38589c2a01a01e162411af321c536d6cd142a18ce3ffb207d699d14fabe8",
+      "bytes": 4448
+    },
+    {
+      "path": "@types/iframe/exported.mvu.d.ts",
+      "sha256": "3590b3a1d74b1e021a1bc54953b66284c4c860918ec98c8418a54cac8069ef16",
+      "bytes": 8070
+    },
+    {
+      "path": "@types/iframe/exported.sillytavern.d.ts",
+      "sha256": "eae4ed517b5ff493afca4581e191b212020088ad12577d699297efd0eb5ab0bb",
+      "bytes": 26567
+    },
+    {
+      "path": "@types/iframe/exported.tavernhelper.d.ts",
+      "sha256": "3ce05ebcbedee09da964156f506ac1191fa1477b7e07b876b705aa58891e69a3",
+      "bytes": 296
+    },
+    {
+      "path": "@types/iframe/script.d.ts",
+      "sha256": "b3eefce598b3eefe03aa598e2d76b97922b058a3551a8fdd37265743fc8e9f11",
+      "bytes": 2719
+    },
+    {
+      "path": "@types/iframe/util.d.ts",
+      "sha256": "57939734be3b0728bf502f0c6713727920391dfa3c3f7ad834dc8ee8a2523ab0",
+      "bytes": 1621
+    },
+    {
+      "path": "@types/iframe/variables.d.ts",
+      "sha256": "b85166d18310f84d6fcd68ff5a9957170a53d655a507e97587a15f79d720c902",
+      "bytes": 510
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8",
+      "bytes": 4563
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "sha256": "89bd86a92567e3c025ab597e2e9df13b922e8dbad4b28fd1ebcc5dbfdb742767",
+      "bytes": 20273
+    },
+    {
+      "path": "auto-imports.zod.d.ts",
+      "sha256": "be8f95e71f0a917fd959ddc9b8666625312186aaaa2a24f0cf45cda9e0daf8cf",
+      "bytes": 272
+    },
+    {
+      "path": "components.d.ts",
+      "sha256": "6408fbd6d966b59de8857f367fa006fd86a96069015b450a93a6ad85123ccc24",
+      "bytes": 405
+    },
+    {
+      "path": "global.d.ts",
+      "sha256": "8ac905ce41549c014fdded8e4c9381896f3d3f4f7fd1ca9b7b83645692a35d44",
+      "bytes": 1091
+    },
+    {
+      "path": "package.json",
+      "sha256": "7aefc03f4c70d36173ee0b9e0eca61c08da7b0aecf3f343d6e9e64f1d68be3fe",
+      "bytes": 3630
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "ab7e049217249b40605663739cdda51fe9d5b648a21c83d4c08084768a1ed660",
+      "bytes": 278354
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e9e78b136cac8bbbcbc1a166dc3ee0b183cadca360a6bff613c04caed6b541e6",
+      "bytes": 78
+    },
+    {
+      "path": "postcss.config.js",
+      "sha256": "73bfda5c445fc10f1e2b0ae9c32a012fa209af1ce22a4636423dbf099baf6f4b",
+      "bytes": 196
+    },
+    {
+      "path": "src/瓦罗兰/schema.ts",
+      "sha256": "33b3600b4a19609139eb5225a2f21557137db8cf95307ccfb1d8f6948240a0ba",
+      "bytes": 157109
+    },
+    {
+      "path": "src/瓦罗兰/发布/配置.json",
+      "sha256": "6f32f5ad02bd96bc58bd5d605b33ced5b60cfd4499807df4ac38909bffce19ea",
+      "bytes": 572
+    },
+    {
+      "path": "src/瓦罗兰/工具/打包运行源码.mjs",
+      "sha256": "fa3107d1cfca0e87facd1d568b9c887eadab987cc5ddbec49d6d4982f9131803",
+      "bytes": 5568
+    },
+    {
+      "path": "src/瓦罗兰/工具/构建.mjs",
+      "sha256": "290650a9e29ab226b2cd717db422f6846f4491eda1067f0229db7b1d149e1d4c",
+      "bytes": 6562
+    },
+    {
+      "path": "src/瓦罗兰/界面/character-management.ts",
+      "sha256": "e5d67f61baa876ab9f45fb707e481abe4b62b79507054ee75f6863e8c72afdec",
+      "bytes": 2085
+    },
+    {
+      "path": "src/瓦罗兰/界面/store.ts",
+      "sha256": "d801d1f84e608773d824a029afd12529bf96663f77e8d4b13ef009999700d308",
+      "bytes": 922
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/App.vue",
+      "sha256": "dd5e0e5422cfbe6d86ac1280a6cc93d111ac7d265c34811fbac86929ff02ca3d",
+      "bytes": 34213
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/生成提示词.json",
+      "sha256": "e63e82cebabdf6a0ae2928b5069f13edeeb19db9896f07855d890f53a9091a76",
+      "bytes": 10484
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/素材清单.json",
+      "sha256": "0e2a45ea08c4eec683a28e20b22fceeb8cc8a3770fd9cebe3c00b0284bc73e64",
+      "bytes": 844
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/远程素材.json",
+      "sha256": "dc05cdad75074e0b29c7d3f1ce944eab49815a79b14554d37da863c1a60e00d1",
+      "bytes": 2652
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/RecordDetails.vue",
+      "sha256": "f5faa03ff8008eb617a65288adeb79ca6aa4e8aa5ddff479dd3222df9855b36d",
+      "bytes": 1708
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/RecordValue.vue",
+      "sha256": "186f9e3de954d2337d55aacba13ef4429730c4ce31564f397609948ebd8ffb6d",
+      "bytes": 2832
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterCategorySidebar.vue",
+      "sha256": "c7be4ced62c9b2102b64ac00f28a627927534d99802c082e8892ffaac17af8ab",
+      "bytes": 25579
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterLibraryModal.vue",
+      "sha256": "fc29f4e871640553465fdb83922dbcfc3140cf2eba3bc9d7296b4d8d8a560f47",
+      "bytes": 4420
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterManageModal.vue",
+      "sha256": "eefbd516c316e4f4c8bb72b1f9240fe2b1d3e19ea681fe191172b1daeff3833d",
+      "bytes": 20002
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterOrganizeTab.vue",
+      "sha256": "32891ce7c9e81368e5d69495d7a97f68aa6c9b0d0552ed139bedd62b4768db69",
+      "bytes": 38328
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CwToggleSwitch.vue",
+      "sha256": "9993e1783833a9411bb64189d5c32d4f33af48c9f9236650f45f60443b6b9ba6",
+      "bytes": 4909
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/MajorCharacterModal.vue",
+      "sha256": "6fda611a9b8e3db44d6e5f3d90e3cdbcf7f6409d9843c0dc10e9bebbbc2dcc89",
+      "bytes": 18569
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/MinorCharacterModal.vue",
+      "sha256": "82853a7a7bcefc29d80db7ceaba4060f0d43d6d9a429a0c319b194f59d062acd",
+      "bytes": 29148
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/category-types.ts",
+      "sha256": "989990899cf51cc4e3337fba5590478a73f149a6120015e41a4b0f075f50132e",
+      "bytes": 5159
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabBasic.vue",
+      "sha256": "eb25ebf29f369c2ed5dcb7e095b262fd0a910deb35563eaed81842bcea21c651",
+      "bytes": 15235
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabLife.vue",
+      "sha256": "d7939820caca89768c8fc5e359aab5edd37d4c3c96f17af025b45b0bbec6b63e",
+      "bytes": 6566
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabNetwork.vue",
+      "sha256": "2b586ae8ef1db4e31f9ee8d89cfa9183cffde55672cfeea0f04773327acd8dda",
+      "bytes": 6168
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabPersonality.vue",
+      "sha256": "41e4d4d3dd77964a0065f5c7a203b29b409643dc459dff64aa9ffd672841e4bf",
+      "bytes": 8977
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabPrivate.vue",
+      "sha256": "2241fd48c75078233caa8539f186b05c609cd64b046d538dca7677cb6df92f9c",
+      "bytes": 5284
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabRelations.vue",
+      "sha256": "91328fc44e0d0b4f1a02b55180115d9c04928f36caa5432a3dba93d5a7352ea4",
+      "bytes": 14824
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabStatus.vue",
+      "sha256": "4dde234599e88738480e406f9ca019024fed53cd4b3e94e397eaece9186e642e",
+      "bytes": 13564
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/useCharacterDisplayState.ts",
+      "sha256": "f2e64464b352077ca8ea9b01393623996d9ec070b9e0f23295f11dc378e6f012",
+      "bytes": 27873
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/ChatContainer.vue",
+      "sha256": "de40373b8e6bc5c8dce7fc4af1cce0c9abf956dabce6fbaecb477751102b683b",
+      "bytes": 4839
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/ComposerNotification.vue",
+      "sha256": "3278f01b086a179e3962c7eb76deaa7fbbb3d8e0e7b8a87bac16e847caed6da8",
+      "bytes": 10766
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/CreationReceipt.vue",
+      "sha256": "973f3458d5acf0f5306571399f2caa6ca1c2a2e2e0a1878c65e5accd3ae14d7f",
+      "bytes": 2141
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/InputArea.vue",
+      "sha256": "83b2094c7da094da72e6ac431d189200bba23520029d48c6cc35b2eca4e0be5e",
+      "bytes": 6146
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageConfirmModal.vue",
+      "sha256": "4683d68a55d8f327c4fae5efbea7a9763f6f8b62550205a6779697bec56f1c64",
+      "bytes": 7495
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageContent.vue",
+      "sha256": "91de91c40cb6a06b2b07ed886fefee269cfa153d1334ae3fab0088c8bd736cfa",
+      "bytes": 6437
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageItem.vue",
+      "sha256": "d6eaf2b5bc813778dbd996a0fe1ad16afd82c40cccf2cd7750dd57deb9615ebc",
+      "bytes": 9910
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/CharacterCatalogImport.vue",
+      "sha256": "91e630a3363b240baa1341110568099b6dc8803564ac490c690f4dbc8681293a",
+      "bytes": 13623
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/CreationView.vue",
+      "sha256": "27dbfa360592fc86b97c845d1ec4c55a9aee597236a0bf21f642acbf3a302f0c",
+      "bytes": 34219
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepCreationReview.vue",
+      "sha256": "3068b60b4895ca65e2dbf1fdb6286bb694f5766fd91ed5f293e005df6ef7724e",
+      "bytes": 22868
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepInitialCharacters.vue",
+      "sha256": "3098f9a096798d496399b8d7c71ef15a493a1f31749e016c4d41918ba26fb6b1",
+      "bytes": 31207
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerAppearance.vue",
+      "sha256": "0f620ac8c6b51ae55bd9fd613951feaa103d4f6774031ee22e2fe489002e9d08",
+      "bytes": 4466
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerBackground.vue",
+      "sha256": "5a9566b26f147759814f324f04742b2cd4146f2a7e1762b2278c60cb1382a2e0",
+      "bytes": 3984
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerIdentity.vue",
+      "sha256": "88a2b7c4e62e81479006d71377a103d3790941619f83ccd40e9b83b896494330",
+      "bytes": 5772
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerResidence.vue",
+      "sha256": "12d4cf504f55688a1efda99647cff2b8d4471765e18199f4875f10d343f512f6",
+      "bytes": 18433
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/feedback/CreationWizardModal.vue",
+      "sha256": "24fbaffcb40dde5e06d6e029793f5fdffcf1ee5dc3e7e1895c7e646e922aa3f1",
+      "bytes": 10296
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/feedback/ItemFeedbackModal.vue",
+      "sha256": "4479f91cb3581264cb7dac77e7b09a13e022b7452bfa1c5a3facb4b55c4a5278",
+      "bytes": 5535
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/feedback/LowStatusModal.vue",
+      "sha256": "e539ba5039603762064ea5e96ee455d726c057f415b9e1d15e9a23f127fb147c",
+      "bytes": 5571
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/icons/SvgIcon.vue",
+      "sha256": "6993a65b7bee4f19da6230f8163c817e77fb53a1b87fa3d688559462dd15e336",
+      "bytes": 12706
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/CoinLedger.vue",
+      "sha256": "7b1d719d9dbb0ddfe3745dab65a174e8311ffd0b11875d69465eb90d04b4c367",
+      "bytes": 10618
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/NovelRefreshControl.vue",
+      "sha256": "0d7ddc768028d428c035a7588ad5d188e163867fd365ff4d45b3a7dc52e926e9",
+      "bytes": 3768
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/NovelSystemModal.vue",
+      "sha256": "9e40e2b77d375428807fec171e19bda4e915bb34a86b5c945c83eebdfed2db56",
+      "bytes": 24631
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/SystemShop.vue",
+      "sha256": "14ce7b8f074316ed679225aaa12c9cec4ce86a03302bd112d1c383de0bc68420",
+      "bytes": 22508
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/TaskHall.vue",
+      "sha256": "00a1bf992379528fce1c7ca840371dcc43825d95df74cead3fa592833970b421",
+      "bytes": 32690
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneComments.vue",
+      "sha256": "b7bb2bf3192a79a31466b5be87cc71b043973eb8c1f8882c76a9d8250e48a8ad",
+      "bytes": 2016
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneComposer.vue",
+      "sha256": "ea1ec6890bf3b90fa81f30455668cca6cef18c0935b867cff9811ff8ac4c979c",
+      "bytes": 12133
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneDirectory.vue",
+      "sha256": "c9bac126e82da3d2e6011c923335973d39eb3968ba0133396305973c6df51560",
+      "bytes": 46206
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneHome.vue",
+      "sha256": "ce174b71e22567992b459ef0420505be78641deb602c81d4ac9821cec2d309e3",
+      "bytes": 5094
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneMediaView.vue",
+      "sha256": "faee1f4d363d9197e22988ccf16ef521aef3a1c821b59296dc92614120474955",
+      "bytes": 8356
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneRecords.vue",
+      "sha256": "09fd1d80eae4ba50bdca54a84cc916198b378e48560c8a8bcbf5ee49eeac6618",
+      "bytes": 11199
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneShell.vue",
+      "sha256": "0afd39393d14a4fb507688a618b584a96445b54f941e3001a76fc240cec048cc",
+      "bytes": 12713
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneTrigger.vue",
+      "sha256": "56696570792c1be441d7ec1253a352e0910a68d26eded15e75cd4a7948861627",
+      "bytes": 5093
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/LinxinApp.vue",
+      "sha256": "f0d6ab999f0bcf37035089f6ed2829e4646bfc4fbdd6d7530d7030088fa629ca",
+      "bytes": 92785
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapApp.vue",
+      "sha256": "3981d2d320a9e3d4019a465d062fd1bf25ccc008c53f18658b5aecdc773bfff7",
+      "bytes": 41292
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapBaseLayer.vue",
+      "sha256": "ac456afa1726cf43988348004d8b417447e8456cadc4e02f0634093c68337b0e",
+      "bytes": 1798
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/PhoneSettingsApp.vue",
+      "sha256": "4efa8def9b33bdc67b20b11805492bd38e2ea2f4c2cb15e558dae7c2cb63b765",
+      "bytes": 14076
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/WeilanApp.vue",
+      "sha256": "c5ad18332926a0d6651bccb389334ac178203d4bb93862cc57028b4619f08743",
+      "bytes": 42427
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/PlayerModal.vue",
+      "sha256": "6668a00c12f8a3bf7fb509161bc8fe10bd881992868b5e4c3c0307e7a6651c47",
+      "bytes": 5016
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/PlayerRecordCards.vue",
+      "sha256": "9dbe643427b5b53745c3843b8f71714b102d01c7623efa78354e9a362a0b77ea",
+      "bytes": 40721
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabGoals.vue",
+      "sha256": "571d19c21a57b5fe4dff986732b0889c71d6915b22c45b55edf3a6b2afcad037",
+      "bytes": 6121
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabInfo.vue",
+      "sha256": "089bf9f17633dd56c638d841ba8a9a22e4b3a206b748ef0358ad261444166fa8",
+      "bytes": 12740
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabItems.vue",
+      "sha256": "64cec648ec977632495de89f4d5a33a33f6bb5437d104e038578b791a79b3070",
+      "bytes": 8690
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabRecords.vue",
+      "sha256": "8048f03e39e60078773418992d8471033b6233b85957e520e63782539dae9d74",
+      "bytes": 3897
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabSkills.vue",
+      "sha256": "66cc12f37e6e8bb45fbfdb1d4a84871f5c7c722fc72bb77bfb8dea72d7c60fd4",
+      "bytes": 5300
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabStatus.vue",
+      "sha256": "532de5a1e844da540becdd6c8afa9b0f0a55913d69495f3bb3f615f85094ff5c",
+      "bytes": 8019
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/CharacterAutoControl.vue",
+      "sha256": "03ed6841151b7b9d6ca887063f65b97b96984dacc34488a3f834547e3876014b",
+      "bytes": 1750
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/ExtraApiForm.vue",
+      "sha256": "601bc7ea42e43d441ff36f2f32c7b5ef0cef33d2d931e70ebb734b4d05ce08aa",
+      "bytes": 27442
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/RosterAutoPanel.vue",
+      "sha256": "2924d37616b71beca82fa0cefd779c24f43a211559566b2313a945b29ed0e6a7",
+      "bytes": 2709
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/SettingsModal.vue",
+      "sha256": "471388822ad143dcb1689043efc6552318478689e25da405a3ad32a87191f5da",
+      "bytes": 9026
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabApiSettings.vue",
+      "sha256": "032f1d630ffe308893f45ccf4b3d42e9293bb3cc303929f46d27a4a91924dcd2",
+      "bytes": 8022
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabAtmosphere.vue",
+      "sha256": "05106c1d9ef05ad6048b2cea2f5e685299a935bbf9bb8f90cf8e09c1ce5224a3",
+      "bytes": 5158
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabCharacterRoster.vue",
+      "sha256": "d87d9174cc372d7acaf8cd2204e0a43f6972e2877fe691ade6646fe071ad699f",
+      "bytes": 18441
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabExtraApi.vue",
+      "sha256": "257557168ae287b8aa58bc01d72cb41ebf39cd183866852877dcdf09afc739f6",
+      "bytes": 1609
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabFont.vue",
+      "sha256": "e395057d393cde64198dac831484b94b17647942685e357f9b4865460359a643",
+      "bytes": 11925
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabRosterAndKnowledge.vue",
+      "sha256": "71c57535e588fd8e8b5563403a0ee0ba90733daba65a75d6e83fa385dca0ded4",
+      "bytes": 7992
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabTheme.vue",
+      "sha256": "8a57e38d9831ff883cf6ccae9f3b4e74fd0fe9d2fcfb86b070b9c6610fd49e91",
+      "bytes": 4794
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabWorldInformation.vue",
+      "sha256": "540c2e2331bfd4ec76394d75fe8a17f2ac707cd096d36a936c5fa1650972e175",
+      "bytes": 17257
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/WorldInformationQuota.vue",
+      "sha256": "98bf590569d7b851ca6f1118eb943225b5da99fe39e86b2831a94b590c623e85",
+      "bytes": 3795
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/CharacterAvatar.vue",
+      "sha256": "2474aa329f777069fb03770fc8d83e3259484aeb730ada9bfe970a0356130168",
+      "bytes": 3491
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/CharacterBatchImport.vue",
+      "sha256": "7702bd27eb7e790ca017345d3f4ab4ad7c9068fcaf74ba92fe32db53151d5269",
+      "bytes": 6019
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/FollowTooltip.vue",
+      "sha256": "b478bffd7a06f56d187a5264cdb9729a5f63783e873172ee0a06dd7eef828535",
+      "bytes": 5173
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/OccupationTags.vue",
+      "sha256": "a312f0d4e6d11b158cf7ebd4387ab682b5b0106b3061d81c8c206cafc601b331",
+      "bytes": 1320
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/QueueStatus.vue",
+      "sha256": "261eea0596dfacdca1a798da8a6e65983fd1f301c3cf3e20c0e69e0e986275e1",
+      "bytes": 12618
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableStatusBar.vue",
+      "sha256": "f88d5db3d549d2c0567e85e866252f667c22038eead7be43d6f6c510843ae716",
+      "bytes": 6281
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableTree.vue",
+      "sha256": "d172a4c79a244386da66938ae8e95618e34c10e90af28f38f5a3d0ddb6257f6b",
+      "bytes": 2464
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/system/SystemDataDrawer.vue",
+      "sha256": "2c3c943bfec2853f019a8f5ca3abc6be38e5d4f2853412facace2a766c1796c6",
+      "bytes": 8901
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/world/WorldBar.vue",
+      "sha256": "250f4a8ab7d84c84487af944e8c1594e502b59a1c52b2999563d2d5dafdced66",
+      "bytes": 8366
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/world/WorldDetailModal.vue",
+      "sha256": "c7a7f6d825fb52cf1b05be92fa8b053e5b621fc7c226e81d4ff1228282666469",
+      "bytes": 24539
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/index.html",
+      "sha256": "51880e100d10c2ed305b3026d87b919afdde7b288f51b0a1a3ee429020c62b8a",
+      "bytes": 48
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/index.ts",
+      "sha256": "163673a416d33537d4310424c2ce776c0e4cbfe3126d41bf2f5eaea6f3ab4242",
+      "bytes": 2878
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/common.scss",
+      "sha256": "f49ea917673ed28011171339945912bbe2f1fe2aa4f7e40ab106bb7bde6b92a3",
+      "bytes": 14822
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/theme.scss",
+      "sha256": "95e019e55aa7c972d33d440701d156d497fb8b49109b81863bdf5dd0585087b5",
+      "bytes": 4833
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/typography.scss",
+      "sha256": "179006e96efb6de0e81ab7d6513e52ca7715c7e9b56028717a14496f91be5ffa",
+      "bytes": 1552
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/change-display.ts",
+      "sha256": "7438c9786b59956bf96d79f00386e42f25d51ba1359a01faa63f6995934bdc09",
+      "bytes": 2025
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/char_importer.ts",
+      "sha256": "2dc50088115181ff1f8150dc660bd76ca5f36bedf6552a752f3942189bd18114",
+      "bytes": 2176
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/character-batch.ts",
+      "sha256": "a919c2d22aba3b293e414535549f5d5985728e3d7e3f43e4d717315727d31c9f",
+      "bytes": 1128
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/character-catalog.ts",
+      "sha256": "8ced999108e76f7e5b29a97ed78f23c8b4861613bd213d096871117000f3188b",
+      "bytes": 3708
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/city.ts",
+      "sha256": "e35dee432cce4cbedc0058bff4ece007e54e76a11e1479dcd1e5bbc317052268",
+      "bytes": 725
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/context.ts",
+      "sha256": "cd9d00508e29e533bd5a7989b96a41d0602b994b103cf200d51f1df8e38928a4",
+      "bytes": 457
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/creation-preset.ts",
+      "sha256": "be119cd412c1a0a809ea704b6a9c76845daa2d5804cca8751be20e7d7bfb9551",
+      "bytes": 1097
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/desktop-sizing.ts",
+      "sha256": "6067354b7574d79947778480c996b646cf6aacd1ca375553e68432e2806cceff",
+      "bytes": 2589
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/entity.ts",
+      "sha256": "229e3bf14e213b50aded1ed1bb79e477bc44b8680e2cfe8b2c1bdefb63a60eca",
+      "bytes": 8110
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/gameplay-modal-size.ts",
+      "sha256": "5b1bcbe2d11ce41c4859e0b5b761094639946a39fe0f07abf38cb80726fe4a94",
+      "bytes": 343
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/linxin-drafts.ts",
+      "sha256": "24d0197662a980a928ee0bf5551435b0df10a52ae800701293dec6844e080847",
+      "bytes": 4627
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/map-assets.ts",
+      "sha256": "cb3e2705436efe9e40cf03fae65b6703cb882d4a519d93802a2fc4e508822265",
+      "bytes": 1137
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/map-layout.ts",
+      "sha256": "9b2ad74c0faabb5f5225c57bc033e170fb83d23448c8d65b97bcf19feee7eb0b",
+      "bytes": 7110
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/message-display.ts",
+      "sha256": "382fb497379d08776b31fcadc98c83fcc025e07cf9de7ec3521d25935649a80f",
+      "bytes": 1072
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/message-frame.ts",
+      "sha256": "2f0be2cca46aceb82be93c1f63a9f7c6422fda712b54281990817e9509884d7d",
+      "bytes": 6445
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/minor-records.ts",
+      "sha256": "2b31a9fbf9282343f3dcf0e9da90815f3966c76c44608631c4aeaf79ae3600de",
+      "bytes": 722
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/modal-focus.ts",
+      "sha256": "15e34df69dfe33f49b85c720660d7b8fe0ebc81c8a753f5bbc5d67e77362c2cc",
+      "bytes": 2789
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/record-display.ts",
+      "sha256": "1960cf142c7a0019722b2711dfc7635d6d5f03728a111b6aa66c82b4970ae2e2",
+      "bytes": 1941
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/relationship-labels.ts",
+      "sha256": "e2cff32534fb8dfa34c4ef3ac39f5587825dfd5df512e17d1f07472037098253",
+      "bytes": 4171
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/stable-feed.ts",
+      "sha256": "0fe58e4e2b91d0e550762f6a56279617f3d837cbbf41ee801446c8b21684ad4b",
+      "bytes": 2436
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/system-status.ts",
+      "sha256": "4be39298579279cfdda858b3bdc71089fa58266ed6b3d9f403563008af1693f1",
+      "bytes": 2039
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/task-presentation.ts",
+      "sha256": "599a4ab5d16c81304bf07b73c96fa73c8ba733cc007e049008aed1d6b8f1934e",
+      "bytes": 2723
+    },
+    {
+      "path": "src/瓦罗兰/脚本/变量结构/index.ts",
+      "sha256": "1c41845f9e2ca3a286ea4439766ed56eb56858f908c271ea6b1c1cf3a0842881",
+      "bytes": 282
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/desktop-mount.ts",
+      "sha256": "c0443757915b5d08e04f2d92682777f48c2d79b9b47878c842891b340e458c98",
+      "bytes": 1871
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/index.ts",
+      "sha256": "b3863dba09ecf72a15fc9c9303ffe67836ad9de10cca453a70df457beb9a4ee0",
+      "bytes": 7917
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/native-controls.ts",
+      "sha256": "8b97debc1c366ad2e472ecbb486ee766492b0f71a85384585547b76fc42893fa",
+      "bytes": 8533
+    },
+    {
+      "path": "src/瓦罗兰/脚本/辅助API/index.ts",
+      "sha256": "a6650bdb7d552f68a66a938a3d3f5ae52a56736660add9208c50dfc40483ae89",
+      "bytes": 4025
+    },
+    {
+      "path": "src/瓦罗兰/运行/archive.ts",
+      "sha256": "7c5ffb5f4908c4d001aa31ff939712b754a5d8ba7e6fde1ca3f16310b33e9fe9",
+      "bytes": 9703
+    },
+    {
+      "path": "src/瓦罗兰/运行/assets.d.ts",
+      "sha256": "7e57eca42eb0c4e9ab37fd34a1d7e68d7fdd4004893b85e0e980382d79ac0eca",
+      "bytes": 25
+    },
+    {
+      "path": "src/瓦罗兰/运行/atmosphere.ts",
+      "sha256": "af188d3e87e8b7a31e96b63604f900a3f5477a8b2298bf7aff0f08613da1e25d",
+      "bytes": 2396
+    },
+    {
+      "path": "src/瓦罗兰/运行/bridge.ts",
+      "sha256": "eeb1e591857e42fdb790dfbf3117e2bdb537ae9f62185b83647ab50295757626",
+      "bytes": 5478
+    },
+    {
+      "path": "src/瓦罗兰/运行/browser-crypto.ts",
+      "sha256": "6fc309f2534bf8a8bdbac8fff6583e500c1266f9af3db36d5475629b82b78b79",
+      "bytes": 4043
+    },
+    {
+      "path": "src/瓦罗兰/运行/browser-lock.ts",
+      "sha256": "67fc6ba384481a7f40a1a66be39e8c2dc331110d4fd3c0c9b8658c457514cb0d",
+      "bytes": 5347
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-activity.ts",
+      "sha256": "25320edaae0ce6a5b8f43e1acfe8d940b50f40a426332c848cc349451bd98662",
+      "bytes": 6584
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-library.ts",
+      "sha256": "fbdfa98eeafdf8d15d1d70da151c40bfe0709083bd44d3ea012a42d5e05b5f4c",
+      "bytes": 16198
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-read.ts",
+      "sha256": "98d491868c537ea56acbd2a7d22c3e1b452431ccf1cac30c1fb8462d24c1ccb7",
+      "bytes": 948
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-roster.ts",
+      "sha256": "94456971099ddcc84fd8f2f76441655025bf3e0ceed789dd6aec19d2704acc82",
+      "bytes": 22719
+    },
+    {
+      "path": "src/瓦罗兰/运行/characters.ts",
+      "sha256": "96c3badef85461d80eae114e71583bc1fb7f08cbcd959d7797b365f741775018",
+      "bytes": 7588
+    },
+    {
+      "path": "src/瓦罗兰/运行/chat-persistence.ts",
+      "sha256": "3758482d1ee491a5f0dd3bd93a6c3724805fc30b7933ff370eee228ca1890b38",
+      "bytes": 5460
+    },
+    {
+      "path": "src/瓦罗兰/运行/commit-replay.ts",
+      "sha256": "e26d4515f0e3992bd65541be5d58349a52b0a50387ac478dddcd59c7f7cbe63b",
+      "bytes": 5373
+    },
+    {
+      "path": "src/瓦罗兰/运行/committed-candidate.ts",
+      "sha256": "86f89a8c8c1e2450138f4a045447c2482a62b5f22c6a37c60e7c3c01859d0b09",
+      "bytes": 519
+    },
+    {
+      "path": "src/瓦罗兰/运行/core.ts",
+      "sha256": "0c878d0b38c92cdfc7ebc9c76470dd5175e61fc92115587ed0ad6b6e06de9192",
+      "bytes": 10054
+    },
+    {
+      "path": "src/瓦罗兰/运行/creation.ts",
+      "sha256": "d2cba15770fdb3727caadae5aba0817948b10fc63a57974a175c5a341fee6462",
+      "bytes": 9400
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/SILLYTAVERN-LICENSE.txt",
+      "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75",
+      "bytes": 35184
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/TAVERN-HELPER-LICENSE.txt",
+      "sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8",
+      "bytes": 4563
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/data.ts",
+      "sha256": "2736b83bf3ac440df7a4582e283232035e1bf8acd01dbceb225b427ae07cd7e7",
+      "bytes": 8256
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/index.ts",
+      "sha256": "bd7ed3e4ee72c83ce1ac5b3c93da569505d6a039c468dec4bc28351dec5a7af2",
+      "bytes": 2948
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/native.ts",
+      "sha256": "3ca2d51edcd51c8c5aa2d4aa74df6a43109e6ef74517b54c5d04aae3176b9b2a",
+      "bytes": 1314
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/preset-native.js",
+      "sha256": "994b8886cd73121763f1477b78f6c8d9d84f659bfa93aa63aad565c766e5853b",
+      "bytes": 31267
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/preset.ts",
+      "sha256": "fa016b2185d7c72efd20ce93e2c89423154ed24538235fb82c16409b94286278",
+      "bytes": 6893
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/provider-error.ts",
+      "sha256": "c9dfa1a781d9f319fa672ac3b4e1d489ebc0e11a99c22eb600a8ab6d738e3fa9",
+      "bytes": 644
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/response.ts",
+      "sha256": "5b90ec007b6a061ca88f2e8c74420eeabe6fbb5831ae05a11f3808d3e96b2910",
+      "bytes": 11306
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/world-info-source.js",
+      "sha256": "0c092444b32c782817eed48d92b2646bee9540a8fc713f64b364cce78dfee70d",
+      "bytes": 70101
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/world-info.ts",
+      "sha256": "e328792e4ed0bcd38d74ff186f1724da574bea49ca33eed5479ba8f8d68ac680",
+      "bytes": 1357
+    },
+    {
+      "path": "src/瓦罗兰/运行/host.ts",
+      "sha256": "4902ba94deea190f52f9475d0f5b507145ccad906e2289f76dba1804f0281d18",
+      "bytes": 145407
+    },
+    {
+      "path": "src/瓦罗兰/运行/knowledge-context.ts",
+      "sha256": "c528acbcc4037168e6246fedc589f8dde99d8670be96fa12e2874a892a65f85c",
+      "bytes": 19158
+    },
+    {
+      "path": "src/瓦罗兰/运行/legacy-location-descriptions.json",
+      "sha256": "43b79c8f1297612bcfea7eef4ea8ebc6aaa3416787bb74453467f09a86c836b3",
+      "bytes": 2168
+    },
+    {
+      "path": "src/瓦罗兰/运行/map-legacy-positions.json",
+      "sha256": "bfd829d52cfbd76d066430e85c60d3eab598a9dbf9f7be31ad682332e6ceab81",
+      "bytes": 7872
+    },
+    {
+      "path": "src/瓦罗兰/运行/map.ts",
+      "sha256": "bfb12804493efc2a6e4ab940062b81f383b5cf322b160dde9f427be693d81e8f",
+      "bytes": 1881
+    },
+    {
+      "path": "src/瓦罗兰/运行/message-protocol.ts",
+      "sha256": "a7567bcde7375b535ac2ec30e5e63c44130c0b230007faa2acc33ab472f8facd",
+      "bytes": 13347
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-fields.ts",
+      "sha256": "b20652fb9287926ad933e3fd95f8a716472c645ea43a4753e7750eeff0476ec5",
+      "bytes": 3189
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-history.ts",
+      "sha256": "d93fcc99f242572c3df44d0ccf813cf9cfea30bdb338e870ce976eb3f9b3f567",
+      "bytes": 6913
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-phone-patch.ts",
+      "sha256": "9a05b504dcd81bd8dba02de7d65284f0f0d333b8c0534f6f25374476d389dbc3",
+      "bytes": 1628
+    },
+    {
+      "path": "src/瓦罗兰/运行/mvu-schema.ts",
+      "sha256": "d4b605c386b5482dd4193dfd1997c6858d7a50aa0823f9c7685d9694f23affed",
+      "bytes": 11907
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-context.ts",
+      "sha256": "e7cafbb380669c97f1906c852ef4e3ea46e1f275ee0d630c85ff68ceec6ec143",
+      "bytes": 2471
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-refresh.ts",
+      "sha256": "9c675b105418b347cc3eb6ed70446f5e2923b3915468c3858bc59533c8da3e53",
+      "bytes": 8847
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-system.ts",
+      "sha256": "f277ae38ceb33a2cfc1f7939912d7c0d133d3c9456a53efcd0af0148ebda8b3f",
+      "bytes": 16810
+    },
+    {
+      "path": "src/瓦罗兰/运行/opening.ts",
+      "sha256": "13d20b55b000adde9f92751fd533a7c560086f95ba67463a301bbbe3a675476b",
+      "bytes": 12248
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-budget.ts",
+      "sha256": "4d57cafbb64000ae5a689de986fc7a9419c543ee6ce2ceb82dbe70a51e8902fd",
+      "bytes": 1158
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-management.ts",
+      "sha256": "fc5ea5d2ecae084165a66bdc837a1e57cd041c9deba5118eea4b4afb30238801",
+      "bytes": 10127
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-request.ts",
+      "sha256": "a9b2e308b1891995b7575d2485d33b2393bc125276f2be712b372973a86681fb",
+      "bytes": 1122
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone.ts",
+      "sha256": "f765e3c88690fe06817b9f0da37127d72e895d8804da4528f440550df3ee8641",
+      "bytes": 24529
+    },
+    {
+      "path": "src/瓦罗兰/运行/player-map-location.ts",
+      "sha256": "582eefd85c9f35d5503be19a414a480a6c51d5aa83e752df7cab3236c0df3220",
+      "bytes": 3906
+    },
+    {
+      "path": "src/瓦罗兰/运行/prompt-context.ts",
+      "sha256": "6fa01e078012e3a5fc43785abd2e1485cbf169c5f4ea43a10270fd153affa8f0",
+      "bytes": 11668
+    },
+    {
+      "path": "src/瓦罗兰/运行/prompts.ts",
+      "sha256": "edcdc64b644112f55bdeffbc8907760b6307abeeb5b6811f9b376c985c55b5ac",
+      "bytes": 3540
+    },
+    {
+      "path": "src/瓦罗兰/运行/public-landmarks.json",
+      "sha256": "8e47ab20e0ab4a9d67074b143574b68444cc8a52aa3e9741a56c4ed313d6c4ef",
+      "bytes": 680
+    },
+    {
+      "path": "src/瓦罗兰/运行/request-source.ts",
+      "sha256": "bd81d75c469c9618b51a6f8558c020d2793e3035dcd71af8415fda2fdb683c98",
+      "bytes": 9425
+    },
+    {
+      "path": "src/瓦罗兰/运行/roster-progress.ts",
+      "sha256": "34d75fc0397ae9ecc87980b70302fdcbe4a8c7e4f92a638577b3d911a1b4511f",
+      "bytes": 2934
+    },
+    {
+      "path": "src/瓦罗兰/运行/scheduler.ts",
+      "sha256": "5152fe4b74d145bd10ea61e0b39dc29e34580609984dd1d99a2245391694acca",
+      "bytes": 2787
+    },
+    {
+      "path": "src/瓦罗兰/运行/settings.ts",
+      "sha256": "c152cd9e669bc911c0bb2e0f26e50f07671f20d23b4ce9e59b56eb5643083170",
+      "bytes": 15250
+    },
+    {
+      "path": "src/瓦罗兰/运行/settlement.ts",
+      "sha256": "ce5bcacdc6daf24c6a73ed6492987dd9ce8f6300ba811936ace41b7b17452839",
+      "bytes": 2337
+    },
+    {
+      "path": "src/瓦罗兰/运行/shared-preferences.ts",
+      "sha256": "2d4bf6dcff740c36309cbe38fc55891018c21d452e4a8a5e2afdab36edeee0bf",
+      "bytes": 2311
+    },
+    {
+      "path": "src/瓦罗兰/运行/source-context.ts",
+      "sha256": "9dcc5694088c8c85f599e821287e65124f0e278c6c466d9ef48965b68b742ccd",
+      "bytes": 4955
+    },
+    {
+      "path": "src/瓦罗兰/运行/story-backup.ts",
+      "sha256": "cb5bc3c2d02fa5925547212ff693918814ede0255a629307e2b8ee8a27c4302c",
+      "bytes": 3368
+    },
+    {
+      "path": "src/瓦罗兰/运行/tasks.ts",
+      "sha256": "b1e13ebdd3eea68b00f9dd83aeb8889a45427631c0a3201764613c0c65a20219",
+      "bytes": 5937
+    },
+    {
+      "path": "src/瓦罗兰/运行/update-receipt.ts",
+      "sha256": "e874b709c4c42f5c086fe8fe15ab50d57c0fb0ba713cd169fdab6b2e58fa2ace",
+      "bytes": 1381
+    },
+    {
+      "path": "src/瓦罗兰/运行/update-tasks.ts",
+      "sha256": "fd006e5ce31ada0815f957e8e65a914d8d9b7da07fad25ac7e9b104f713f2583",
+      "bytes": 7872
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-changes.ts",
+      "sha256": "c8661044387a4d42584dcf98f454d25d57cee33622f7ff32266e92f98db42cf3",
+      "bytes": 9184
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-response.ts",
+      "sha256": "44028231fc4efe358e5e2f505d2879a6d5e15042100380b9b1150fe1f08c934a",
+      "bytes": 5555
+    },
+    {
+      "path": "src/瓦罗兰/运行/vertex.ts",
+      "sha256": "de2226b2f91b97f95bc9a0c60a692ad913136c12c637827da76606940e30c798",
+      "bytes": 10007
+    },
+    {
+      "path": "src/瓦罗兰/运行/worker-task.ts",
+      "sha256": "62e5914315b5dbaa2127b875b79409135c1536ad1d7b75d87dc20b9bd52adb5b",
+      "bytes": 1186
+    },
+    {
+      "path": "src/瓦罗兰/运行/world-description-upgrades.json",
+      "sha256": "cfc973476fb1240d307fad9f2a45582b34bb6360d0172cf71d2dbc724f82648d",
+      "bytes": 15479
+    },
+    {
+      "path": "src/瓦罗兰/运行/world-geography.json",
+      "sha256": "fc5701e69363583dfd3cf671886d217b0db15449006471552a66c7c9e1ee0028",
+      "bytes": 24897
+    },
+    {
+      "path": "src/瓦罗兰/运行/world-information.json",
+      "sha256": "0fe0fe9d561036f905711c5a73a59354d00be85a6f4f159b3188d2698eb81b22",
+      "bytes": 73417
+    },
+    {
+      "path": "src/瓦罗兰/运行/world.ts",
+      "sha256": "75e898e72b7f068a7aac1e363bc8a09e895d21f91b77296fbb44d7ca40ff3287",
+      "bytes": 5894
+    },
+    {
+      "path": "src/瓦罗兰/运行/世界资料.ts",
+      "sha256": "cfad2ae87665e946c67343f6af215740b71f4c87ed1084f93e108b984fae96d5",
+      "bytes": 3451
+    },
+    {
+      "path": "src/瓦罗兰/运行/地图地标.ts",
+      "sha256": "b6f8deda15907ae47521763ff01641ca851a1d6e6b630dc8014e3127d0619186",
+      "bytes": 1159
+    },
+    {
+      "path": "src/瓦罗兰/运行/地理名称.ts",
+      "sha256": "0cf99426611f1041486d754b5fdf0d65bd9e97efcd9c091c944dd4bca070a1be",
+      "bytes": 1683
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "173bef9ba3e846a0049cbe23472f8a9f1359389c56fc6b142ed7ade24724643f",
+      "bytes": 1024
+    },
+    {
+      "path": "util/common.ts",
+      "sha256": "83f45364489d46e961268182c3962886a247baeb356414aef31bd6fa9c3c4d56",
+      "bytes": 4145
+    },
+    {
+      "path": "util/iframe_srcdoc.html",
+      "sha256": "e59d9a9abc7d9e789d6b1717a90115c75fbfdcfc771de6554010e9bf6496b0c8",
+      "bytes": 948
+    },
+    {
+      "path": "util/mvu.ts",
+      "sha256": "d6940fa5401520e33cea4f1e0d8a5a4f85818ecc3601148b4b195d29fb144fa7",
+      "bytes": 1955
+    },
+    {
+      "path": "util/script.ts",
+      "sha256": "f38e0c9168712a79e45cd37b84c98801c77b75d808b29ac916563dc80d118c0c",
+      "bytes": 1291
+    },
+    {
+      "path": "util/streaming.ts",
+      "sha256": "843c0ed51c0ab44c614b1d57cc281ee4488d5194263e9d84d6e3fefae43982bc",
+      "bytes": 8486
+    },
+    {
+      "path": "webpack.config.ts",
+      "sha256": "9e4315a4d41a3ffe575c342adaa3b77db546f5c707bcfbcbe9a7a4c9db4baf78",
+      "bytes": 18716
+    }
+  ]
+}

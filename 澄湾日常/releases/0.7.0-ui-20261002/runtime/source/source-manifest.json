@@ -244,8 +244,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/App.vue",
-      "sha256": "dd5e0e5422cfbe6d86ac1280a6cc93d111ac7d265c34811fbac86929ff02ca3d",
-      "bytes": 34213
+      "sha256": "fc4dcf3fc27cac25d812726481269fe197639847fb56f68dbdf97c912a4c937d",
+      "bytes": 35694
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/assets/maps/生成提示词.json",
@@ -354,13 +354,13 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/ChatContainer.vue",
-      "sha256": "de40373b8e6bc5c8dce7fc4af1cce0c9abf956dabce6fbaecb477751102b683b",
-      "bytes": 4839
+      "sha256": "ed7eb1062fb4edbcf6ecc6a6940043b54015be84717631780df3777f5f2670a2",
+      "bytes": 8119
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/ComposerNotification.vue",
-      "sha256": "3278f01b086a179e3962c7eb76deaa7fbbb3d8e0e7b8a87bac16e847caed6da8",
-      "bytes": 10766
+      "sha256": "3b69b1e6e6073b986c4103e5163473ac52b202ac5c7701749e2fb1f7e8136d9d",
+      "bytes": 11146
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/CreationReceipt.vue",
@@ -374,18 +374,18 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageConfirmModal.vue",
-      "sha256": "4683d68a55d8f327c4fae5efbea7a9763f6f8b62550205a6779697bec56f1c64",
-      "bytes": 7495
+      "sha256": "3eb5b892c8fa46f8d724c32e6b7fe69995973a065b0e263dfe2a9e92c91a304c",
+      "bytes": 9113
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageContent.vue",
-      "sha256": "91de91c40cb6a06b2b07ed886fefee269cfa153d1334ae3fab0088c8bd736cfa",
-      "bytes": 6437
+      "sha256": "ea734bbbb8904e55d26adea9974dc17f8a336983bb9a966d573aa6695b7387cc",
+      "bytes": 6646
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageItem.vue",
-      "sha256": "d6eaf2b5bc813778dbd996a0fe1ad16afd82c40cccf2cd7750dd57deb9615ebc",
-      "bytes": 9910
+      "sha256": "a759f24308e8e0c1fcdba9df6adf57f8237cf36ba2799fab30491da4a9381f2a",
+      "bytes": 10171
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/creation/CharacterCatalogImport.vue",
@@ -426,16 +426,6 @@
       "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerResidence.vue",
       "sha256": "12d4cf504f55688a1efda99647cff2b8d4471765e18199f4875f10d343f512f6",
       "bytes": 18433
-    },
-    {
-      "path": "src/瓦罗兰/界面/桌面端/components/feedback/CreationWizardModal.vue",
-      "sha256": "24fbaffcb40dde5e06d6e029793f5fdffcf1ee5dc3e7e1895c7e646e922aa3f1",
-      "bytes": 10296
-    },
-    {
-      "path": "src/瓦罗兰/界面/桌面端/components/feedback/ItemFeedbackModal.vue",
-      "sha256": "4479f91cb3581264cb7dac77e7b09a13e022b7452bfa1c5a3facb4b55c4a5278",
-      "bytes": 5535
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/feedback/LowStatusModal.vue",
@@ -498,14 +488,9 @@
       "bytes": 8356
     },
     {
-      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneRecords.vue",
-      "sha256": "09fd1d80eae4ba50bdca54a84cc916198b378e48560c8a8bcbf5ee49eeac6618",
-      "bytes": 11199
-    },
-    {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneShell.vue",
-      "sha256": "0afd39393d14a4fb507688a618b584a96445b54f941e3001a76fc240cec048cc",
-      "bytes": 12713
+      "sha256": "b346dcc2df5e1ac033d750e6802516a82de42f668bcf4bb00fb39c7470887fbb",
+      "bytes": 14222
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneTrigger.vue",
@@ -514,8 +499,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/LinxinApp.vue",
-      "sha256": "f0d6ab999f0bcf37035089f6ed2829e4646bfc4fbdd6d7530d7030088fa629ca",
-      "bytes": 92785
+      "sha256": "ebafe4fceb22e1be9029f7898eabd7645962f6f11132fb2b565824507354d619",
+      "bytes": 93328
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapApp.vue",
@@ -524,8 +509,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapBaseLayer.vue",
-      "sha256": "ac456afa1726cf43988348004d8b417447e8456cadc4e02f0634093c68337b0e",
-      "bytes": 1798
+      "sha256": "9d2001def4557b3bf32899f5cd1e833b6f10b58705a4d8295837f8ad55c51ed2",
+      "bytes": 2759
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/PhoneSettingsApp.vue",
@@ -584,8 +569,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/settings/ExtraApiForm.vue",
-      "sha256": "601bc7ea42e43d441ff36f2f32c7b5ef0cef33d2d931e70ebb734b4d05ce08aa",
-      "bytes": 27442
+      "sha256": "8c3cdf3fac9c258b883fb0bf612aa9289f88bb6c41a887e69ce3392e7616323e",
+      "bytes": 30455
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/settings/RosterAutoPanel.vue",
@@ -611,11 +596,6 @@
       "path": "src/瓦罗兰/界面/桌面端/components/settings/TabCharacterRoster.vue",
       "sha256": "d87d9174cc372d7acaf8cd2204e0a43f6972e2877fe691ade6646fe071ad699f",
       "bytes": 18441
-    },
-    {
-      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabExtraApi.vue",
-      "sha256": "257557168ae287b8aa58bc01d72cb41ebf39cd183866852877dcdf09afc739f6",
-      "bytes": 1609
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/settings/TabFont.vue",
@@ -668,19 +648,19 @@
       "bytes": 12618
     },
     {
-      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableStatusBar.vue",
-      "sha256": "f88d5db3d549d2c0567e85e866252f667c22038eead7be43d6f6c510843ae716",
-      "bytes": 6281
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableOutputModal.vue",
+      "sha256": "13755b360bf4ea7923972718fa929fb57673e586d263d2c65dfa8ca0e24760d2",
+      "bytes": 30868
     },
     {
-      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableTree.vue",
-      "sha256": "d172a4c79a244386da66938ae8e95618e34c10e90af28f38f5a3d0ddb6257f6b",
-      "bytes": 2464
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableStatusBar.vue",
+      "sha256": "ea99f9f9952aa43b189a371be57b5c48bca62ff169b87186321d52cedce29fd0",
+      "bytes": 7521
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/system/SystemDataDrawer.vue",
-      "sha256": "2c3c943bfec2853f019a8f5ca3abc6be38e5d4f2853412facace2a766c1796c6",
-      "bytes": 8901
+      "sha256": "4f9a82952bdda5583a90e0c3132ca06f09614744c1f496956d4a9392b3093d47",
+      "bytes": 10230
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/components/world/WorldBar.vue",
@@ -754,8 +734,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/utils/desktop-sizing.ts",
-      "sha256": "6067354b7574d79947778480c996b646cf6aacd1ca375553e68432e2806cceff",
-      "bytes": 2589
+      "sha256": "183bf348669965b504d1aede4c5f21a623db2a867e87d43e6c3176f9785544df",
+      "bytes": 3470
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/utils/entity.ts",
@@ -774,8 +754,8 @@
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/utils/map-assets.ts",
-      "sha256": "cb3e2705436efe9e40cf03fae65b6703cb882d4a519d93802a2fc4e508822265",
-      "bytes": 1137
+      "sha256": "8f5432d424068763afc6ae33a8092356b7249b56d4cb119d79eee7ae4babba73",
+      "bytes": 2791
     },
     {
       "path": "src/瓦罗兰/界面/桌面端/utils/map-layout.ts",
@@ -839,13 +819,13 @@
     },
     {
       "path": "src/瓦罗兰/脚本/流式同层/index.ts",
-      "sha256": "b3863dba09ecf72a15fc9c9303ffe67836ad9de10cca453a70df457beb9a4ee0",
-      "bytes": 7917
+      "sha256": "79e0783732795b6a357673dd815c2c4f2103a774c472435bd3b6521400a50672",
+      "bytes": 8183
     },
     {
       "path": "src/瓦罗兰/脚本/流式同层/native-controls.ts",
-      "sha256": "8b97debc1c366ad2e472ecbb486ee766492b0f71a85384585547b76fc42893fa",
-      "bytes": 8533
+      "sha256": "dbe466a27143ebdd8749dda9b5e6bc44601245a768d7b7b4f2500c382f1bb395",
+      "bytes": 8792
     },
     {
       "path": "src/瓦罗兰/脚本/辅助API/index.ts",
@@ -869,8 +849,8 @@
     },
     {
       "path": "src/瓦罗兰/运行/bridge.ts",
-      "sha256": "eeb1e591857e42fdb790dfbf3117e2bdb537ae9f62185b83647ab50295757626",
-      "bytes": 5478
+      "sha256": "c7b83dee0c229aaa4a9cb8b639b46ea7d43efdb607f0e4f83c15bb953431eb96",
+      "bytes": 7375
     },
     {
       "path": "src/瓦罗兰/运行/browser-crypto.ts",
@@ -909,8 +889,8 @@
     },
     {
       "path": "src/瓦罗兰/运行/chat-persistence.ts",
-      "sha256": "3758482d1ee491a5f0dd3bd93a6c3724805fc30b7933ff370eee228ca1890b38",
-      "bytes": 5460
+      "sha256": "2172bb17d6f3bcf18f388ccd258821202d9dac6d56bce4c78f271c2b7d3703d7",
+      "bytes": 8982
     },
     {
       "path": "src/瓦罗兰/运行/commit-replay.ts",
@@ -943,9 +923,14 @@
       "bytes": 4563
     },
     {
+      "path": "src/瓦罗兰/运行/generation/compat.ts",
+      "sha256": "ead56369938feea16c3a5cc5b3710364183a1e41bbdf74196162ea7b7051e9c8",
+      "bytes": 19017
+    },
+    {
       "path": "src/瓦罗兰/运行/generation/data.ts",
-      "sha256": "2736b83bf3ac440df7a4582e283232035e1bf8acd01dbceb225b427ae07cd7e7",
-      "bytes": 8256
+      "sha256": "48ee235f5905b29967e3e0d3671120b97b694e52f05f7d110f8935a797afbfea",
+      "bytes": 8663
     },
     {
       "path": "src/瓦罗兰/运行/generation/index.ts",
@@ -954,33 +939,33 @@
     },
     {
       "path": "src/瓦罗兰/运行/generation/native.ts",
-      "sha256": "3ca2d51edcd51c8c5aa2d4aa74df6a43109e6ef74517b54c5d04aae3176b9b2a",
-      "bytes": 1314
+      "sha256": "5df30b117945f9d95e3e3a6f4d111028f7c325a32779d6f36447b27c29786ded",
+      "bytes": 1491
     },
     {
       "path": "src/瓦罗兰/运行/generation/preset-native.js",
-      "sha256": "994b8886cd73121763f1477b78f6c8d9d84f659bfa93aa63aad565c766e5853b",
-      "bytes": 31267
+      "sha256": "c148233931eb8d6698ad7c365f2874ba146b36cd1e87884c0b8da559bb14df52",
+      "bytes": 31549
     },
     {
       "path": "src/瓦罗兰/运行/generation/preset.ts",
-      "sha256": "fa016b2185d7c72efd20ce93e2c89423154ed24538235fb82c16409b94286278",
-      "bytes": 6893
+      "sha256": "e88c1362695b5097fca6dc5b127d229a24f3e909db7dc582c2fb2e7b40ea6348",
+      "bytes": 9788
     },
     {
       "path": "src/瓦罗兰/运行/generation/provider-error.ts",
-      "sha256": "c9dfa1a781d9f319fa672ac3b4e1d489ebc0e11a99c22eb600a8ab6d738e3fa9",
-      "bytes": 644
+      "sha256": "1e218a8186d08843d02db040d5ea81fb7fdaeda3c80e248bcd6b87becb449aba",
+      "bytes": 1312
     },
     {
       "path": "src/瓦罗兰/运行/generation/response.ts",
-      "sha256": "5b90ec007b6a061ca88f2e8c74420eeabe6fbb5831ae05a11f3808d3e96b2910",
-      "bytes": 11306
+      "sha256": "8a15c11a21cb02d52f8160fb8529bb7f32a7ea27cbecf7b8913e3c9518b41dae",
+      "bytes": 19465
     },
     {
       "path": "src/瓦罗兰/运行/generation/world-info-source.js",
-      "sha256": "0c092444b32c782817eed48d92b2646bee9540a8fc713f64b364cce78dfee70d",
-      "bytes": 70101
+      "sha256": "3e50a70488beece0c8f03e170df9096a6ddd83f18c9f654e4144c881b2761c87",
+      "bytes": 71155
     },
     {
       "path": "src/瓦罗兰/运行/generation/world-info.ts",
@@ -988,9 +973,14 @@
       "bytes": 1357
     },
     {
+      "path": "src/瓦罗兰/运行/google-studio.ts",
+      "sha256": "d8b897dab650894b5025136cc20ab1f179e88403fd9373d02c9fd7c79af26569",
+      "bytes": 5569
+    },
+    {
       "path": "src/瓦罗兰/运行/host.ts",
-      "sha256": "4902ba94deea190f52f9475d0f5b507145ccad906e2289f76dba1804f0281d18",
-      "bytes": 145407
+      "sha256": "3f6a25a15390aaa86b366f33405cbc7e03ca4551ba3c39ed2b4875d2fe44ad95",
+      "bytes": 170501
     },
     {
       "path": "src/瓦罗兰/运行/knowledge-context.ts",
@@ -1014,8 +1004,8 @@
     },
     {
       "path": "src/瓦罗兰/运行/message-protocol.ts",
-      "sha256": "a7567bcde7375b535ac2ec30e5e63c44130c0b230007faa2acc33ab472f8facd",
-      "bytes": 13347
+      "sha256": "c6f7212e3139099b6307b7ce5a3471bdbc424b4eb8a09c50da946991266b6542",
+      "bytes": 17387
     },
     {
       "path": "src/瓦罗兰/运行/model-fields.ts",
@@ -1114,8 +1104,8 @@
     },
     {
       "path": "src/瓦罗兰/运行/settings.ts",
-      "sha256": "c152cd9e669bc911c0bb2e0f26e50f07671f20d23b4ce9e59b56eb5643083170",
-      "bytes": 15250
+      "sha256": "c27fbc5486fecd786963e3f58ee94b046e35ae55c474337e7e94268eb9ede1fb",
+      "bytes": 16094
     },
     {
       "path": "src/瓦罗兰/运行/settlement.ts",
@@ -1156,6 +1146,16 @@
       "path": "src/瓦罗兰/运行/variable-changes.ts",
       "sha256": "c8661044387a4d42584dcf98f454d25d57cee33622f7ff32266e92f98db42cf3",
       "bytes": 9184
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-inspector.ts",
+      "sha256": "f173ff3198de2741782ad25f5364c621191ef792d16879a6acdce6ee03df3d2f",
+      "bytes": 37520
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-output-store.ts",
+      "sha256": "9e2161f6500e74623e3060ec5df2e3ec62bbca5679dca6e4fafbc012d1f5072a",
+      "bytes": 11032
     },
     {
       "path": "src/瓦罗兰/运行/variable-response.ts",

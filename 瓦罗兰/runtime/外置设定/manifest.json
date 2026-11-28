@@ -1,0 +1,30 @@
+{
+  "format": "瓦罗兰外置设定清单/1",
+  "版本": "81bd3bf4380f5eb2",
+  "stats": {
+    "areas": 15,
+    "locations": 42,
+    "buildings": 134,
+    "totalPlaceNodes": 176,
+    "organizations": 20,
+    "avatarHeroes": 0,
+    "avatarImages": 0
+  },
+  "files": {
+    "geography": {
+      "path": "地点/区域与地图.json",
+      "sha256": "1ae46e82866ccc7a72e3dbc8e782a335bf32ee9131df8a8c28b3b81f06334139",
+      "bytes": 66992
+    },
+    "locations": {
+      "path": "地点/地点与建筑.json",
+      "sha256": "a8b8e2d54e9a4e9947b3541052ee9dc7b9979af91040302bbc357221d610511b",
+      "bytes": 484941
+    },
+    "organizations": {
+      "path": "组织/四象限组织.json",
+      "sha256": "b4caa4386c0b1f8fc56649fc76ff404bcce95600247bd97fe13aa6e721c61f67",
+      "bytes": 79267
+    }
+  }
+}

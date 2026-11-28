@@ -1,0 +1,2398 @@
+{
+  "node": "v24.16.0",
+  "catalogUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json",
+  "files": [
+    {
+      "path": "@types/function/audio.d.ts",
+      "sha256": "02c7ace1acbb1949037aca6f2156e4f109212dd6b9642a63d06934316b24c908",
+      "bytes": 4072
+    },
+    {
+      "path": "@types/function/builtin.d.ts",
+      "sha256": "cc2d1006b92c6ab07266ea38271f5355a07195cb68417243446a30194aa73a8d",
+      "bytes": 2766
+    },
+    {
+      "path": "@types/function/character.d.ts",
+      "sha256": "5ce1ab959d6b77e084f3b3c39aba412e1d1209adc9286a13dd2bc86ab7eb3654",
+      "bytes": 7234
+    },
+    {
+      "path": "@types/function/chat_message.d.ts",
+      "sha256": "302930d6cc697321d0e1514d096dcd272a465fbc418f2190b41ddcffafc19327",
+      "bytes": 9679
+    },
+    {
+      "path": "@types/function/displayed_message.d.ts",
+      "sha256": "fec1e5463e931e788c787d2a7263e24570ae42429ba04f4648779afe9a161bb1",
+      "bytes": 3026
+    },
+    {
+      "path": "@types/function/extension.d.ts",
+      "sha256": "8f465ba49481eec9786526e90c58321d7e4ae813b9732a77b64e51e64274593c",
+      "bytes": 3513
+    },
+    {
+      "path": "@types/function/file.d.ts",
+      "sha256": "386d747e0ce643e74dc7af7d62ef6a4ef4895f496e7160fdb2367b89c4e97681",
+      "bytes": 1438
+    },
+    {
+      "path": "@types/function/generate.d.ts",
+      "sha256": "cdc46ae5ee4aafc37c97382bcbdcc867cb6db52a080fa99fa10e8400e1480a09",
+      "bytes": 19775
+    },
+    {
+      "path": "@types/function/global.d.ts",
+      "sha256": "d80f189038ab1aba7385764f629760fe7c7c8f0436024f06cbb52c39c2daabdd",
+      "bytes": 1169
+    },
+    {
+      "path": "@types/function/import_raw.d.ts",
+      "sha256": "436bd0f69cc9f1633389172fed30258eb402c9a9af45eef12411a2aa4cbffaa9",
+      "bytes": 2252
+    },
+    {
+      "path": "@types/function/index.d.ts",
+      "sha256": "76f9f6ab0a965f7947c3178965d3ba716f97362400bd48841d6260e4405c7bda",
+      "bytes": 8717
+    },
+    {
+      "path": "@types/function/inject.d.ts",
+      "sha256": "315bbd3329cea8fe269e1d396948bd98f5c916787d9bd8c4f8cd0359015d71b0",
+      "bytes": 1464
+    },
+    {
+      "path": "@types/function/lorebook.d.ts",
+      "sha256": "da35836080d2d95a63b7217f9c2550d29e843ec33012953a0fc3b296799c7883",
+      "bytes": 2204
+    },
+    {
+      "path": "@types/function/lorebook_entry.d.ts",
+      "sha256": "e47a25ec0daa12124ef6304ee49f93ab23353673295c5da046a9aa1c0538555d",
+      "bytes": 2545
+    },
+    {
+      "path": "@types/function/macro_like.d.ts",
+      "sha256": "0b9bd09646f2e2692f51dbfdd9eade9c0efbb10f092d86de5ed681a1972eda0b",
+      "bytes": 863
+    },
+    {
+      "path": "@types/function/persona.d.ts",
+      "sha256": "edcc00eff62629c2029a2d618ef5b3550939d3aad4fd16a231e51951304dfa26",
+      "bytes": 5341
+    },
+    {
+      "path": "@types/function/preset.d.ts",
+      "sha256": "442ee5198e2135ad4fb3e689fbeeac1458f6c813dfc8a60e3d1e00157e0a5ea5",
+      "bytes": 13672
+    },
+    {
+      "path": "@types/function/raw_character.d.ts",
+      "sha256": "0a0d9923bf01a52f57475588d5d50ac3a8343ef23bb39ab05b0416b7313ca1b0",
+      "bytes": 3604
+    },
+    {
+      "path": "@types/function/script.d.ts",
+      "sha256": "85212926bc42224ae82ffca2dd86063cdc351863b3ae2e18ef407026e9b263d9",
+      "bytes": 2446
+    },
+    {
+      "path": "@types/function/slash.d.ts",
+      "sha256": "773543ca4ac5e231e7ba8dc1d22c779f980755bf57601b946369b63a718c4285",
+      "bytes": 1208
+    },
+    {
+      "path": "@types/function/tavern_regex.d.ts",
+      "sha256": "dbc165d9ff73feb12abd5868f7dc7b42be9b865267be3014b429b97e3ed84673",
+      "bytes": 4572
+    },
+    {
+      "path": "@types/function/util.d.ts",
+      "sha256": "12ad465ff717f86b259bb49cf32cc915fa938b3f632a980192edbea19419fd2b",
+      "bytes": 1233
+    },
+    {
+      "path": "@types/function/variables.d.ts",
+      "sha256": "45bc282ef55a070edcd6d659313f609fe38dae0650897c2fcf9243b00041ce1b",
+      "bytes": 7404
+    },
+    {
+      "path": "@types/function/version.d.ts",
+      "sha256": "f512d3d436b96ccd1b17a4c67e6ac2912cd4b1121d8a9ce02315b9593667e0b7",
+      "bytes": 169
+    },
+    {
+      "path": "@types/function/worldbook.d.ts",
+      "sha256": "81f4ffd6127c82e70d4694896f0fd31c59ff49a084bfe41e76ac649dcaf27cd9",
+      "bytes": 12231
+    },
+    {
+      "path": "@types/iframe/event.d.ts",
+      "sha256": "33deb24c14916ff0958898b7890ab69bd584d33261297dc0a57448011760cd8e",
+      "bytes": 21830
+    },
+    {
+      "path": "@types/iframe/exported.ejstemplate.d.ts",
+      "sha256": "55dc38589c2a01a01e162411af321c536d6cd142a18ce3ffb207d699d14fabe8",
+      "bytes": 4448
+    },
+    {
+      "path": "@types/iframe/exported.mvu.d.ts",
+      "sha256": "3590b3a1d74b1e021a1bc54953b66284c4c860918ec98c8418a54cac8069ef16",
+      "bytes": 8070
+    },
+    {
+      "path": "@types/iframe/exported.sillytavern.d.ts",
+      "sha256": "eae4ed517b5ff493afca4581e191b212020088ad12577d699297efd0eb5ab0bb",
+      "bytes": 26567
+    },
+    {
+      "path": "@types/iframe/exported.tavernhelper.d.ts",
+      "sha256": "3ce05ebcbedee09da964156f506ac1191fa1477b7e07b876b705aa58891e69a3",
+      "bytes": 296
+    },
+    {
+      "path": "@types/iframe/script.d.ts",
+      "sha256": "b3eefce598b3eefe03aa598e2d76b97922b058a3551a8fdd37265743fc8e9f11",
+      "bytes": 2719
+    },
+    {
+      "path": "@types/iframe/util.d.ts",
+      "sha256": "57939734be3b0728bf502f0c6713727920391dfa3c3f7ad834dc8ee8a2523ab0",
+      "bytes": 1621
+    },
+    {
+      "path": "@types/iframe/variables.d.ts",
+      "sha256": "b85166d18310f84d6fcd68ff5a9957170a53d655a507e97587a15f79d720c902",
+      "bytes": 510
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8",
+      "bytes": 4563
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "sha256": "89bd86a92567e3c025ab597e2e9df13b922e8dbad4b28fd1ebcc5dbfdb742767",
+      "bytes": 20273
+    },
+    {
+      "path": "auto-imports.zod.d.ts",
+      "sha256": "be8f95e71f0a917fd959ddc9b8666625312186aaaa2a24f0cf45cda9e0daf8cf",
+      "bytes": 272
+    },
+    {
+      "path": "components.d.ts",
+      "sha256": "6408fbd6d966b59de8857f367fa006fd86a96069015b450a93a6ad85123ccc24",
+      "bytes": 405
+    },
+    {
+      "path": "global.d.ts",
+      "sha256": "8ac905ce41549c014fdded8e4c9381896f3d3f4f7fd1ca9b7b83645692a35d44",
+      "bytes": 1091
+    },
+    {
+      "path": "package.json",
+      "sha256": "dc5d6af09b79d1b40b1ebde3c2fed318f25607dbe71846f4e94c27cb71b7f695",
+      "bytes": 3734
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "57df2cb96e62e7f92cce16e16658735bd843b380ac5a9679b510021ffc846fa2",
+      "bytes": 282205
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e9e78b136cac8bbbcbc1a166dc3ee0b183cadca360a6bff613c04caed6b541e6",
+      "bytes": 78
+    },
+    {
+      "path": "postcss.config.js",
+      "sha256": "73bfda5c445fc10f1e2b0ae9c32a012fa209af1ce22a4636423dbf099baf6f4b",
+      "bytes": 196
+    },
+    {
+      "path": "src/瓦罗兰/schema.ts",
+      "sha256": "f4ffbbbb76a5009e3b62fff370ca48689fefdb157ab7caecee053321bb2fb3ce",
+      "bytes": 159164
+    },
+    {
+      "path": "src/瓦罗兰/世界书/index.yaml",
+      "sha256": "bd8bbeed041ab7ebd5fb1ac237adcb10bac2a7ed10e2c394ec0361498579ef79",
+      "bytes": 18408
+    },
+    {
+      "path": "src/瓦罗兰/世界书/世界观/01-现代奥术都市与表里维稳.yaml",
+      "sha256": "30dd5a423b53b0eca006690eeeba8ed443ba2d781843e3ebd73d9c19ca834a56",
+      "bytes": 3160
+    },
+    {
+      "path": "src/瓦罗兰/世界书/世界观/02-五重宇宙位面结构.yaml",
+      "sha256": "81bb3ac710a00cf094efbee1bf991b90a1bb91fce01dea0a8568a248b3a8c232",
+      "bytes": 2626
+    },
+    {
+      "path": "src/瓦罗兰/世界书/世界观/03-超凡力量与代价体系.yaml",
+      "sha256": "a2591144aa8ed2567e786b0e4ad0144d1dd675a7a867713900512e276f17aa38",
+      "bytes": 5077
+    },
+    {
+      "path": "src/瓦罗兰/世界书/世界观/04-多种族谱系与峡谷生态.yaml",
+      "sha256": "75505ff05347090e34248d11357ff1315a0c99d821eb4e0f5f3cc933c15fe905",
+      "bytes": 4918
+    },
+    {
+      "path": "src/瓦罗兰/世界书/世界观/05-四季盛典与年度节律.yaml",
+      "sha256": "960388d75663e158c515a04f80bc7fdcd9806da509a31fb480544b2de7ca797c",
+      "bytes": 5068
+    },
+    {
+      "path": "src/瓦罗兰/世界书/危机/01-三线活跃度标尺与碰撞格局.yaml",
+      "sha256": "acadb2ea5b2cf3be53670a087304bfef13d84c3ebdf790caa5967f7c34419262",
+      "bytes": 5430
+    },
+    {
+      "path": "src/瓦罗兰/世界书/危机/02-虚空入侵线.yaml",
+      "sha256": "394b29d54a10be456bd50c0bc33fb2a1fe042f77e909bad78410f72ca13c05f7",
+      "bytes": 2843
+    },
+    {
+      "path": "src/瓦罗兰/世界书/危机/03-暗星入侵线.yaml",
+      "sha256": "6e2a28916f05cfe89a474eb95a788ea9d3b256b577521ed8277b45a39b1ee0b9",
+      "bytes": 2658
+    },
+    {
+      "path": "src/瓦罗兰/世界书/危机/04-星陨侵蚀线.yaml",
+      "sha256": "fca27b7e4f09cc89158e7f60e6aa69a53f2079ced7fb3d847e65a0e71da6d2a1",
+      "bytes": 2779
+    },
+    {
+      "path": "src/瓦罗兰/世界书/危机/05-本土暗面危机源.yaml",
+      "sha256": "1ab7f1f63c490dc58e5377c1e5e40ce75c9c211dfecf823755947f5716a2812b",
+      "bytes": 1599
+    },
+    {
+      "path": "src/瓦罗兰/世界书/变量/initvar.yaml",
+      "sha256": "fb807d37385ec3260d9bd94a590ef0e327c03c185711093d3888e3f27b667c14",
+      "bytes": 2985
+    },
+    {
+      "path": "src/瓦罗兰/世界书/变量/变量列表.txt",
+      "sha256": "dbe67ee563ef1b04b719d30ae991e0010f849010cb40a4a31b18c0d23ef7163c",
+      "bytes": 20
+    },
+    {
+      "path": "src/瓦罗兰/世界书/变量/变量更新规则.yaml",
+      "sha256": "7ea36f4bc02f20df7826aa34a5b58dc17a06a44773104a841a68b1bad49e88d2",
+      "bytes": 30563
+    },
+    {
+      "path": "src/瓦罗兰/世界书/变量/变量输出格式.yaml",
+      "sha256": "65c7745918141c06b26407eea4da024deba86590e25c43f2f3c04b93d661e88d",
+      "bytes": 2055
+    },
+    {
+      "path": "src/瓦罗兰/世界书/系统/01-奇遇系统（动态开关）.yaml",
+      "sha256": "eec9184e2eae3150339db0c89478f4e9cbeea294d337d23c3d1a78a592c9072b",
+      "bytes": 2559
+    },
+    {
+      "path": "src/瓦罗兰/世界书/系统/02-传奇装备与奇货体系.yaml",
+      "sha256": "7d62cdd85d8f125d4784c789a9892983839b0f9ad4e5282e2dcf7ec37a5f109c",
+      "bytes": 5159
+    },
+    {
+      "path": "src/瓦罗兰/世界书/系统/03-恶魔原罪与贪婪契约.yaml",
+      "sha256": "3f0e83deda83e11ec7cc0a1cbeec0507e50b652764ddfdade50f6c4b040858aa",
+      "bytes": 2928
+    },
+    {
+      "path": "src/瓦罗兰/世界书/规则/01-双轨叙事与反全知铁律.yaml",
+      "sha256": "8f9cc28a207189eec5c014e70ccf5e60a72f564301e1c6541c1fe5cdb69d474e",
+      "bytes": 2955
+    },
+    {
+      "path": "src/瓦罗兰/世界书/规则/02-双货币与物品原则.yaml",
+      "sha256": "25d57416c86d743ddf9fd336fdfe50b89ffcf756823751c831023c29ad6985d7",
+      "bytes": 1559
+    },
+    {
+      "path": "src/瓦罗兰/世界书/规则/03-信息网络与新正义周刊.yaml",
+      "sha256": "5d5c1d20906f5bcec1a602763dad068a5cd3d77a154a33f87ab44f94a06efb01",
+      "bytes": 2892
+    },
+    {
+      "path": "src/瓦罗兰/世界书/规则/04-叙事防出戏与日常收械铁律.yaml",
+      "sha256": "b1b9548c5598aba5be1fe7ec800b7712062d6e1a1b14a384a318ad09205cb4c7",
+      "bytes": 1898
+    },
+    {
+      "path": "src/瓦罗兰/世界书/规则/05-角色自主性与关系演进铁律.yaml",
+      "sha256": "c197c82ee81d25d932bf308201622a2052be927569938445abeb586719c72ce8",
+      "bytes": 3031
+    },
+    {
+      "path": "src/瓦罗兰/发布/配置.json",
+      "sha256": "a0920f3c28217f83c3e5fac3208e97960bb2db1aea569cb3e6b88734c289b269",
+      "bytes": 520
+    },
+    {
+      "path": "src/瓦罗兰/外置设定/manifest.json",
+      "sha256": "8155c42988d3e9b1f540e05464bd6fcb2cf3fee7a36753aaf1ab8b81e99bf478",
+      "bytes": 806
+    },
+    {
+      "path": "src/瓦罗兰/外置设定/地点/区域与地图.json",
+      "sha256": "1ae46e82866ccc7a72e3dbc8e782a335bf32ee9131df8a8c28b3b81f06334139",
+      "bytes": 66992
+    },
+    {
+      "path": "src/瓦罗兰/外置设定/地点/地点与建筑.json",
+      "sha256": "a8b8e2d54e9a4e9947b3541052ee9dc7b9979af91040302bbc357221d610511b",
+      "bytes": 484941
+    },
+    {
+      "path": "src/瓦罗兰/外置设定/组织/四象限组织.json",
+      "sha256": "b4caa4386c0b1f8fc56649fc76ff404bcce95600247bd97fe13aa6e721c61f67",
+      "bytes": 79267
+    },
+    {
+      "path": "src/瓦罗兰/工具/打包运行源码.mjs",
+      "sha256": "22544c7f304ee1986f7ad5c53e94e68c2d6b038bdb570b0d1cd2130eaf06fd87",
+      "bytes": 6607
+    },
+    {
+      "path": "src/瓦罗兰/工具/构建.mjs",
+      "sha256": "2e7aa21710e25322fb2c36114192db991902a6d00d97f71189fe3158341a3e0c",
+      "bytes": 9478
+    },
+    {
+      "path": "src/瓦罗兰/工具/构建角色资源.cjs",
+      "sha256": "357a1a20e7fb826b28773544cc28c02a20859834192feaa2159426aca467f6fe",
+      "bytes": 3491
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/丽桑卓/丽桑卓.json",
+      "sha256": "fc9e020dfd39eeabe29d3419484f4fa06751427c234edda56aa1f075c6feb1e8",
+      "bytes": 24000
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/乐芙兰/乐芙兰.json",
+      "sha256": "e92c6b8ff0da9d7f7339e0889f3574da60c6a391af245152e30c2414c290220d",
+      "bytes": 24957
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/伊芙琳/伊芙琳.json",
+      "sha256": "6fd5db8b38603c0484b0cdabf1d4f825af5107024ff9c71ca332a0d4713ccffc",
+      "bytes": 24592
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/伊莉丝/伊莉丝.json",
+      "sha256": "4b027573ffc20d321af0caabc8d0e076d855f2521bfb699bb4c065bceccec498",
+      "bytes": 23729
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/佐伊/佐伊.json",
+      "sha256": "76aae92fce042bfca5865e20409e035c01600470e9a6d2edd8523cdad562848a",
+      "bytes": 25066
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/俄洛伊/俄洛伊.json",
+      "sha256": "6756e115f2543b3b84cb50091646f549e8b5cda9f92c177b283d51fe1c5f59c1",
+      "bytes": 23198
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/凯尔/凯尔.json",
+      "sha256": "8e598aa2937f561b2e828014c0e9d31bf441408761547369689be04ea619874e",
+      "bytes": 19333
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/凯特琳/凯特琳.json",
+      "sha256": "298709b868ac0c5053be4b3bae42e830039f54d125a3dda3b1271cdee5ff384d",
+      "bytes": 24527
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/千珏/千珏.json",
+      "sha256": "f270489d9cfdfe97fdfc3b2ee31f1b9c0803761ee7c7c3e26b633a2f1edaf7d2",
+      "bytes": 20134
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卑尔维斯/卑尔维斯.json",
+      "sha256": "9bc8f66b1778c239c7defae4834e0a4cf8da776ad10e61b6657bf98004e552f8",
+      "bytes": 24140
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡尔玛/卡尔玛.json",
+      "sha256": "a4add3a2b9afb666db0c114f0c761dbb9cb4634fec8f12bfea919540c5335af1",
+      "bytes": 20827
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡特琳娜/卡特琳娜.json",
+      "sha256": "4de2e165bcb4fc891fab0d555bdc201816e6c360350d95f8300b6cfe1e0ca7bc",
+      "bytes": 23799
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡莉丝塔/卡莉丝塔.json",
+      "sha256": "de3b83ed000314f19e36ee17075ef243f6c7e5293f58d015786850bd3b94d706",
+      "bytes": 22676
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡莎/卡莎.json",
+      "sha256": "6e41f6d396c07670b11aa093115364186111d2f3c68b596dd38c80877e6a9089",
+      "bytes": 22493
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡蜜尔/卡蜜尔.json",
+      "sha256": "310e8ef85dc1621ac37b56bfc94b2415d6b1503c15bf35b449d13b7cc8c75250",
+      "bytes": 23937
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/卡西奥佩娅/卡西奥佩娅.json",
+      "sha256": "f2b9073c86d90f3fd15ad50be4fd81a7121636e1cf622857bb49af2ce052350d",
+      "bytes": 24181
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/厄运小姐/厄运小姐.json",
+      "sha256": "a7e1d01e318815b54502bc6d923d96fd863f30b55d95d253e82388b405ecd0e1",
+      "bytes": 24730
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/塔莉垭/塔莉垭.json",
+      "sha256": "d32ab160af0b4b92a08eabfa5d81904a04aad5eb5606f564cd595e8964bbca86",
+      "bytes": 21954
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/奇亚娜/奇亚娜.json",
+      "sha256": "1975456fd4dd87cc543097b64c312d42fddc17f4b1f427e72a18a212582d27c9",
+      "bytes": 21635
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/奈德丽/奈德丽.json",
+      "sha256": "d454d1a5634e70d5c1ec104ce6b8c616005419fb0f253a83c863c7834f56f3c9",
+      "bytes": 23983
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/奎因/奎因.json",
+      "sha256": "4c750a0958d3758e695c28cc979e17b8e6e65a76e4269b06eeb9d38947649b1e",
+      "bytes": 24182
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/奥莉安娜/奥莉安娜.json",
+      "sha256": "bb5eeed4e56e76d1966deed386bade58eea1b500cb044290239c4847876de524",
+      "bytes": 24305
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/妮蔻/妮蔻.json",
+      "sha256": "eea17ba39db4034f4b812156e0048d21909ce14a4f6d919b12dfef0a0b713c64",
+      "bytes": 21776
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/娑娜/娑娜.json",
+      "sha256": "7eff3e8b316897f4da4217a9eca4e605bcb15af3f47e7dfb3958fdc7961421c1",
+      "bytes": 24640
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/娜美/娜美.json",
+      "sha256": "96eb8b9e0878854ef87e2475026aebb1637cf65745a8281db10dc38511766acb",
+      "bytes": 23310
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/婕拉/婕拉.json",
+      "sha256": "033a959e6f6b5b0f9c5967825627b988807bfe766c028c19101859a17697aa59",
+      "bytes": 22541
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/安妮/安妮.json",
+      "sha256": "8282bca5bfb70fa3877a88f5f29af034c6f5e192a02b3caec765fa1443672733",
+      "bytes": 18136
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/安蓓萨/安蓓萨.json",
+      "sha256": "ae3282da69161a1eb6570ef57c01efaa30d1172d72d35da60a8402c9be73c9a0",
+      "bytes": 23063
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/尼菈/尼菈.json",
+      "sha256": "3c190c39f590ca103c830b9f0ccdf63c54b52b0bc219fe0b08d3b586707d6579",
+      "bytes": 24739
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/崔丝塔娜/崔丝塔娜.json",
+      "sha256": "9664fb5d9ca23159be5fc314cdaea9fb43d237cc79ad4b28250ac83d0a7f3ca6",
+      "bytes": 23376
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/希瓦娜/希瓦娜.json",
+      "sha256": "4d0542cbacdc3af52177ac548d717ba0756ad9442f3b9301579e006ef005921f",
+      "bytes": 22711
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/希维尔/希维尔.json",
+      "sha256": "d68cfe7fe174ca2a0ea50694ec6fd1124139fa309600c751b55f7379745e5d76",
+      "bytes": 24363
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/悠米/悠米.json",
+      "sha256": "77ccb6a466106b9c248a95a0ad332bdd4bd3bba3ecfb31715205066ca4855295",
+      "bytes": 19920
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/拉克丝/拉克丝.json",
+      "sha256": "79f686e15e836c250cd4b918995bfd2c4ca54084104aedd74953baa3ad0f5b3b",
+      "bytes": 23624
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/格温/格温.json",
+      "sha256": "930422dd613aff898eb57f24f84b9754ae88b75b7dc3691b582aaf560ed2a8db",
+      "bytes": 24795
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/梅尔/梅尔.json",
+      "sha256": "bc1125b90b95231ef3443586a1a6eb13d0fc1a7b3762c94046297d6580e7af6e",
+      "bytes": 22249
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/波比/波比.json",
+      "sha256": "f07752f20107c80a7c91a53c5d01625c65b58d5b899ecce69c8c96fc67f09393",
+      "bytes": 23638
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/泽丽/泽丽.json",
+      "sha256": "2acf9a6aa50b6ae12af1e0f7c4a80429d8b3891dad38e6d67f9a796dde3422da",
+      "bytes": 22646
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/烈娜塔·戈拉斯克/烈娜塔·戈拉斯克.json",
+      "sha256": "499d46584cd614b8659be0b74e80f9e4fb9bf7d328cccb6758c5a99e4bfb1c6e",
+      "bytes": 23779
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/瑟庄妮/瑟庄妮.json",
+      "sha256": "aa843f0c86f3aadd6f088bc75edd1f5d0b065f0203375ab33d5c3548984ce326",
+      "bytes": 25111
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/璐璐/璐璐.json",
+      "sha256": "e1a107a492c80f76a855405395aa1a3e33c6e05235616387fbb32a4294b4980b",
+      "bytes": 23850
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/索拉卡/索拉卡.json",
+      "sha256": "dc42536690b581280227e27ad5539f5902614219f570edb000c1dac6e6752052",
+      "bytes": 22692
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/纳亚菲利/纳亚菲利.json",
+      "sha256": "4303c3c9bbd53fa39bcf7da214818c261fc547dec607be37332a75ca66b220e8",
+      "bytes": 24194
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/艾尼维亚/艾尼维亚.json",
+      "sha256": "736887dbd0fd7a3ba4c046af3dc92f1af9ee5bd3335db50a36a4f30d52e5ffa6",
+      "bytes": 23867
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/艾希/艾希.json",
+      "sha256": "c723ac96c676a404728e3a589d234559315cfa92344b7cd0e47b91fb51dbc4ec",
+      "bytes": 21762
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/艾瑞莉娅/艾瑞莉娅.json",
+      "sha256": "af86b8a4b2b47224a5c4451aa9f7bfe309024c4c330d538457bb451da551fe45",
+      "bytes": 24928
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/芮尔/芮尔.json",
+      "sha256": "c8b1cfd68a170ac958b03b2fc2b5fb540b46fd92877e3448f44634792a854c27",
+      "bytes": 23484
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/芸阿娜/芸阿娜.json",
+      "sha256": "20dbb31b7645dabe03b83a2b9ac9473c9823e07d3c55fc68c8f2eb7973b179b0",
+      "bytes": 25096
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/莉莉娅/莉莉娅.json",
+      "sha256": "9fda3edf629b7ca83648ee570f7270eaf406b2cadfbaa9327b6de6a22397902b",
+      "bytes": 20177
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/莎弥拉/莎弥拉.json",
+      "sha256": "2626d298f6311e2f5dce183c18382f55c1e04defa922ed2dfc343bff2d4ed8ec",
+      "bytes": 23469
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/莫甘娜/莫甘娜.json",
+      "sha256": "4f4879e45be3d1263cbf20d64429e5bc9d7f63b1654e666398eb4833f9f89989",
+      "bytes": 23192
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/菲奥娜/菲奥娜.json",
+      "sha256": "a8a2b54b33697a9f2985137d26e502c6360ee5c79d75b94eb821cc95ad6a3e14",
+      "bytes": 22452
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/萨勒芬妮/萨勒芬妮.json",
+      "sha256": "6b4225c9a7f55e97e27c44becc7cdc84d2b1bff737bb9742bf379d85f22b8476",
+      "bytes": 24642
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/蔚/蔚.json",
+      "sha256": "a379e32454773983ef9037d8ae196b80e13f0953c59f270a493c7048106fb572",
+      "bytes": 24679
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/蕾欧娜/蕾欧娜.json",
+      "sha256": "543edcbde1830d2a523632d57def0f7845913a10179c4b8651c63f3933e7ce1b",
+      "bytes": 24296
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/薇古丝/薇古丝.json",
+      "sha256": "a83a92f2452ef792e05e6d505c215cf54f46a75294439ec0a3d6f1ebb59488f8",
+      "bytes": 20940
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/薇恩/薇恩.json",
+      "sha256": "5eb2fc67f7d374ace71349104129e7d9bec310085e659d11c8727308d844f558",
+      "bytes": 22037
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/贝蕾亚/贝蕾亚.json",
+      "sha256": "f72a1b9e43f912f67900dfcfa39745323899c922bcb8d1697d386eb72819b8e3",
+      "bytes": 23633
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/赛娜/赛娜.json",
+      "sha256": "97f1797e889bab9fdf5cde311764f4b2d2cfc8b2a69adc3d49724acde5b60d56",
+      "bytes": 24568
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/辛德拉/辛德拉.json",
+      "sha256": "51c47055519686f78ef5202e625febdec01a0786761edefc075f0865e119fa45",
+      "bytes": 22432
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/迦娜/迦娜.json",
+      "sha256": "bd79b2f4ef1966da6c28e93e4ac4f3ee37c2a5b4e9bef3461569537dab14633a",
+      "bytes": 23428
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/金克丝/金克丝.json",
+      "sha256": "afe2b660753ad750d4e3cf6f238a8fcd53472a87497cc9b3f2f7a1249ceb6651",
+      "bytes": 25058
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/锐雯/锐雯.json",
+      "sha256": "7242274cc7207e8d3b027c99d4b9442ed3671fb6ca5f5ba2ab8eb39f3c048e48",
+      "bytes": 22718
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/阿卡丽/阿卡丽.json",
+      "sha256": "3f0574893d665ce5269fff0ca042c007f74d8fb7df68c55ce5fa23efc2557008",
+      "bytes": 24643
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/阿狸/阿狸.json",
+      "sha256": "41aee36ebd6479f9afd03f9e69f54bb3d4a12e7c0a88cbcf9cdeb349dad77063",
+      "bytes": 24335
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/阿萝拉/阿萝拉.json",
+      "sha256": "d25edb60a2b9a12e9a16c457393f28700ec4d0d5a41c4c98c7a7b9e8fe6b3a37",
+      "bytes": 21982
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/雷克塞/雷克塞.json",
+      "sha256": "1e59e269df29f5d0697e76b7f29918d7e562b0d73d876132d23e715b37ccde90",
+      "bytes": 22828
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/霞/霞.json",
+      "sha256": "c2a97c74534b2ffc8617bf64abdde055a13d3210cd8e34bf20df1c911f3435eb",
+      "bytes": 24212
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/主要角色/黛安娜/黛安娜.json",
+      "sha256": "628fdbc2e479341f22c66c53c30ecf88fe424f09e8ae4314135615e55cd0f5e8",
+      "bytes": 23099
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/乌迪尔/乌迪尔.json",
+      "sha256": "e122b05c3fd491c980449703fce926da444b9ce5bf440f806d2bbbe61d6d1184",
+      "bytes": 13903
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/亚恒/亚恒.json",
+      "sha256": "f4b284a1e8cd6d84f040d5abc13520fa2c7f732b0a79690b85c7d2d25192fb02",
+      "bytes": 13988
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/亚托克斯/亚托克斯.json",
+      "sha256": "42737b864492a0c363518732f89242c8497dce0b77f48eb264e315b79c6a7092",
+      "bytes": 13451
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/亚索/亚索.json",
+      "sha256": "f3a23eb9c90cba1d2ab1b93255c419891e4bf0cdccc02c122a4e4838aa959174",
+      "bytes": 12675
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/伊泽瑞尔/伊泽瑞尔.json",
+      "sha256": "a91f834ee161eadf67da3215039b157611cd12269071f1fd343a7b1d924224fa",
+      "bytes": 13424
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/佛耶戈/佛耶戈.json",
+      "sha256": "d45572bf816b3a50cf6b99cc52c2deaf9a4cdc76e64e8b4ca71d13a69899b5a4",
+      "bytes": 13552
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/克格莫/克格莫.json",
+      "sha256": "6f85ab69f05e127cabf76f98150bc88c586fd547c159227c85dbccb439203e5d",
+      "bytes": 11880
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/克烈/克烈.json",
+      "sha256": "f7deb04b64da1ec720245299aa1dd489e122f914d534378dd9b4a38208afcb94",
+      "bytes": 10991
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/兰博/兰博.json",
+      "sha256": "8065c646832e6d0c53440d4379942a93fafa7d987394d497c07613e21ab1c8a5",
+      "bytes": 11673
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/内瑟斯/内瑟斯.json",
+      "sha256": "606029e3572a82c89d232c5770dfccc5ce21c8b69fe0f49eb246c397488829e5",
+      "bytes": 13647
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/凯南/凯南.json",
+      "sha256": "2bb268bc705a94d216a912a1d87c3abed55e44f7d8dc1c9cdb026aad668689dd",
+      "bytes": 11611
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/凯隐/凯隐.json",
+      "sha256": "320977ab01ecffb28b98e66d128efbad8c59fbb5b43a9bf3dffdd73f3805b680",
+      "bytes": 13239
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/加里奥/加里奥.json",
+      "sha256": "4e8dfd3e5ccca429a24493bf1b4e29d2d95c1ff00ace3f5294de2938efff3b0d",
+      "bytes": 11727
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/努努和威朗普/努努和威朗普.json",
+      "sha256": "f1a7a925e3791ea3b8e884ed48ed1eb41b0af47b0b456f99482facef0f99eabc",
+      "bytes": 13610
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/劫/劫.json",
+      "sha256": "388cb78b85d930f6b1ac0dbd35ff0a14c8b24bbb4fdc45e6445ecdb10b10e9d7",
+      "bytes": 11554
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/卡兹克/卡兹克.json",
+      "sha256": "17c3be362bf5233610d8d52f460a35ebd4dfa3093564301d556f25a764f55195",
+      "bytes": 13599
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/卡尔萨斯/卡尔萨斯.json",
+      "sha256": "dcae28060f88e9296165b4f7fecd59a820fa15674c90850f5c5177dd45ab55f8",
+      "bytes": 10483
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/卡萨丁/卡萨丁.json",
+      "sha256": "bf5b5b5953bde75798223a295b8f123b3ba66746149189c740d1973877cf660f",
+      "bytes": 13920
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/卢锡安/卢锡安.json",
+      "sha256": "6847fdd5b3a2ed09d3b6754d25a84b85482239665f9efec10f7f5586a5fb0516",
+      "bytes": 13928
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/厄加特/厄加特.json",
+      "sha256": "e3d930e05516d4b37e348277f1d7aafe91646ef05285bab096b53e805b8488a2",
+      "bytes": 12681
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/厄斐琉斯/厄斐琉斯.json",
+      "sha256": "7ee7521435d26144b955b641a6f5cd93d4030ce7fa141575d23fe435b2765d28",
+      "bytes": 12634
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/古拉加斯/古拉加斯.json",
+      "sha256": "5661521261f4203c3efbaa0d62dc143018744ed8836b42ce7152da4c5ce57034",
+      "bytes": 13713
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/吉格斯/吉格斯.json",
+      "sha256": "879e0bcf75e8695f1515d8a5ad2732fe18bbebcedc29ccc3cfe0d56c0a6d0fc8",
+      "bytes": 10792
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/嘉文四世/嘉文四世.json",
+      "sha256": "d8069413c46a337a0c382d5be139086e7c954fa1c7eaa53ca53e19b7adad06a9",
+      "bytes": 12771
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/图奇/图奇.json",
+      "sha256": "4dce5b5f41fe29098104d5e3d3b6b366715c02024a806df2e04552556ef4b4f7",
+      "bytes": 10990
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/基兰/基兰.json",
+      "sha256": "2960cd0e1c1f07f038c8d9bf9aee00d0a78dc863eed106d185b3298d2a5c6a11",
+      "bytes": 13178
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/塔姆/塔姆.json",
+      "sha256": "77e098bd2c869592689f4b763c180c31d8d877fb03e05a22f6be2795535712cb",
+      "bytes": 11559
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/塔里克/塔里克.json",
+      "sha256": "baff0f36b3bc25cce5cbaf8876038d65fd614d2dc42a4d2c6caf918150ed1d3a",
+      "bytes": 12144
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/塞拉斯/塞拉斯.json",
+      "sha256": "b05b280674cc76b84b0bff132a2e141cfa6e59e33daca350bd8dc82bf0a7c134",
+      "bytes": 13087
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/墨菲特/墨菲特.json",
+      "sha256": "04a40f467c8a528072cea9899840b9d4140afad4b5dfb917036e0c5572dd131c",
+      "bytes": 14171
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/奎桑提/奎桑提.json",
+      "sha256": "24a151d29a6c52b7ecae33e8a6939cad89a60080549ad648485426ceee569e6e",
+      "bytes": 11936
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/奥恩/奥恩.json",
+      "sha256": "3ce459fe8e484176f482608c2f84ef815b06218c2a6a818432d296c5d0c43271",
+      "bytes": 13542
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/奥拉夫/奥拉夫.json",
+      "sha256": "f87a8944c747f314f1a8461dd484c72e1b327c4700a37751b59f0fb5fb6d38a5",
+      "bytes": 12109
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/奥瑞利安·索尔/奥瑞利安·索尔.json",
+      "sha256": "d43d94cd9ce25a20050bcb7a937809a7b51c3c4a40a2bebbf0afe3bcb116ba60",
+      "bytes": 13615
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/孙悟空/孙悟空.json",
+      "sha256": "766d6db3a873151e1c4a20691e448cc3fafd46760d298b96ebf47379451a0610",
+      "bytes": 11022
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/崔斯特/崔斯特.json",
+      "sha256": "3a179f504f69c347b226349dfb09a8a7504bee15d8a3df699c3cea4b916eefb1",
+      "bytes": 13714
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/巴德/巴德.json",
+      "sha256": "ea698a031354fa097017c023b1f0fcf9fd8c9f316e11f50da46fe50d97e0a400",
+      "bytes": 13815
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/布兰德/布兰德.json",
+      "sha256": "053dbae745b3dceeda9d323ee9f3ebb17151055d2699e3502c6ec3baa780fa08",
+      "bytes": 10513
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/布里茨/布里茨.json",
+      "sha256": "61f39bc2ed3fc0badf237d1e46b4123e13f66de307a4e3194fe93ebce8c5ebe0",
+      "bytes": 11415
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/布隆/布隆.json",
+      "sha256": "8a4b69659052226b4903a1b783f102d231262b8ed04c1e81caaf8720261c9123",
+      "bytes": 14003
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/库奇/库奇.json",
+      "sha256": "a1efcd52a9c8c93f43f7a434ee928004b43c805bb4ef8f939042c96c22b4f537",
+      "bytes": 11882
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/弗拉基米尔/弗拉基米尔.json",
+      "sha256": "dc69ba6d7dc542181da4b34b7b3524f4818128e6e4afe3866adb11a47cef1c51",
+      "bytes": 13792
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/彗/彗.json",
+      "sha256": "bc43c4acbf220628695cd15614bc72b31fa2efd8ca9728522729b15b34ad36cd",
+      "bytes": 13869
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/德莱厄斯/德莱厄斯.json",
+      "sha256": "75020967fd7911df20b60e5d5589027651628d35bc24b848b7b39ead7fb8d557",
+      "bytes": 12689
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/德莱文/德莱文.json",
+      "sha256": "0b5fedd39412450c14f0b109fa5358da347d961b2003564f37cc204009f0c3fc",
+      "bytes": 11824
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/慎/慎.json",
+      "sha256": "0bf5cfd5ce8b0e8ff72b0ad878ff9fccb1cb2a5d61b2710b23a6e599bcda96c1",
+      "bytes": 11216
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/扎克/扎克.json",
+      "sha256": "433467f9852f973ab00e2c6434a061493989bd32ed95380fdc7e89ddf8af3872",
+      "bytes": 10572
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/拉莫斯/拉莫斯.json",
+      "sha256": "b6f483e5646c0b6414ba0fcd53b679e08c7f32f57bed5966076d148a9ad4e40b",
+      "bytes": 10989
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/提莫/提莫.json",
+      "sha256": "095265de952d7e296a6ee335b45f00384572f77be9dc31bbf4d94abf26e904a9",
+      "bytes": 11586
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/斯卡纳/斯卡纳.json",
+      "sha256": "5ebc1c1574fa2781b15690adbb58faba28e845005190b53ba331cac144f7714a",
+      "bytes": 13426
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/斯维因/斯维因.json",
+      "sha256": "ff7def49c9fef348a457e75d1a2c8cf634cfd1c31aaeaba557af36eb66c9f0f5",
+      "bytes": 13181
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/斯莫德/斯莫德.json",
+      "sha256": "daee099733194a0c2109eaf8a2a08f9e38f5997a399c7a3349d8049184da3cac",
+      "bytes": 11410
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/易/易.json",
+      "sha256": "c5dcddf80d09b81ca477dec2d13effb125e9902640e3371f7c1fb63575600d86",
+      "bytes": 11831
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/普朗克/普朗克.json",
+      "sha256": "6a6e49c7f3476674504b7b264695b5ab7f3617b2747b4d19064cf857005cb7e3",
+      "bytes": 10980
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/李青/李青.json",
+      "sha256": "abe2e6482ba63e3b2a188da63a39c0447bbe8f19a8d7c6746477221930e94efd",
+      "bytes": 11286
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/杰斯/杰斯.json",
+      "sha256": "cba2da5830a88c105373c0fe342da769d01a36f0ccc58865a277ba811f01f11b",
+      "bytes": 12966
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/格雷福斯/格雷福斯.json",
+      "sha256": "d4137200628ec24bce089b998c16f016c0a385e1983b877736668124aef1acd9",
+      "bytes": 13092
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/永恩/永恩.json",
+      "sha256": "638cd151fa64fc189d0e47449b3b9907e9a4e5eccb2ec15cb4c206fcaba7adab",
+      "bytes": 13325
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/沃利贝尔/沃利贝尔.json",
+      "sha256": "583dc989bc65b62c6cc1b38a414bd8f1248a92f55137aeb5de649a61c967eb37",
+      "bytes": 13881
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/沃里克/沃里克.json",
+      "sha256": "a3c25044a823709fce59b3102ec9671675a923645f2b9e98497a8c6f4da116f3",
+      "bytes": 11422
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/泰达米尔/泰达米尔.json",
+      "sha256": "9b5b10e221151b87062242db8f4a4e7c663660f7c7dee10cc40fa8b7ac4cabac",
+      "bytes": 14052
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/泰隆/泰隆.json",
+      "sha256": "10ed3453dc4432b4fba224c4ff8582578b84eb73b82c1e714d96aade3cde2c25",
+      "bytes": 11625
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/泽拉斯/泽拉斯.json",
+      "sha256": "a99c28c71a1ca9d1034daf13bccf8aee999a4169524e0d6855f6de06f966b16f",
+      "bytes": 14310
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/洛/洛.json",
+      "sha256": "e55ab294251240fcd03c317af2513f2776671b3ba1351ea1c084e93b4fb3429c",
+      "bytes": 13837
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/洛克/洛克.json",
+      "sha256": "b5cba07f7fd88a732c77903ea6dc04daf62c6354a5d07c1ea22234876f647c7b",
+      "bytes": 14084
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/派克/派克.json",
+      "sha256": "8f04544eb9ba5f2afb8b65c8b924e81a3e85d1a87155fe6f286ef32d2d8da7d2",
+      "bytes": 9828
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/潘森/潘森.json",
+      "sha256": "87ceb93b2254accfa3ca4cc3195da32e02ea187c97d2461a22e0e9ea4db81120",
+      "bytes": 13776
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/烬/烬.json",
+      "sha256": "3ce52118ede2e347041b1fbfb1e3482c36002b00659b3a36de78ec63f4dabb48",
+      "bytes": 13980
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/特朗德尔/特朗德尔.json",
+      "sha256": "2810aacd1b18b4ed90384ae683252df634def1b8ff96ffbf6e23039a78cfd07f",
+      "bytes": 13703
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/玛尔扎哈/玛尔扎哈.json",
+      "sha256": "4b69da208ca9a926899017f602ff709e94143747359f21b9dd046d3bd88f33f8",
+      "bytes": 13563
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/瑞兹/瑞兹.json",
+      "sha256": "8686cd1b226b10b22591304c5689e87dd559a4290c2a534cf7ba80395234725d",
+      "bytes": 13847
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/瑟提/瑟提.json",
+      "sha256": "2d035f87ae74a3b786cdbd1a77aaeda3c47df4ee71b024dc809f6bd79dc5661f",
+      "bytes": 12938
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/盖伦/盖伦.json",
+      "sha256": "d304ab3a40ea975b50f44e977852220ab108334302ab6fd68ae9aa9c2347a232",
+      "bytes": 13444
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/科加斯/科加斯.json",
+      "sha256": "7fd8a88cc9d759af99ec1fa7a6286392b9b72e4341b00205c429aeec8102354a",
+      "bytes": 12263
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/米利欧/米利欧.json",
+      "sha256": "0f048993f4fadb99e8790ef51bfce81bcf78260a2408877bd75335204e86ff8a",
+      "bytes": 13737
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/约里克/约里克.json",
+      "sha256": "463f4e4a2202be322ee092c35ca5a71f10e67a7bb6cea7e70c85234711660453",
+      "bytes": 11997
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/纳尔/纳尔.json",
+      "sha256": "ddeaa414faa6f40f916165388115ed86c965fffc61980578815656140f2ae119",
+      "bytes": 10257
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/维克兹/维克兹.json",
+      "sha256": "d48855cc8a5fa867c50a92bc8b20d991f1cc10cd21dd131b17da3afdadf7555d",
+      "bytes": 14468
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/维克托/维克托.json",
+      "sha256": "b53534e4862d40c6dbdd203afd0259a2a27514de48669804d6b01b3ffab84697",
+      "bytes": 13201
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/维迦/维迦.json",
+      "sha256": "7dd925d894494cfa579ee28847b94f7d077e9a642d02997252a1686a8a26f62f",
+      "bytes": 11867
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/艾克/艾克.json",
+      "sha256": "dba157889ec24ed8b14f41ded013624961352e2793140b101e8ded3eea4f635e",
+      "bytes": 13288
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/艾翁/艾翁.json",
+      "sha256": "9aaf932fa3df32073e7379cf50ca926416695756b73a7b90ebd9cbeb4fbfcfc1",
+      "bytes": 11461
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/茂凯/茂凯.json",
+      "sha256": "754ceeb49920bcb1f8208ff0cd3a44a762ef9e26404bdce0a84d500eceabb761",
+      "bytes": 10815
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/莫德凯撒/莫德凯撒.json",
+      "sha256": "4a90f04bda30ea7fa221aca6fc8b11e1a83fa3357b5e92048e3d2a840a9707d7",
+      "bytes": 12155
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/菲兹/菲兹.json",
+      "sha256": "6315e5bb59cbd3747eac9173c5776e4d79ab3b7f67bdcff3d8cddbef27110780",
+      "bytes": 11907
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/萨科/萨科.json",
+      "sha256": "a040ce54f7563c7aa8bc9b8505498abdb0f0fc573ea913e5b8cf2a92ad18716d",
+      "bytes": 11239
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/蒙多医生/蒙多医生.json",
+      "sha256": "db6aaf766df7e9cda63e008786e0fe5379b254da1fabac9690a5c207ed5cf5cc",
+      "bytes": 11237
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/诺提勒斯/诺提勒斯.json",
+      "sha256": "c6148fc2e733fe86c1f848ee18f08eeb3933606b29961a63bb96ea784bd59041",
+      "bytes": 10461
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/费德提克/费德提克.json",
+      "sha256": "b855333bc8e99bec449db8c7fa2cfda31a0d0550b0f2a829a8ee6cb85ad469b5",
+      "bytes": 12903
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/贾克斯/贾克斯.json",
+      "sha256": "59773b80f06c609279f764dd1074c91986a4237eb647bc42d56147e526d35263",
+      "bytes": 14166
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/赛恩/赛恩.json",
+      "sha256": "4506606d4a71202e7dbcf3eba2f7c8c212210b940e0c2c727411f5d0ce7dab81",
+      "bytes": 10719
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/赫卡里姆/赫卡里姆.json",
+      "sha256": "06c006ffc909deb532374debdd47b4132b850e48239ebc7403247eba6d863e81",
+      "bytes": 12143
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/赵信/赵信.json",
+      "sha256": "ad67a113e327adc6c7ba762f9f590794d33238f10ff8768d85c0e014e2f38f2a",
+      "bytes": 13271
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/辛吉德/辛吉德.json",
+      "sha256": "46e522272b2e8c0703d3ef073ad7e9fbde9be7238643e09148ff2ad8e172257f",
+      "bytes": 11504
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/锤石/锤石.json",
+      "sha256": "6e04dfa0ccce6988ff864eafe721dbd06c7a3212490fdd0a05568c1d91e7bff6",
+      "bytes": 13086
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/阿克尚/阿克尚.json",
+      "sha256": "d7b4458de38f83d262eee4b7fe9c976827ae452b930deb8fe86b094ff600d0cc",
+      "bytes": 13504
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/阿兹尔/阿兹尔.json",
+      "sha256": "0376afd201cc125a6ae094cb23b73c9cddb288a239f66902155a4be3e45d7ec8",
+      "bytes": 14264
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/阿利斯塔/阿利斯塔.json",
+      "sha256": "0fbd942c82ff6104883474f1014e4437f60a0bddc6b5bd3ae86d842aee556e6d",
+      "bytes": 10587
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/阿木木/阿木木.json",
+      "sha256": "e8746b42ee852684712c21e9799ccc3237e45aa1009fd98501ae75de8ea3d0ef",
+      "bytes": 11790
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/雷克顿/雷克顿.json",
+      "sha256": "5c46f12896315a6b0b47ba1873eb767073b7559b39f0a74cd3601e2898892a40",
+      "bytes": 13924
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/雷恩加尔/雷恩加尔.json",
+      "sha256": "a1cdb91889d8fc83cc76d057d99e1e5a00db25ba48d1cfb7b4845d125fe377a4",
+      "bytes": 13655
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/韦鲁斯/韦鲁斯.json",
+      "sha256": "a6bc41195042ab7cb286066f29e97061d08d32b0aa7cc1825f16127c24f3d7ca",
+      "bytes": 13731
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/魔腾/魔腾.json",
+      "sha256": "61c19e9fc1fbf87dac1a65415f317f83abc9625a97ca822bbda3e099215741bb",
+      "bytes": 10467
+    },
+    {
+      "path": "src/瓦罗兰/文档/角色/次要角色/黑默丁格/黑默丁格.json",
+      "sha256": "de6c6893be07c6982d14aa0032866681c3197477f4a7329715e72757efcf43cf",
+      "bytes": 12975
+    },
+    {
+      "path": "src/瓦罗兰/界面/character-management.ts",
+      "sha256": "e5d67f61baa876ab9f45fb707e481abe4b62b79507054ee75f6863e8c72afdec",
+      "bytes": 2085
+    },
+    {
+      "path": "src/瓦罗兰/界面/store.ts",
+      "sha256": "d801d1f84e608773d824a029afd12529bf96663f77e8d4b13ef009999700d308",
+      "bytes": 922
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/App.vue",
+      "sha256": "df8da630855261e212da2aaf0ca2112c621417559481d40d9815be477495e1e4",
+      "bytes": 36014
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/RecordDetails.vue",
+      "sha256": "f5faa03ff8008eb617a65288adeb79ca6aa4e8aa5ddff479dd3222df9855b36d",
+      "bytes": 1708
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/RecordValue.vue",
+      "sha256": "186f9e3de954d2337d55aacba13ef4429730c4ce31564f397609948ebd8ffb6d",
+      "bytes": 2832
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterCategorySidebar.vue",
+      "sha256": "ea77fefcca72a75fdbbd7448c7b92c1eb50f9f77884c0c8e9647fe601a03eca4",
+      "bytes": 25510
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterKnownLocation.vue",
+      "sha256": "da813cd0bbf91d1d07b38dbca072d456dd2553f5d53006d10dd915c4b3a3c640",
+      "bytes": 1214
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterLibraryModal.vue",
+      "sha256": "fc29f4e871640553465fdb83922dbcfc3140cf2eba3bc9d7296b4d8d8a560f47",
+      "bytes": 4420
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterManageModal.vue",
+      "sha256": "2f69476dd506fce75ac9b921a7957335ceabeae4fe4edba3fc9bbd652863dc4e",
+      "bytes": 21326
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CharacterOrganizeTab.vue",
+      "sha256": "0acd95d1d020de3f6275de6528a1cceda9e25daaac65c6ce24f8fd3dbb668f92",
+      "bytes": 33137
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/CwToggleSwitch.vue",
+      "sha256": "9993e1783833a9411bb64189d5c32d4f33af48c9f9236650f45f60443b6b9ba6",
+      "bytes": 4909
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/MajorCharacterModal.vue",
+      "sha256": "6254715f41caac5d028e1dd3c5a6a78d7ffd80c277bad816f290e913c25ad924",
+      "bytes": 21381
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/MinorCharacterModal.vue",
+      "sha256": "1b5c28a67880559b4ff2c34c299f630f83604d0e9b38d134bacf9aebe0c585e1",
+      "bytes": 29647
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/category-types.ts",
+      "sha256": "989990899cf51cc4e3337fba5590478a73f149a6120015e41a4b0f075f50132e",
+      "bytes": 5159
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabAppearance.vue",
+      "sha256": "71eceebcac59443bf14391e239b3ac1c2154e598167b9692ba92dc15a22a0a1d",
+      "bytes": 17720
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabBasic.vue",
+      "sha256": "930a19e7693d953abfd39f993400a6375ccfcce6cd8f99377648a5afa263a566",
+      "bytes": 11956
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabLife.vue",
+      "sha256": "c245b4e62661fdf2085d075774cf4966f93416282e20a117138550d0643f1235",
+      "bytes": 7856
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabNetwork.vue",
+      "sha256": "945bd5e04f0732ce2f4533050c9e1158c57f08a1c89b848a6942bd6adb58d009",
+      "bytes": 5208
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabPersonality.vue",
+      "sha256": "0ee6ee104fcc4db97be30f44ba668e5f90c871739e4f9aa55be5af5545360040",
+      "bytes": 14516
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabPrivate.vue",
+      "sha256": "bbb018bb9d9e4f5e768fcfe545e7cacb277dcef79739933147931a68ee2e9261",
+      "bytes": 7707
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabRelations.vue",
+      "sha256": "6327357dc24c1a0172c11b7b91eda0a4fb81c2fbd24686810ed0f7f4407ad018",
+      "bytes": 18923
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/major-tabs/TabStatus.vue",
+      "sha256": "00557cc540f5d870b18fdbd7f1ea9ce78d8a209baa73e9a078b84e0dfc21b453",
+      "bytes": 6228
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/characters/useCharacterDisplayState.ts",
+      "sha256": "7f59f5440076732c84070cb506d5b8c3da8048f2ac4bcdab3cf162158278ee7c",
+      "bytes": 16498
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/ChatContainer.vue",
+      "sha256": "ffc922fcf1aa97cd73551d4d6ce4e6936f6e061376fa531642d6bd8abc23084f",
+      "bytes": 8366
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/ComposerNotification.vue",
+      "sha256": "3b69b1e6e6073b986c4103e5163473ac52b202ac5c7701749e2fb1f7e8136d9d",
+      "bytes": 11146
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/CreationReceipt.vue",
+      "sha256": "464f6288fa8f99c070d2f856793fe8c2aa42673fc827062734e53c44035f2722",
+      "bytes": 2171
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/InputArea.vue",
+      "sha256": "69ee10cd7df6118a0b8b27277d3a5e7e46ffb04020257b40a2d881c219a961c0",
+      "bytes": 5731
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageConfirmModal.vue",
+      "sha256": "708d22cae81689f33edd0e0c4729da2a9d6e94fb9ac03c21749b24c894ffe987",
+      "bytes": 9908
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageContent.vue",
+      "sha256": "8407c9dd61d56c6926486d28e1d2c6ae22434ec78b59c4b8682430f6f63b21a4",
+      "bytes": 6825
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/chat/MessageItem.vue",
+      "sha256": "75cbb0da4ea4443932861eabadf74d948f6ff9d8d6417eb577066b28ad8f8578",
+      "bytes": 10084
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/CharacterCatalogImport.vue",
+      "sha256": "91e630a3363b240baa1341110568099b6dc8803564ac490c690f4dbc8681293a",
+      "bytes": 13623
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/CreationView.vue",
+      "sha256": "8d6e52342b9ace9e7e774a3734f91dfad49d9964d1d8a69d534fe5997eaf74fc",
+      "bytes": 34665
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepCreationReview.vue",
+      "sha256": "1a7e24e3669f508a4fcac620df789f6e9ee61b6f1c64e29e61faf4facfbf6b8d",
+      "bytes": 22902
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepInitialCharacters.vue",
+      "sha256": "66560bca2f24c9ccff40a4fd8dafa9c4a571397f43c64c83450828e3d23fc6b5",
+      "bytes": 30977
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerAppearance.vue",
+      "sha256": "0f620ac8c6b51ae55bd9fd613951feaa103d4f6774031ee22e2fe489002e9d08",
+      "bytes": 4466
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerBackground.vue",
+      "sha256": "5a9566b26f147759814f324f04742b2cd4146f2a7e1762b2278c60cb1382a2e0",
+      "bytes": 3984
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerIdentity.vue",
+      "sha256": "88a2b7c4e62e81479006d71377a103d3790941619f83ccd40e9b83b896494330",
+      "bytes": 5772
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/creation/StepPlayerResidence.vue",
+      "sha256": "ab95645842afef14ad3f6847b91a1c73f93768ed881cfc9c2fe23bd8e50eb0fe",
+      "bytes": 18340
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/feedback/LowStatusModal.vue",
+      "sha256": "e539ba5039603762064ea5e96ee455d726c057f415b9e1d15e9a23f127fb147c",
+      "bytes": 5571
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/icons/SvgIcon.vue",
+      "sha256": "6993a65b7bee4f19da6230f8163c817e77fb53a1b87fa3d688559462dd15e336",
+      "bytes": 12706
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/CoinLedger.vue",
+      "sha256": "7b1d719d9dbb0ddfe3745dab65a174e8311ffd0b11875d69465eb90d04b4c367",
+      "bytes": 10618
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/NovelRefreshControl.vue",
+      "sha256": "0d7ddc768028d428c035a7588ad5d188e163867fd365ff4d45b3a7dc52e926e9",
+      "bytes": 3768
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/NovelSystemModal.vue",
+      "sha256": "6789215fe98a7f1d7945cdb098e254b4f51fb51e37318b79b016547490cbde3a",
+      "bytes": 24468
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/SystemShop.vue",
+      "sha256": "c37bfce638e70304fb940f562fff6a18c9ee9485bd859e9fc0885a5115888b80",
+      "bytes": 20209
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/novel-system/TaskHall.vue",
+      "sha256": "8136b45ce44db1881bc68cd9a0ae3581005d6262a77d12004f4fece4e80a235f",
+      "bytes": 32975
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneComments.vue",
+      "sha256": "b7bb2bf3192a79a31466b5be87cc71b043973eb8c1f8882c76a9d8250e48a8ad",
+      "bytes": 2016
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneComposer.vue",
+      "sha256": "ba1e12f06fa71282746ef3102c1492233ece6876093404e9b37a3835f84c102a",
+      "bytes": 12309
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneDirectory.vue",
+      "sha256": "ce14992997ce1fdbafd8be5a69addc0fda561dbefb99983f183f56449bfcfb20",
+      "bytes": 50370
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneHome.vue",
+      "sha256": "d96aa8207b6ed115e39743d7374a29cb2427c6815a8b4ef33c9597e591662c16",
+      "bytes": 5118
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneMediaView.vue",
+      "sha256": "d6d499be125e345eac3335d23cacf01f16f7ef5ad80e22b48fd5629d1cfefb90",
+      "bytes": 8485
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneShell.vue",
+      "sha256": "a549f8e7e702e899ffc143d9562266c7dc377c84ffaa10a64b4398cba6ceb356",
+      "bytes": 14521
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/PhoneTrigger.vue",
+      "sha256": "c1a2e55de9cb4c4a143cf54d67cb51aaa2510f0204a10db19eee8cc430530fb9",
+      "bytes": 5572
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapApp.vue",
+      "sha256": "36b54698c7a751758561f931c8931a9256533196b4abc04a24e6d2cf1281eaa9",
+      "bytes": 51237
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/MapBaseLayer.vue",
+      "sha256": "c35398f3e4bd3b1a0af5c0477685fb31adf719287f42b96d889d47f91b556c82",
+      "bytes": 1150
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/PhoneSettingsApp.vue",
+      "sha256": "d15ac526ca2052bb7f51f7a42856d4e33a0648a394de6106d35083b4a0e1a804",
+      "bytes": 14459
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/XingshengApp.vue",
+      "sha256": "f7b00b7908a4d694064ac44207e37a96174feeb7cbac09d9a00448a36a1584b6",
+      "bytes": 44088
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/phone/apps/XingxunApp.vue",
+      "sha256": "744ca646a091177d70e5d6d1f52ff38ec1b19f4b5086c6e033264cff585eeab2",
+      "bytes": 96337
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/PlayerModal.vue",
+      "sha256": "3818758265527ac93f479b0fa4350926ab62ee2c5fd29ec1e5bae7967792d231",
+      "bytes": 5150
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/PlayerRecordCards.vue",
+      "sha256": "0555e4305fb70bb746a26867cadc16d836e2e6cb0a1e260d24f6ca460c2601c1",
+      "bytes": 41635
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabGoals.vue",
+      "sha256": "45cae9109f791c3b9b5b2b371cf9d1126213cefa928cb8c59152c4b545fe18b3",
+      "bytes": 11298
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabInfo.vue",
+      "sha256": "089bf9f17633dd56c638d841ba8a9a22e4b3a206b748ef0358ad261444166fa8",
+      "bytes": 12740
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabItems.vue",
+      "sha256": "d6fbc0d1e334a79fa65e0b25547fd7e5105fe64404852660065c51d715f44a53",
+      "bytes": 10723
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabRecords.vue",
+      "sha256": "8048f03e39e60078773418992d8471033b6233b85957e520e63782539dae9d74",
+      "bytes": 3897
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabSkills.vue",
+      "sha256": "66cc12f37e6e8bb45fbfdb1d4a84871f5c7c722fc72bb77bfb8dea72d7c60fd4",
+      "bytes": 5300
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/player/TabStatus.vue",
+      "sha256": "532de5a1e844da540becdd6c8afa9b0f0a55913d69495f3bb3f615f85094ff5c",
+      "bytes": 8019
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/CharacterAutoControl.vue",
+      "sha256": "03ed6841151b7b9d6ca887063f65b97b96984dacc34488a3f834547e3876014b",
+      "bytes": 1750
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/ExtraApiForm.vue",
+      "sha256": "3723d39c0b2964efda92e6e2e8768b7a88314460a9bd9fe0dfe8c2ea619742f0",
+      "bytes": 31300
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/RosterAutoPanel.vue",
+      "sha256": "2924d37616b71beca82fa0cefd779c24f43a211559566b2313a945b29ed0e6a7",
+      "bytes": 2709
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/SettingsModal.vue",
+      "sha256": "ed4f1ffa9e5aee4f57325c55827932b2d47d1e01f4fc0dfcfaac50ba5db759db",
+      "bytes": 9555
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabApiSettings.vue",
+      "sha256": "734c6bdf45ac15e3eefa7686c5af942890665f68762326703751b6094a1d32b8",
+      "bytes": 8058
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabAtmosphere.vue",
+      "sha256": "f212681106def28b84495bcecfc46a9a2cadd498ec5e6f5da35f390987b95481",
+      "bytes": 5184
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabCharacterRoster.vue",
+      "sha256": "e21525f169fead3cf3a9c124d2d2676505e53a90e8f450d36870224cd8736a6f",
+      "bytes": 18521
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabFont.vue",
+      "sha256": "ed41f81f28d143643e2abacd49f572eb6a8b7c9423c05ec961146de67032635a",
+      "bytes": 11927
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabRosterAndKnowledge.vue",
+      "sha256": "f93a3ac2a0f433623524da8b59a9fb3c9f304a21b715eb090dc486253537f9d5",
+      "bytes": 8462
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabTheme.vue",
+      "sha256": "8a57e38d9831ff883cf6ccae9f3b4e74fd0fe9d2fcfb86b070b9c6610fd49e91",
+      "bytes": 4794
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/TabWorldInformation.vue",
+      "sha256": "36d5da330c1efa619f9849708aeef841d9a1133401d5fb3105bf7785db0fc6df",
+      "bytes": 18574
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/settings/WorldInformationQuota.vue",
+      "sha256": "dc9749409e30398852bc1ea0e51b986e25de3b4a268f6067b8af1ab00a542bc9",
+      "bytes": 3936
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/CharacterAvatar.vue",
+      "sha256": "4b904863c96825941007d23ae8e434d5d52fe76b37e4e6485a9083d914d1fb81",
+      "bytes": 9582
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/CharacterBatchImport.vue",
+      "sha256": "1bec26c70bbd154263ede288eec3016e512e7e9b1ec9f44280ff68b34245cddd",
+      "bytes": 8188
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/FollowTooltip.vue",
+      "sha256": "b478bffd7a06f56d187a5264cdb9729a5f63783e873172ee0a06dd7eef828535",
+      "bytes": 5173
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/OccupationTags.vue",
+      "sha256": "babff61eff2476c4b9eb74baf3ee4ae5c59ce6cf2894c8070b2311f67898bf9b",
+      "bytes": 2028
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/QueueStatus.vue",
+      "sha256": "261eea0596dfacdca1a798da8a6e65983fd1f301c3cf3e20c0e69e0e986275e1",
+      "bytes": 12618
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableOutputModal.vue",
+      "sha256": "df2c9cf0b4f928d2999dc937c64ae0a70277cece5530e4bd45aaa04cceae449d",
+      "bytes": 31103
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/shared/VariableStatusBar.vue",
+      "sha256": "ea99f9f9952aa43b189a371be57b5c48bca62ff169b87186321d52cedce29fd0",
+      "bytes": 7521
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/system/SystemDataDrawer.vue",
+      "sha256": "a1da1a2920562059d20fe5f43587a443d57b8b3c0fb53e310650c816607de98e",
+      "bytes": 10578
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/world/WorldBar.vue",
+      "sha256": "b047e2a565bda2e5d8b9d3340184ba880464b2a07afec2316c68985dfebc4b89",
+      "bytes": 8350
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/components/world/WorldDetailModal.vue",
+      "sha256": "2cb3a99dfb1f79375bafb59db9178d48ab4d9f6d5aafec3e6b273eecd9ba53c5",
+      "bytes": 23709
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/index.html",
+      "sha256": "51880e100d10c2ed305b3026d87b919afdde7b288f51b0a1a3ee429020c62b8a",
+      "bytes": 48
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/index.ts",
+      "sha256": "04a422cb02609900dd5d845402541a4d17d17150e3c2b39b2d618c605fb4c11f",
+      "bytes": 3314
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/common.scss",
+      "sha256": "d34b12fbe00056c5a911954ca9509e0544fa3c1e5b6a63ac75c484d3123d756d",
+      "bytes": 16018
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/theme.scss",
+      "sha256": "6f06f2b44c63d91e6298df4a558b16fa467d65de52c4d127d0c9ce34726adcbd",
+      "bytes": 8392
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/styles/typography.scss",
+      "sha256": "179006e96efb6de0e81ab7d6513e52ca7715c7e9b56028717a14496f91be5ffa",
+      "bytes": 1552
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/change-display.ts",
+      "sha256": "7438c9786b59956bf96d79f00386e42f25d51ba1359a01faa63f6995934bdc09",
+      "bytes": 2025
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/char_importer.ts",
+      "sha256": "35f2587babe10ce784afa60d8f0c4d8ed4d552ecb76eb3e8026b451a07925c32",
+      "bytes": 2349
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/character-batch.ts",
+      "sha256": "1f82bc9f845cb363f521d00b35cd1b7ff6242b2faf73feb94c1c967938694ea5",
+      "bytes": 1214
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/character-catalog.ts",
+      "sha256": "5d4ad011d57ab05f96f246321ec4f48dfbf6e0d397d371fd9c699da2de462519",
+      "bytes": 5570
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/city.ts",
+      "sha256": "9b3dfe140f56e3775fe13f81be677f3e290accd8fbf8bfd81869d58b19302929",
+      "bytes": 1455
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/context.ts",
+      "sha256": "a20dcb842e3d58d51709b5688be7c642c376fc0dfab5d1d73988c5c7b46408c2",
+      "bytes": 501
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/creation-preset.ts",
+      "sha256": "be119cd412c1a0a809ea704b6a9c76845daa2d5804cca8751be20e7d7bfb9551",
+      "bytes": 1097
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/desktop-sizing.ts",
+      "sha256": "183bf348669965b504d1aede4c5f21a623db2a867e87d43e6c3176f9785544df",
+      "bytes": 3470
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/entity.ts",
+      "sha256": "803680bf19bb24f4aa6f2f102384c2fd7391a9f94adefc1c591eecf124099fe4",
+      "bytes": 4005
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/gameplay-modal-size.ts",
+      "sha256": "5b1bcbe2d11ce41c4859e0b5b761094639946a39fe0f07abf38cb80726fe4a94",
+      "bytes": 343
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/map-assets.ts",
+      "sha256": "512012a7a47c1e56cbc2b2336e8e1635b0c93f8d5fd8a35dbb0caac820700938",
+      "bytes": 1271
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/map-layout.ts",
+      "sha256": "a632107696c5424490b01f032cdc59c5ce5b2f3f0630bdd4c073fb835a6d16ed",
+      "bytes": 8553
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/map-reflections.ts",
+      "sha256": "f7a6dc902e791078897b315d5be9da39efeea0cbf4a77ce67196d8b6edf5767d",
+      "bytes": 3202
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/message-display.ts",
+      "sha256": "382fb497379d08776b31fcadc98c83fcc025e07cf9de7ec3521d25935649a80f",
+      "bytes": 1072
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/message-frame.ts",
+      "sha256": "4b47c5f0ded77bde2c210e2697f4b5fe023f790a7fb2d7b4aa82ae54f48d1235",
+      "bytes": 6478
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/minor-records.ts",
+      "sha256": "abbff5fa678397fce2c4f29a2d04fb419cc23c916103a9b835b79eb6680f0c4e",
+      "bytes": 1125
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/modal-focus.ts",
+      "sha256": "4ba1ea768a9b7297bcedf7a307c6755d94d784acdea80069c3aecd42f881ea31",
+      "bytes": 2889
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/record-display.ts",
+      "sha256": "96e2fb6040b394854bef2eea7bb19f546c482da5c42d2fdfee74a9caf7dd5cb7",
+      "bytes": 1858
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/relationship-labels.ts",
+      "sha256": "e2cff32534fb8dfa34c4ef3ac39f5587825dfd5df512e17d1f07472037098253",
+      "bytes": 4171
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/stable-feed.ts",
+      "sha256": "b40154e050a7da496efaf0fbc581a70c69d1e16d97981665b900f5fc3959f08b",
+      "bytes": 2566
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/system-status.ts",
+      "sha256": "4be39298579279cfdda858b3bdc71089fa58266ed6b3d9f403563008af1693f1",
+      "bytes": 2039
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/task-presentation.ts",
+      "sha256": "599a4ab5d16c81304bf07b73c96fa73c8ba733cc007e049008aed1d6b8f1934e",
+      "bytes": 2723
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/utils/xingxun-drafts.ts",
+      "sha256": "6f0a986380e56b909b422601b225f317bad35cb9edc54edd3a6ac529bc38c6d7",
+      "bytes": 4628
+    },
+    {
+      "path": "src/瓦罗兰/脚本/变量结构/index.ts",
+      "sha256": "9b9e79881456b99d83735a8e8d1d93fe7c361fe10fd7f0ad462e4863ee7e67cb",
+      "bytes": 512
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/desktop-mount.ts",
+      "sha256": "c0443757915b5d08e04f2d92682777f48c2d79b9b47878c842891b340e458c98",
+      "bytes": 1871
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/index.ts",
+      "sha256": "7791dde08504962cef900a4d692da7a1f1360c3371a18850352ac31580ef7705",
+      "bytes": 8034
+    },
+    {
+      "path": "src/瓦罗兰/脚本/流式同层/native-controls.ts",
+      "sha256": "a55940853fd4fb72b53da5510e6a0333bca42388cccc757657253bd2269b21a0",
+      "bytes": 8888
+    },
+    {
+      "path": "src/瓦罗兰/脚本/辅助API/index.ts",
+      "sha256": "a6650bdb7d552f68a66a938a3d3f5ae52a56736660add9208c50dfc40483ae89",
+      "bytes": 4025
+    },
+    {
+      "path": "src/瓦罗兰/运行/archive.ts",
+      "sha256": "35b07dcbf866eae5bda539641215c5a2c17c52c5e56d9c2e9cde56df5eb90b72",
+      "bytes": 13790
+    },
+    {
+      "path": "src/瓦罗兰/运行/assets.d.ts",
+      "sha256": "7e57eca42eb0c4e9ab37fd34a1d7e68d7fdd4004893b85e0e980382d79ac0eca",
+      "bytes": 25
+    },
+    {
+      "path": "src/瓦罗兰/运行/atmosphere.ts",
+      "sha256": "af188d3e87e8b7a31e96b63604f900a3f5477a8b2298bf7aff0f08613da1e25d",
+      "bytes": 2396
+    },
+    {
+      "path": "src/瓦罗兰/运行/bridge.ts",
+      "sha256": "2d0d1964873b6106df66894147fdd0b3739585bdd275d67627f385c5535e89ba",
+      "bytes": 7179
+    },
+    {
+      "path": "src/瓦罗兰/运行/browser-crypto.ts",
+      "sha256": "d2ba7a511570001d3dff2d9748f58a1120ed4cb0e9b3db4a92dca3c101f8bf4b",
+      "bytes": 4031
+    },
+    {
+      "path": "src/瓦罗兰/运行/browser-lock.ts",
+      "sha256": "bf9759c8bf0f05a87bbc3679aa20729fab8dab4f3931728fb40849eb81ec29f6",
+      "bytes": 5347
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-activity.ts",
+      "sha256": "3850ea4f032bae5ff09910953f3387e149e7ca49379e4195ebb3a2cc5ef68ba5",
+      "bytes": 7167
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-identity.ts",
+      "sha256": "4558a17ab9ab1f34a39cb5166d132e61f7a21a4abb7d40e85224d821a5bd65ad",
+      "bytes": 3090
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-library.ts",
+      "sha256": "6e9a1a0163a62e660286ace59ecb927bd7b817449c60e7c161d8d0d2afa7a579",
+      "bytes": 19766
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-read.ts",
+      "sha256": "3f43bffb0907e7c6f59a6cbd1d9be00fd82639610b7a3813fdea418d37fa31d8",
+      "bytes": 5927
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-roster.ts",
+      "sha256": "f6f087719dba21a17c5a01213e4bba1cfbb7852493da30063796ad79db117203",
+      "bytes": 31210
+    },
+    {
+      "path": "src/瓦罗兰/运行/character-static.ts",
+      "sha256": "a0206f80e4fdb8f8bb6782be2051bea5578b40e68bf8893fea194903bce9d918",
+      "bytes": 36670
+    },
+    {
+      "path": "src/瓦罗兰/运行/characters.ts",
+      "sha256": "dfbce8be445fe2e1f22d4c4dc978545c960cdce1896fb77f61f10439bc4af9aa",
+      "bytes": 12100
+    },
+    {
+      "path": "src/瓦罗兰/运行/chat-persistence.ts",
+      "sha256": "0ee2a14ab566eb68d9ab28f645f6c26b0e5b073a4ea8a112e80183ddce679fba",
+      "bytes": 10513
+    },
+    {
+      "path": "src/瓦罗兰/运行/commissions.ts",
+      "sha256": "c3fc9f938c1d8ba569354c20f340eaa8420dfcd2087876c5d6a06b91153dc6a8",
+      "bytes": 2269
+    },
+    {
+      "path": "src/瓦罗兰/运行/commit-replay.ts",
+      "sha256": "0912a3adf05f8e304fa75f27b15f254cd571c9efe40e8db177dfd73533884ab2",
+      "bytes": 5318
+    },
+    {
+      "path": "src/瓦罗兰/运行/committed-candidate.ts",
+      "sha256": "86f89a8c8c1e2450138f4a045447c2482a62b5f22c6a37c60e7c3c01859d0b09",
+      "bytes": 519
+    },
+    {
+      "path": "src/瓦罗兰/运行/core.ts",
+      "sha256": "e1c3f1dfa03de3335f2a7579ddf64b82edc2efed8c06bc9f3fa835e00db2981f",
+      "bytes": 11366
+    },
+    {
+      "path": "src/瓦罗兰/运行/creation.ts",
+      "sha256": "4b29ef1a7781970553e45a1cd7974ec1c055481bf2e5a0e0e18380b6981bbd1b",
+      "bytes": 27544
+    },
+    {
+      "path": "src/瓦罗兰/运行/custom-avatars.ts",
+      "sha256": "fb7f4b4cead742520d7495fffae77dfb909c3bba3d456844db206ae72b4b871e",
+      "bytes": 8238
+    },
+    {
+      "path": "src/瓦罗兰/运行/ejs-worldbook.ts",
+      "sha256": "8c2c1ee30764bb091a5bc66fd74b8abe9358194750ba8d1d31ca3217b3a2c0e6",
+      "bytes": 27607
+    },
+    {
+      "path": "src/瓦罗兰/运行/external-settings.ts",
+      "sha256": "c462508b52670832d1afffa1d46be86d97697ee410a182646fd33e53c1c7a2dd",
+      "bytes": 19425
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/SILLYTAVERN-LICENSE.txt",
+      "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75",
+      "bytes": 35184
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/TAVERN-HELPER-LICENSE.txt",
+      "sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8",
+      "bytes": 4563
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/compat.ts",
+      "sha256": "e540920ca09e75177d5e849283ab2cd688258c9ce3dcd3c6fef9cafcd9e33b57",
+      "bytes": 19842
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/data.ts",
+      "sha256": "2bbee88aed9a0b19db1e6078b51914d5cf1c65b9ece1f2f0ac12e12bbfbe6f7b",
+      "bytes": 10524
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/index.ts",
+      "sha256": "c60fe0d8e3e6eb7bba21b723507e00ff2e3e36ecd95f35099dcfc799c0da8bf4",
+      "bytes": 2975
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/native.ts",
+      "sha256": "5df30b117945f9d95e3e3a6f4d111028f7c325a32779d6f36447b27c29786ded",
+      "bytes": 1491
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/preset-native.js",
+      "sha256": "c148233931eb8d6698ad7c365f2874ba146b36cd1e87884c0b8da559bb14df52",
+      "bytes": 31549
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/preset.ts",
+      "sha256": "4f3c428090403bf6e8197f75e8bfa78acb05fd4512d397a6a4cf581fefa21059",
+      "bytes": 9832
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/provider-error.ts",
+      "sha256": "6a547866e0963a48b9079b63717b748db7a28de8ab2d97272d53d31cfa25baff",
+      "bytes": 1822
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/response.ts",
+      "sha256": "97bd55c77016b428134a39d0f9856d429d34c42d3ba4bcecc6f3ceecad5f4996",
+      "bytes": 24338
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/world-info-source.js",
+      "sha256": "9929cd0f9f484c55dd88777e6671849424cdcc28cd79261180ecf742caddba39",
+      "bytes": 71516
+    },
+    {
+      "path": "src/瓦罗兰/运行/generation/world-info.ts",
+      "sha256": "e328792e4ed0bcd38d74ff186f1724da574bea49ca33eed5479ba8f8d68ac680",
+      "bytes": 1357
+    },
+    {
+      "path": "src/瓦罗兰/运行/google-studio.ts",
+      "sha256": "1dedbebc82368ffbf1d2dad09019e6d281f04c1d7c05d8f67db6110ab880928e",
+      "bytes": 5544
+    },
+    {
+      "path": "src/瓦罗兰/运行/host.ts",
+      "sha256": "60bec166ff5ccf1d8b21fd9bfcc12f59bf46766e59e085e20e427b1024d47c6d",
+      "bytes": 197698
+    },
+    {
+      "path": "src/瓦罗兰/运行/knowledge-context.ts",
+      "sha256": "f53111220beb5ccada357c53b3a02ed89a363d16a744c0b3c809ea42c6f6742c",
+      "bytes": 36057
+    },
+    {
+      "path": "src/瓦罗兰/运行/map.ts",
+      "sha256": "e1dbd2b3d4c1b3f44ad221ecc21b1ef794c8d95925f936e26d8b2d3b4f4951bd",
+      "bytes": 5052
+    },
+    {
+      "path": "src/瓦罗兰/运行/message-protocol.ts",
+      "sha256": "691852af5c1a2a38fc15ec356e232d46aa160e1baf7b75d3b1f158ab8e65c67d",
+      "bytes": 20958
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-fields.ts",
+      "sha256": "b20652fb9287926ad933e3fd95f8a716472c645ea43a4753e7750eeff0476ec5",
+      "bytes": 3189
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-history.ts",
+      "sha256": "b796c8e36b05836fb5b77506ad7a032492e442429f6d0986dcb2318e6037f592",
+      "bytes": 7122
+    },
+    {
+      "path": "src/瓦罗兰/运行/model-phone-patch.ts",
+      "sha256": "9a05b504dcd81bd8dba02de7d65284f0f0d333b8c0534f6f25374476d389dbc3",
+      "bytes": 1628
+    },
+    {
+      "path": "src/瓦罗兰/运行/mvu-schema.ts",
+      "sha256": "d5d8c03d2c2778cab568223b03b98cebfa6837e40ef643976470e3e29afc3fad",
+      "bytes": 17167
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-context.ts",
+      "sha256": "4720eacbb6ad7b3c9625def00a90c0dbd22b6fb1845607e75f401d4b23023b72",
+      "bytes": 4481
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-refresh.ts",
+      "sha256": "c028e10a4b6ef0f55264a34d07cb68511e25be2b4fa899f3c21d3ae789455a95",
+      "bytes": 14329
+    },
+    {
+      "path": "src/瓦罗兰/运行/novel-system.ts",
+      "sha256": "214d62f846bf30033f06119974c4082dc70d97dbfbe1a35099d3fd26a3f7f75d",
+      "bytes": 16690
+    },
+    {
+      "path": "src/瓦罗兰/运行/opening.ts",
+      "sha256": "352871f86449ac6ad7891bf32fade691017776690ff47a825c66299dc1457629",
+      "bytes": 10153
+    },
+    {
+      "path": "src/瓦罗兰/运行/organization-profile.ts",
+      "sha256": "85fb8b9c786da7dc04f07fee0b051c1260f53cd2a9dcf3fab4c633901540a33d",
+      "bytes": 1298
+    },
+    {
+      "path": "src/瓦罗兰/运行/organizations.ts",
+      "sha256": "02b5760c514c51b064d41d7fb624bcb1caba1f61c0c598021fdf858edc5b61d2",
+      "bytes": 3699
+    },
+    {
+      "path": "src/瓦罗兰/运行/partial-settlement.ts",
+      "sha256": "9679d1d81fd1809cfb9102d1f91d1a31f45265b6d64343e4b095079b364e5d0a",
+      "bytes": 4183
+    },
+    {
+      "path": "src/瓦罗兰/运行/patch-group.ts",
+      "sha256": "36e579d164681ef4bed96544b67ed24796a7f77faf8276b3ba31441310b8497a",
+      "bytes": 1069
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-budget.ts",
+      "sha256": "67d71b50a455c6a0279555bb98e6c135273b34b982015c8e0ac8e0eda7c74101",
+      "bytes": 1158
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-management.ts",
+      "sha256": "2821a8af639abf357369ff7be3e43d0e597b1a6143e9a090e7cc9643c0a0eedd",
+      "bytes": 11551
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone-request.ts",
+      "sha256": "67c4d1d5b41029c68f3465ea300dec96e8a920a3665add406295fd92360ba1b9",
+      "bytes": 1122
+    },
+    {
+      "path": "src/瓦罗兰/运行/phone.ts",
+      "sha256": "9b256464798dc598473b9dabb52bfc0822bb86873ec368d3f912e2edf8a00da3",
+      "bytes": 24097
+    },
+    {
+      "path": "src/瓦罗兰/运行/player-map-location.ts",
+      "sha256": "8a17329dadafa92152d12b39617dd8a8a7bb3e6fabe69a6478273a1d675f1591",
+      "bytes": 3983
+    },
+    {
+      "path": "src/瓦罗兰/运行/prompt-context.ts",
+      "sha256": "065a4fc7d78b49e0282c7ccfbff39cc71e00658feb7de44032b5c0b82b7253e8",
+      "bytes": 20738
+    },
+    {
+      "path": "src/瓦罗兰/运行/prompts.ts",
+      "sha256": "19086b8a08e65b749f815b17e087b98393ee69e68eb3e6f3566053a7f8aaed1a",
+      "bytes": 4124
+    },
+    {
+      "path": "src/瓦罗兰/运行/public-landmarks.json",
+      "sha256": "8e47ab20e0ab4a9d67074b143574b68444cc8a52aa3e9741a56c4ed313d6c4ef",
+      "bytes": 680
+    },
+    {
+      "path": "src/瓦罗兰/运行/request-source.ts",
+      "sha256": "4c1c96160f6c6bd6f834d9691eb225f98c4b1e463ced199681059d4779abece1",
+      "bytes": 12292
+    },
+    {
+      "path": "src/瓦罗兰/运行/roster-progress.ts",
+      "sha256": "b2e2113a0914605fd3450561be0a22890252c4af56932b6686fe87fe98f201bb",
+      "bytes": 3287
+    },
+    {
+      "path": "src/瓦罗兰/运行/scheduler.ts",
+      "sha256": "5152fe4b74d145bd10ea61e0b39dc29e34580609984dd1d99a2245391694acca",
+      "bytes": 2787
+    },
+    {
+      "path": "src/瓦罗兰/运行/settings.ts",
+      "sha256": "cf8001b0b49225da09df2066683d7e9dd3d030f98359b4682aa9aec6cc6394ca",
+      "bytes": 15725
+    },
+    {
+      "path": "src/瓦罗兰/运行/settlement.ts",
+      "sha256": "842560eeaad6e97d84d10068f9770419708845812d2d76e87d3acfe0a4034e15",
+      "bytes": 2378
+    },
+    {
+      "path": "src/瓦罗兰/运行/shared-preferences.ts",
+      "sha256": "dbb4f1a953dd5a4bb7f3b7b0f6918f6e6f1336c624ceeeb64a3337f444491c82",
+      "bytes": 2343
+    },
+    {
+      "path": "src/瓦罗兰/运行/source-context.ts",
+      "sha256": "387715a42a3f500305a8c3b44c00331283e442679e00f772fa79126d15c573cc",
+      "bytes": 5440
+    },
+    {
+      "path": "src/瓦罗兰/运行/story-backup.ts",
+      "sha256": "0f204aa53961f88d872e51c1a520e41e9ac0ae4e5713f76417e74057daabd6c4",
+      "bytes": 3680
+    },
+    {
+      "path": "src/瓦罗兰/运行/tasks.ts",
+      "sha256": "c18ccc16be5097c0069f4d54a259359fe20c16f99fe72b10a7bb747a2cd96990",
+      "bytes": 6954
+    },
+    {
+      "path": "src/瓦罗兰/运行/update-receipt.ts",
+      "sha256": "731e0a8fd4bd8abc9b6c207ba6873deacadb3cc901cd77663b28e608280e6d90",
+      "bytes": 1496
+    },
+    {
+      "path": "src/瓦罗兰/运行/update-tasks.ts",
+      "sha256": "3b056e6e23135fc515a701d22829136f35ad301b1983d376b8697f0f1ec70b5a",
+      "bytes": 9084
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-changes.ts",
+      "sha256": "40627494c624b5fc64d1f8c6cc95c884488cb728669db528e3c54888a433f356",
+      "bytes": 9559
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-inspector.ts",
+      "sha256": "f199a8fe76303f9ff45d084574cdd13edbdf6ea1548d8bc1e0d0eac7dfb5f2dd",
+      "bytes": 38099
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-output-store.ts",
+      "sha256": "e1b0aab7632186f8fdd3880a948651a7c85e1a011e272c61d9035ea9cb7d88b6",
+      "bytes": 10523
+    },
+    {
+      "path": "src/瓦罗兰/运行/variable-response.ts",
+      "sha256": "4f438bb2bbc730da59c8b4dcac3e998fcd5d6dcc03d9057af98411728a5dc068",
+      "bytes": 7137
+    },
+    {
+      "path": "src/瓦罗兰/运行/vertex.ts",
+      "sha256": "374f311ac93a290ab4e1b6417f44bb4539d9bcffa0fc07b18d4f1a01f95ce463",
+      "bytes": 11842
+    },
+    {
+      "path": "src/瓦罗兰/运行/worker-task.ts",
+      "sha256": "317d02a2e544125fddb8129c530079dae60ed5a24f72f28051fc384b4505fc1f",
+      "bytes": 496
+    },
+    {
+      "path": "src/瓦罗兰/运行/world-geography.json",
+      "sha256": "fc5701e69363583dfd3cf671886d217b0db15449006471552a66c7c9e1ee0028",
+      "bytes": 24897
+    },
+    {
+      "path": "src/瓦罗兰/运行/world-information.json",
+      "sha256": "0fe0fe9d561036f905711c5a73a59354d00be85a6f4f159b3188d2698eb81b22",
+      "bytes": 73417
+    },
+    {
+      "path": "src/瓦罗兰/运行/world.ts",
+      "sha256": "7672eeb3a588b8b9b12708221c3ec1ccdaa91688c27bd260a977148d89a91bb4",
+      "bytes": 5294
+    },
+    {
+      "path": "src/瓦罗兰/运行/世界资料.ts",
+      "sha256": "455780eed1ac4f97bcaae5cf2d46021732dc499cae47cc2b5de34dfefe985a97",
+      "bytes": 347
+    },
+    {
+      "path": "src/瓦罗兰/运行/地图地标.ts",
+      "sha256": "5f711090f97d20a485cc2efdcd327a30dcfaba5c587f1807736b31e0743f59b9",
+      "bytes": 218
+    },
+    {
+      "path": "src/瓦罗兰/运行/地图资源.json",
+      "sha256": "e772ceff195eb5b3186d686fc74220d66fe969b62387371ec2552348dd9c3061",
+      "bytes": 681
+    },
+    {
+      "path": "src/瓦罗兰/运行/地理名称.ts",
+      "sha256": "b8b01276d624de53d87c69afc60cf05764c109e9635034fedb817370f5ba6338",
+      "bytes": 235
+    },
+    {
+      "path": "src/瓦罗兰/运行/设定路径.json",
+      "sha256": "1aaa153903b9ef122bb5f0439f0d1eb1143661ba274d5987636a8e41b97e2cf8",
+      "bytes": 231
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "173bef9ba3e846a0049cbe23472f8a9f1359389c56fc6b142ed7ade24724643f",
+      "bytes": 1024
+    },
+    {
+      "path": "util/common.ts",
+      "sha256": "83f45364489d46e961268182c3962886a247baeb356414aef31bd6fa9c3c4d56",
+      "bytes": 4145
+    },
+    {
+      "path": "util/iframe_srcdoc.html",
+      "sha256": "e59d9a9abc7d9e789d6b1717a90115c75fbfdcfc771de6554010e9bf6496b0c8",
+      "bytes": 948
+    },
+    {
+      "path": "util/mvu.ts",
+      "sha256": "d6940fa5401520e33cea4f1e0d8a5a4f85818ecc3601148b4b195d29fb144fa7",
+      "bytes": 1955
+    },
+    {
+      "path": "util/script.ts",
+      "sha256": "f38e0c9168712a79e45cd37b84c98801c77b75d808b29ac916563dc80d118c0c",
+      "bytes": 1291
+    },
+    {
+      "path": "util/streaming.ts",
+      "sha256": "843c0ed51c0ab44c614b1d57cc281ee4488d5194263e9d84d6e3fefae43982bc",
+      "bytes": 8486
+    },
+    {
+      "path": "webpack.config.ts",
+      "sha256": "9e4315a4d41a3ffe575c342adaa3b77db546f5c707bcfbcbe9a7a4c9db4baf78",
+      "bytes": 18716
+    }
+  ],
+  "externalAssets": [
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/10-恕瑞玛.webp",
+      "sha256": "c93e2316009b731fdd3b8d1e5d4b653b7e6b6b0fbf4088a76db0a87bb6e607d4",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/10-%E6%81%95%E7%91%9E%E7%8E%9B.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/11-以绪塔尔.webp",
+      "sha256": "dd0e9a20797d01ec46d10afc96b4e9c63f3f600b763f5e4fc932e2f9c89f8bf5",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/11-%E4%BB%A5%E7%BB%AA%E5%A1%94%E5%B0%94.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/12-巨神峰.webp",
+      "sha256": "f95a4991c88387b9d72586cb70ded7c0c6a6507465c23db1e8509582d816c8e2",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/12-%E5%B7%A8%E7%A5%9E%E5%B3%B0.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/13-暗影岛.webp",
+      "sha256": "30246ae95d8851cf22c88cad9a3ccae5e8a5f656f4fb4e5e7de193e4deccb866",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/13-%E6%9A%97%E5%BD%B1%E5%B2%9B.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/00-世界总图.webp",
+      "sha256": "00ad610ce46c9f5a549e602e21c1875a2ffa7f23922d24a8000aaa08e9ed4d27",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/00-%E4%B8%96%E7%95%8C%E6%80%BB%E5%9B%BE.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/01-瓦罗兰市.webp",
+      "sha256": "bb3fc25d7570c2c692cf918793dc803942841c978acd3187ce349c39e12f7072",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/01-%E7%93%A6%E7%BD%97%E5%85%B0%E5%B8%82.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/02-诺克斯维加斯.webp",
+      "sha256": "ddba0196916c4dbfed90d15d38d769739065d8e7ce7a9d1266d38857a80421ad",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/02-%E8%AF%BA%E5%85%8B%E6%96%AF%E7%BB%B4%E5%8A%A0%E6%96%AF.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/03-远古召唤师峡谷.webp",
+      "sha256": "a6c1e64ad55ed85211ebefb200a029c2a8c0ecb87ef2af09578a454b53406abe",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/03-%E8%BF%9C%E5%8F%A4%E5%8F%AC%E5%94%A4%E5%B8%88%E5%B3%A1%E8%B0%B7.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/04-德玛西亚.webp",
+      "sha256": "b2ea6671d97b545385634dbe86af6a3be12efda6ef436042cc0cf9895f5aa6f2",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/04-%E5%BE%B7%E7%8E%9B%E8%A5%BF%E4%BA%9A.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/05-诺克萨斯.webp",
+      "sha256": "06c11c5e5a693cc284e4281696ad572ca4b1be3ad3651bf9c63f44c371b16968",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/05-%E8%AF%BA%E5%85%8B%E8%90%A8%E6%96%AF.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/06-弗雷尔卓德.webp",
+      "sha256": "413167dbf5f148a75caac945ed8cac70f0346cdbe954dcd1faa5cf531852c831",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/06-%E5%BC%97%E9%9B%B7%E5%B0%94%E5%8D%93%E5%BE%B7.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/07-皮尔特沃夫与祖安.webp",
+      "sha256": "d9d64c372a939c46bc351f6815b12e33a5a684831dc9427ef05d16902a354c9e",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/07-%E7%9A%AE%E5%B0%94%E7%89%B9%E6%B2%83%E5%A4%AB%E4%B8%8E%E7%A5%96%E5%AE%89.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/08-艾欧尼亚.webp",
+      "sha256": "2d25ec5aeaabc43465a3f3052b1416ee60c755eb6d09a4b5cf2bca4ef9512fb7",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/08-%E8%89%BE%E6%AC%A7%E5%B0%BC%E4%BA%9A.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/09-比尔吉沃特.webp",
+      "sha256": "c754b9c9565b388d57bc204a9749fd9ae42b86342febb076cd041a818bd4ba03",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/09-%E6%AF%94%E5%B0%94%E5%90%89%E6%B2%83%E7%89%B9.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/14-1-班德尔城奇境.webp",
+      "sha256": "f7bf611bfe06cd75fc927448a09b0900a8226cf277e836d41296ebc774a64626",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/14-1-%E7%8F%AD%E5%BE%B7%E5%B0%94%E5%9F%8E%E5%A5%87%E5%A2%83.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/14-2-远洋东大陆航线节点.webp",
+      "sha256": "655c879f85891a3330e5f6409b6091bed6949279fac065c04bc6a5132fafc362",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/14-2-%E8%BF%9C%E6%B4%8B%E4%B8%9C%E5%A4%A7%E9%99%86%E8%88%AA%E7%BA%BF%E8%8A%82%E7%82%B9.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/15-1-星陨梦境域.webp",
+      "sha256": "f3465b49d5f229c8e351db0681fe5fea159995f85d9fbb8dae3eaff7768af558",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/15-1-%E6%98%9F%E9%99%A8%E6%A2%A6%E5%A2%83%E5%9F%9F.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/15-2-精神界梦魇与绽灵神域.webp",
+      "sha256": "bef1491c4d6d691c9fa9d8db6d75c108555723026c7c83fe29ce4a6bb87cbc6f",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/15-2-%E7%B2%BE%E7%A5%9E%E7%95%8C%E6%A2%A6%E9%AD%87%E4%B8%8E%E7%BB%BD%E7%81%B5%E7%A5%9E%E5%9F%9F.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/15-3-暗星奇点裂隙域.webp",
+      "sha256": "e288cfa56928f168ced247afb8beeb151248bea15c328ea6a4383f22d4872898",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/15-3-%E6%9A%97%E6%98%9F%E5%A5%87%E7%82%B9%E8%A3%82%E9%9A%99%E5%9F%9F.webp"
+    },
+    {
+      "path": "src/瓦罗兰/界面/桌面端/assets/maps/15-4-虚空深渊蚀界带.webp",
+      "sha256": "798fb9b96a51e30a13f62783cc76395b12f783aef71d07b12a2cacf5f3af1869",
+      "url": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/assets/maps/15-4-%E8%99%9A%E7%A9%BA%E6%B7%B1%E6%B8%8A%E8%9A%80%E7%95%8C%E5%B8%A6.webp"
+    }
+  ]
+}

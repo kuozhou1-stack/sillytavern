@@ -1,0 +1,59 @@
+{
+  "title": "瓦洛兰",
+  "version": "0.7.0",
+  "revision": "0.7.0-valoran-20261128",
+  "updatedAt": "2026-11-28T11:24:18.891Z",
+  "runtimeCommit": "3ded97d734c409d5a98808db0da64989c7a9cdd5",
+  "dataCommit": "aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2",
+  "catalogUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/aa900a46ccef2f4ecdc9ad2efb353114ea93ffc2/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%A7%92%E8%89%B2%E8%B5%84%E6%BA%90/index.json",
+  "scripts": [
+    {
+      "id": "d772e754-a926-49cb-95ef-44e1034b2325",
+      "name": "瓦洛兰·变量结构",
+      "path": "瓦罗兰/runtime/脚本/变量结构/index.js",
+      "sha256": "6100ae9588dcc51aa2a30205d7b3a0b3220b29e406d07cc815e91e2e14361f5d",
+      "bytes": 82466,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E5%8F%98%E9%87%8F%E7%BB%93%E6%9E%84/index.js"
+    },
+    {
+      "id": "a62df6e7-9f9c-49ea-a760-d85b95a1104e",
+      "name": "瓦洛兰·辅助API",
+      "path": "瓦罗兰/runtime/脚本/辅助API/index.js",
+      "sha256": "d5a3d9aef6bf9fe2df8780b5c66115ce6b278b3f2cdb0ac689e0684fc436ee82",
+      "bytes": 528504,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E8%BE%85%E5%8A%A9API/index.js"
+    },
+    {
+      "id": "30b74d98-2ca6-477c-85af-7feb6ad21a36",
+      "name": "瓦洛兰·流式同层",
+      "path": "瓦罗兰/runtime/脚本/流式同层/index.js",
+      "sha256": "63f0ce7a23f99b9eb3970ed8dcd98e4bc8ac11fc4e49791737be5ed9e643e12c",
+      "bytes": 1462180,
+      "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js",
+      "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E8%84%9A%E6%9C%AC/%E6%B5%81%E5%BC%8F%E5%90%8C%E5%B1%82/index.js"
+    }
+  ],
+  "frontend": {
+    "path": "瓦罗兰/runtime/界面/桌面端/index.html",
+    "sha256": "26abce96aee74220bd126067c99f12664bcecfee2cc5243d49160bfa974b0c94",
+    "bytes": 1421245,
+    "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html",
+    "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/%E7%95%8C%E9%9D%A2/%E6%A1%8C%E9%9D%A2%E7%AB%AF/index.html"
+  },
+  "source": {
+    "path": "瓦罗兰/runtime/source/source.tar.gz",
+    "sha256": "dbec8ea5da3f842045f38b9fbecfd5a38f2f7c9842ff18a3de3ca4a14a160771",
+    "bytes": 2392909,
+    "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/source/source.tar.gz",
+    "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/source/source.tar.gz"
+  },
+  "sourceNotice": {
+    "path": "瓦罗兰/runtime/source/README.md",
+    "sha256": "1d85d1cb3ab25c41ec4726196e72a6cacfe4e73bad009114f60cd7694523c4ef",
+    "bytes": 2725,
+    "url": "https://cdn.jsdelivr.net/gh/kuozhou1-stack/sillytavern@3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/source/README.md",
+    "rawUrl": "https://raw.githubusercontent.com/kuozhou1-stack/sillytavern/3ded97d734c409d5a98808db0da64989c7a9cdd5/%E7%93%A6%E7%BD%97%E5%85%B0/runtime/source/README.md"
+  }
+}
